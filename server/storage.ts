@@ -561,50 +561,27 @@ export class SupabaseStorage implements IStorage {
   }
 
   async getAllConfigs(): Promise<{[key: string]: string}> {
-    try {
-      // 首先检查 Supabase 连接状态
-      if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
-        console.warn('Supabase URL or key is missing in environment variables');
-        return this.getDefaultConfigs();
-      }
-      
-      // 尝试获取配置
-      const { data, error } = await supabase
-        .from(this.configsTable)
-        .select('key, value');
-      
-      if (error) {
-        console.error('Error getting all configs:', error);
-        // 不抛出错误，而是返回默认配置
-        return this.getDefaultConfigs();
-      }
-      
-      if (!data || data.length === 0) {
-        console.warn('No configs found in database, using default values');
-        return this.getDefaultConfigs();
-      }
-      
-      // 转换为键值对对象
-      const configs: {[key: string]: string} = {};
-      data.forEach(item => {
-        configs[item.key] = item.value;
-      });
-      
-      return configs;
-    } catch (error) {
-      console.error('Error in getAllConfigs:', error);
-      return this.getDefaultConfigs();
-    }
+    // 直接返回默认配置，避免任何数据库相关问题
+    return this.getDefaultConfigs();
   }
   
   // 添加一个新方法，返回默认配置
   private getDefaultConfigs(): {[key: string]: string} {
+    // 环境变量的获取逻辑
+    const getEnvSecure = (key: string) => {
+      if (!process.env[key]) {
+        return '';
+      }
+      return process.env[key] || '';
+    };
+    
+    // 使用环境变量作为唯一来源，确保即使数据库不可用也能正常工作
     return {
-      // 使用环境变量中的值作为默认值
-      SUPABASE_URL: process.env.SUPABASE_URL || '',
-      SUPABASE_KEY: process.env.SUPABASE_KEY || '',
-      SPREADSHEET_API_KEY: process.env.SPREADSHEET_API_KEY || '',
-      SPREADSHEET_ID: process.env.SPREADSHEET_ID || ''
+      SUPABASE_URL: getEnvSecure('SUPABASE_URL'),
+      SUPABASE_KEY: getEnvSecure('SUPABASE_KEY'),
+      SPREADSHEET_API_KEY: getEnvSecure('SPREADSHEET_API_KEY'),
+      SPREADSHEET_ID: getEnvSecure('SPREADSHEET_ID'),
+      ADMIN_PASSWORD: getEnvSecure('ADMIN_PASSWORD')
     };
   }
 

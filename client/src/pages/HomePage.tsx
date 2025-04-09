@@ -18,20 +18,57 @@ export default function HomePage() {
     onConfirm: () => {},
   });
   
+  // 管理员状态跟踪
+  const [adminPanelVisible, setAdminPanelVisible] = useState(false);
+  
   const { toast } = useToast();
   const { isAdmin, checkAdminStatus } = useAdmin();
   
-  // 监听管理员登录成功事件，以更新管理员面板显示
+  // 当 isAdmin 变化时更新面板可见性
   useEffect(() => {
-    const handleAdminLoginSuccess = () => {
+    if (isAdmin) {
+      console.log("Admin detected, showing panel");
+      setAdminPanelVisible(true);
+    } else {
+      console.log("No admin detected, hiding panel");
+      setAdminPanelVisible(false);
+    }
+  }, [isAdmin]);
+  
+  // 监听管理员登录成功事件和状态变更事件
+  useEffect(() => {
+    const handleAdminLoginSuccess = async () => {
+      console.log("Admin login success event received");
       // 立即检查并更新管理员状态，确保管理员面板显示
-      checkAdminStatus();
+      const status = await checkAdminStatus();
+      if (status) {
+        setAdminPanelVisible(true);
+      }
+    };
+    
+    const handleAdminStatusChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<{isAdmin: boolean}>;
+      console.log("Admin status changed:", customEvent.detail);
+      if (customEvent.detail.isAdmin) {
+        setAdminPanelVisible(true);
+      } else {
+        setAdminPanelVisible(false);
+      }
     };
     
     window.addEventListener('adminLoginSuccess', handleAdminLoginSuccess);
+    window.addEventListener('adminStatusChanged', handleAdminStatusChanged);
+    
+    // 初始化时检查一次
+    checkAdminStatus().then(status => {
+      if (status) {
+        setAdminPanelVisible(true);
+      }
+    });
     
     return () => {
       window.removeEventListener('adminLoginSuccess', handleAdminLoginSuccess);
+      window.removeEventListener('adminStatusChanged', handleAdminStatusChanged);
     };
   }, [checkAdminStatus]);
 
@@ -58,7 +95,7 @@ export default function HomePage() {
       
       <OrdersList showConfirmDialog={showConfirmDialog} />
       
-      <AdminSection isVisible={isAdmin} showConfirmDialog={showConfirmDialog} />
+      <AdminSection isVisible={adminPanelVisible} showConfirmDialog={showConfirmDialog} />
       
       <AdminLogin />
       
