@@ -72,10 +72,21 @@ export default function ConfigSettings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   
+  // 当配置加载完成后，更新本地状态
+  useEffect(() => {
+    if (configs) {
+      if (configs.SUPABASE_URL) setSupabaseUrl(configs.SUPABASE_URL);
+      if (configs.SUPABASE_KEY) setSupabaseKey(configs.SUPABASE_KEY);
+      if (configs.SPREADSHEET_API_KEY) setSpreadsheetApiKey(configs.SPREADSHEET_API_KEY);
+      if (configs.SPREADSHEET_ID) setSpreadsheetId(configs.SPREADSHEET_ID);
+    }
+  }, [configs]);
+  
   // 加载配置
   useEffect(() => {
     loadConfigs();
-  }, [loadConfigs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 只在组件挂载时加载一次
   
   // 更新管理员密码
   const handlePasswordUpdate = async () => {

@@ -17,6 +17,9 @@ export function useConfig() {
 
   // 加载配置信息
   const loadConfigs = async () => {
+    // 如果已经在加载中，不重复加载
+    if (isLoading) return;
+    
     setIsLoading(true);
     try {
       const response = await fetch('/api/configs');
@@ -29,11 +32,14 @@ export function useConfig() {
       setConfigs(data);
     } catch (error) {
       console.error("Error loading configs:", error);
-      toast({
-        title: "載入配置失敗",
-        description: error instanceof Error ? error.message : "未知錯誤",
-        variant: "destructive",
-      });
+      // 避免频繁显示错误提示，只有当有明确的HTTP错误时才提示
+      if (error instanceof Error && error.message.includes('Error')) {
+        toast({
+          title: "載入配置失敗",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
