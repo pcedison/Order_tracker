@@ -45,6 +45,13 @@ export const configs = pgTable("configs", {
   value: text("value").notNull(),
 });
 
+// Session table for express-session with PostgreSQL
+export const session = pgTable("session", {
+  sid: text("sid").primaryKey(),
+  sess: text("sess").notNull(),
+  expire: timestamp("expire", { mode: 'date' }).notNull(),
+});
+
 export const insertConfigSchema = createInsertSchema(configs).omit({
   id: true,
 });

@@ -562,13 +562,26 @@ export class SupabaseStorage implements IStorage {
 
   async getAllConfigs(): Promise<{[key: string]: string}> {
     try {
+      // 首先检查 Supabase 连接状态
+      if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+        console.warn('Supabase URL or key is missing in environment variables');
+        return this.getDefaultConfigs();
+      }
+      
+      // 尝试获取配置
       const { data, error } = await supabase
         .from(this.configsTable)
         .select('key, value');
       
       if (error) {
         console.error('Error getting all configs:', error);
-        throw error;
+        // 不抛出错误，而是返回默认配置
+        return this.getDefaultConfigs();
+      }
+      
+      if (!data || data.length === 0) {
+        console.warn('No configs found in database, using default values');
+        return this.getDefaultConfigs();
       }
       
       // 转换为键值对对象
@@ -580,8 +593,19 @@ export class SupabaseStorage implements IStorage {
       return configs;
     } catch (error) {
       console.error('Error in getAllConfigs:', error);
-      return {};
+      return this.getDefaultConfigs();
     }
+  }
+  
+  // 添加一个新方法，返回默认配置
+  private getDefaultConfigs(): {[key: string]: string} {
+    return {
+      // 使用环境变量中的值作为默认值
+      SUPABASE_URL: process.env.SUPABASE_URL || '',
+      SUPABASE_KEY: process.env.SUPABASE_KEY || '',
+      SPREADSHEET_API_KEY: process.env.SPREADSHEET_API_KEY || '',
+      SPREADSHEET_ID: process.env.SPREADSHEET_ID || ''
+    };
   }
 
   async updateAdminPassword(currentPassword: string, newPassword: string): Promise<boolean> {
