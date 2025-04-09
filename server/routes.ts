@@ -1,0 +1,219 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import session from "express-session";
+import { z } from "zod";
+import { SpreadsheetService } from "./services/spreadsheet";
+import { AuthService } from "./services/auth";
+import MemoryStore from "memorystore";
+
+const MemoryStoreSession = MemoryStore(session);
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup session middleware
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || "supersecretkey",
+      resave: false,
+      saveUninitialized: false,
+      store: new MemoryStoreSession({
+        checkPeriod: 86400000, // Prune expired entries every 24h
+      }),
+      cookie: {
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      },
+    })
+  );
+
+  // Initialize services
+  const spreadsheetService = new SpreadsheetService();
+  const authService = new AuthService();
+
+  // Auth API routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { password } = req.body;
+
+      if (!password) {
+        return res.status(400).json({ success: false, message: "Password is required" });
+      }
+
+      const success = await authService.verifyPassword(password);
+
+      if (success) {
+        // Set admin session
+        if (req.session) {
+          req.session.isAdmin = true;
+        }
+        return res.json({ success: true });
+      } else {
+        return res.status(401).json({ success: false, message: "Incorrect password" });
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      return res.status(500).json({ success: false, message: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).json({ success: false, message: "Logout failed" });
+        }
+        res.clearCookie("connect.sid");
+        return res.json({ success: true });
+      });
+    } else {
+      return res.json({ success: true });
+    }
+  });
+
+  app.get("/api/auth/status", (req, res) => {
+    const isAuthenticated = req.session?.isAdmin === true;
+    return res.json({ authenticated: isAuthenticated });
+  });
+
+  // Products API routes
+  app.get("/api/products", async (req, res) => {
+    try {
+      const products = await spreadsheetService.getProducts();
+      return res.json(products);
+    } catch (error) {
+      console.error("Get products error:", error);
+      return res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
+  // Orders API routes
+  app.get("/api/orders", async (req, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      
+      const statusSchema = z.enum(["temporary", "completed"]).optional();
+      const validStatus = statusSchema.safeParse(status);
+      
+      if (status && !validStatus.success) {
+        return res.status(400).json({ message: "Invalid status parameter" });
+      }
+      
+      const orders = await storage.getOrders(status as "temporary" | "completed" | undefined);
+      return res.json(orders);
+    } catch (error) {
+      console.error("Get orders error:", error);
+      return res.status(500).json({ message: "Failed to fetch orders" });
+    }
+  });
+
+  app.post("/api/orders", async (req, res) => {
+    try {
+      const orderData = req.body;
+      const order = await storage.createOrder(orderData);
+      return res.status(201).json(order);
+    } catch (error) {
+      console.error("Create order error:", error);
+      return res.status(500).json({ message: "Failed to create order" });
+    }
+  });
+
+  app.delete("/api/orders/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteOrder(id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Delete order error:", error);
+      return res.status(500).json({ message: "Failed to delete order" });
+    }
+  });
+
+  app.patch("/api/orders/:id/complete", async (req, res) => {
+    try {
+      // Check if user is admin
+      if (!req.session?.isAdmin) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const order = await storage.completeOrder(id);
+      return res.json(order);
+    } catch (error) {
+      console.error("Complete order error:", error);
+      return res.status(500).json({ message: "Failed to complete order" });
+    }
+  });
+
+  app.get("/api/orders/history", async (req, res) => {
+    try {
+      // Check if user is admin
+      if (!req.session?.isAdmin) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { startDate, endDate } = req.query;
+      
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: "Start date and end date are required" });
+      }
+      
+      const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+      const validStartDate = dateSchema.safeParse(startDate);
+      const validEndDate = dateSchema.safeParse(endDate);
+      
+      if (!validStartDate.success || !validEndDate.success) {
+        return res.status(400).json({ message: "Invalid date format" });
+      }
+
+      const orders = await storage.getOrdersByDateRange(
+        startDate as string,
+        endDate as string,
+        "completed"
+      );
+      
+      return res.json(orders);
+    } catch (error) {
+      console.error("Get history error:", error);
+      return res.status(500).json({ message: "Failed to fetch history orders" });
+    }
+  });
+
+  app.get("/api/orders/stats", async (req, res) => {
+    try {
+      // Check if user is admin
+      if (!req.session?.isAdmin) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { year, month } = req.query;
+      
+      if (!year) {
+        return res.status(400).json({ message: "Year is required" });
+      }
+      
+      const yearSchema = z.string().regex(/^\d{4}$/);
+      const validYear = yearSchema.safeParse(year);
+      
+      if (!validYear.success) {
+        return res.status(400).json({ message: "Invalid year format" });
+      }
+
+      const monthSchema = z.string().regex(/^\d{1,2}$/).optional();
+      const validMonth = monthSchema.safeParse(month);
+      
+      if (month && !validMonth.success) {
+        return res.status(400).json({ message: "Invalid month format" });
+      }
+
+      const stats = await storage.generateOrderStats(year as string, month as string | undefined);
+      return res.json(stats);
+    } catch (error) {
+      console.error("Get stats error:", error);
+      return res.status(500).json({ message: "Failed to generate statistics" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
