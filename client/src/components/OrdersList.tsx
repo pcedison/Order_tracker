@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useOrders } from "@/hooks/useOrders";
@@ -16,6 +16,8 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
   const [editQuantity, setEditQuantity] = useState<string>("");
   const [editDeliveryDate, setEditDeliveryDate] = useState<string>("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
+  // 添加本地管理员状态以便触发重渲染
+  const [localAdminState, setLocalAdminState] = useState<boolean>(false);
   
   const { 
     orders, 
@@ -26,25 +28,36 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
     updateTemporaryOrder
   } = useOrders();
   
-  const { isAdmin } = useAdmin();
+  const { isAdmin, checkAdminStatus } = useAdmin();
   const { toast } = useToast();
 
+  // 处理管理员状态变化的回调
+  const handleAdminStatusChanged = useCallback(async (event: Event) => {
+    const customEvent = event as CustomEvent;
+    console.log('Admin status changed:', customEvent.detail);
+    // 更新本地状态以触发重渲染
+    setLocalAdminState(customEvent.detail?.isAdmin || false);
+    // 重新加载订单
+    await loadOrders();
+  }, [loadOrders]);
+
   useEffect(() => {
+    // 初始化时加载订单
     loadOrders();
+    // 检查初始管理员状态
+    checkAdminStatus().then(isAdmin => {
+      setLocalAdminState(isAdmin);
+    });
     
-    // 添加管理员登录成功事件监听器，登录成功后自动刷新订单列表
+    // 添加管理员登录成功事件监听器
     const handleAdminLogin = () => {
+      console.log('Admin login success event received');
       loadOrders();
     };
     
     // 添加订单创建成功事件监听器，创建订单后自动刷新订单列表
     const handleOrderCreated = (event: Event) => {
-      loadOrders();
-    };
-    
-    // 添加管理员状态变化事件监听器
-    const handleAdminStatusChanged = (event: Event) => {
-      // 强制组件重新渲染以显示或隐藏管理员按钮
+      console.log('Order created event received');
       loadOrders();
     };
     
@@ -58,7 +71,7 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
       window.removeEventListener('orderCreated', handleOrderCreated);
       window.removeEventListener('adminStatusChanged', handleAdminStatusChanged);
     };
-  }, [loadOrders]);
+  }, [loadOrders, handleAdminStatusChanged, checkAdminStatus]);
 
   const handleDeleteOrder = (orderId: string) => {
     showConfirmDialog("確定要刪除此訂單嗎？", async () => {
@@ -240,7 +253,7 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
                 <div className="text-[24px] font-bold">
                   到貨日期: {new Date(date).toLocaleDateString("zh-TW")}
                 </div>
-                {isAdmin && (
+                {(isAdmin || localAdminState) && (
                   <Button
                     className="px-4 py-2 text-[18px] bg-[#4CAF50] text-white border-none rounded cursor-pointer hover:bg-[#45a049]"
                     onClick={() => handleCompleteDateOrders(date, orders[date])}
