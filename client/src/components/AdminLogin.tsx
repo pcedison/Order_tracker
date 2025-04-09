@@ -38,6 +38,11 @@ export default function AdminLogin() {
           title: "登入成功",
           description: "已切換至管理員模式",
         });
+        
+        // 延迟一段时间后刷新页面，确保能显示管理员面板
+        // 这里使用自定义事件广播登录成功的消息
+        const adminLoginEvent = new CustomEvent('adminLoginSuccess');
+        window.dispatchEvent(adminLoginEvent);
       } else {
         toast({
           title: "登入失敗",

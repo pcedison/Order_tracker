@@ -19,7 +19,21 @@ export default function HomePage() {
   });
   
   const { toast } = useToast();
-  const { isAdmin } = useAdmin();
+  const { isAdmin, checkAdminStatus } = useAdmin();
+  
+  // 监听管理员登录成功事件，以更新管理员面板显示
+  useEffect(() => {
+    const handleAdminLoginSuccess = () => {
+      // 立即检查并更新管理员状态，确保管理员面板显示
+      checkAdminStatus();
+    };
+    
+    window.addEventListener('adminLoginSuccess', handleAdminLoginSuccess);
+    
+    return () => {
+      window.removeEventListener('adminLoginSuccess', handleAdminLoginSuccess);
+    };
+  }, [checkAdminStatus]);
 
   const showConfirmDialog = (message: string, onConfirm: () => void) => {
     setConfirmConfig({

@@ -33,11 +33,34 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     deleteHistoryOrder
   } = useOrders();
 
+  // 使用当前日期作为默认日期范围
+  useEffect(() => {
+    if (isVisible) {
+      // 如果是首次显示且没有设置日期，设置默认日期范围为当前月
+      if (!startDate || !endDate) {
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        
+        const formatDate = (date: Date) => {
+          return date.toISOString().split('T')[0]; // 格式化为 YYYY-MM-DD
+        };
+        
+        setStartDate(formatDate(firstDayOfMonth));
+        setEndDate(formatDate(lastDayOfMonth));
+      } else if (activeTab === "history") {
+        // 如果已经有日期范围且当前是历史标签页，加载历史订单
+        loadHistory(startDate, endDate);
+      }
+    }
+  }, [isVisible, activeTab, loadHistory, startDate, endDate]);
+  
+  // 监听日期变化加载历史订单
   useEffect(() => {
     if (isVisible && activeTab === "history" && startDate && endDate) {
       loadHistory(startDate, endDate);
     }
-  }, [isVisible, activeTab, loadHistory, startDate, endDate]);
+  }, [isVisible, activeTab, startDate, endDate, loadHistory]);
 
   const handleFilterHistory = () => {
     if (!startDate || !endDate) {
