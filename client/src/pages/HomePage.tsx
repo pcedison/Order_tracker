@@ -19,12 +19,7 @@ export default function HomePage() {
   });
   
   const { toast } = useToast();
-  const { isAdmin, checkAdminStatus } = useAdmin();
-
-  useEffect(() => {
-    // Check admin status on initial load
-    checkAdminStatus();
-  }, [checkAdminStatus]);
+  const { isAdmin } = useAdmin();
 
   const showConfirmDialog = (message: string, onConfirm: () => void) => {
     setConfirmConfig({

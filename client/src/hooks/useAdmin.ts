@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 
 export function useAdmin() {
@@ -14,14 +14,22 @@ export function useAdmin() {
       if (response.ok) {
         const data = await response.json();
         setIsAdmin(data.authenticated);
+        return data.authenticated;
       } else {
         setIsAdmin(false);
+        return false;
       }
     } catch (error) {
       console.error("Auth check error:", error);
       setIsAdmin(false);
+      return false;
     }
   }, []);
+  
+  // 在钩子初始化时自动检查管理员状态
+  useEffect(() => {
+    checkAdminStatus();
+  }, [checkAdminStatus]);
 
   // Login as admin
   const login = async (password: string): Promise<boolean> => {

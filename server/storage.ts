@@ -105,12 +105,13 @@ export class SupabaseStorage implements IStorage {
   }
 
   async createOrder(orderData: InsertOrder): Promise<Order> {
-    const id = nanoid();
+    // 从错误信息来看，item_id 在 Supabase 表中可能被定义为 bigint 类型
+    // 我们不再使用 nanoid 生成 ID，而是让数据库自动生成
     const now = new Date().toISOString();
     
     // 准备数据，适配原始 HTML 中使用的字段名
     const orderRecord = {
-      item_id: id, // 原 HTML 使用 item_id 作为唯一标识符
+      // 移除 item_id 字段，让数据库自动生成
       order_date: orderData.delivery_date, // 原 HTML 使用 order_date 字段
       product_code: orderData.product_code,
       product_name: orderData.product_name,
@@ -132,7 +133,7 @@ export class SupabaseStorage implements IStorage {
     
     // 转换为应用期望的格式
     return {
-      id: data.item_id,
+      id: data.id || data.item_id, // 支持自动生成的 id 或自定义 item_id
       delivery_date: data.order_date,
       product_code: data.product_code,
       product_name: data.product_name,
@@ -144,10 +145,11 @@ export class SupabaseStorage implements IStorage {
   }
 
   async deleteOrder(id: string): Promise<void> {
+    // 尝试使用 id 字段
     const { error } = await supabase
       .from(this.tableName)
       .delete()
-      .eq('item_id', id); // 使用 item_id 字段
+      .eq('id', id);
     
     if (error) {
       console.error('Error deleting order:', error);
@@ -158,13 +160,13 @@ export class SupabaseStorage implements IStorage {
   async completeOrder(id: string): Promise<Order> {
     const now = new Date().toISOString();
     
-    // 如果原始表没有 status 字段，则只更新 completed_at
+    // 使用 id 字段而不是 item_id
     const { data, error } = await supabase
       .from(this.tableName)
       .update({
         completed_at: now
       })
-      .eq('item_id', id) // 使用 item_id 字段
+      .eq('id', id)
       .select()
       .single();
     
@@ -175,7 +177,7 @@ export class SupabaseStorage implements IStorage {
     
     // 转换为应用期望的格式
     return {
-      id: data.item_id,
+      id: data.id || data.item_id,
       delivery_date: data.order_date,
       product_code: data.product_code,
       product_name: data.product_name,
