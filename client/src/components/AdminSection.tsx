@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useOrders } from "@/hooks/useOrders";
+import { Order } from "@/lib/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 interface AdminSectionProps {
   isVisible: boolean;
@@ -15,6 +17,9 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
   const [endDate, setEndDate] = useState<string>("");
   const [statsYear, setStatsYear] = useState<string>("2025");
   const [statsMonth, setStatsMonth] = useState<string>("");
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editQuantity, setEditQuantity] = useState<string>("");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
   
   const { toast } = useToast();
   const { 
@@ -23,7 +28,9 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     isLoadingHistory, 
     isLoadingStats,
     loadHistory, 
-    generateStats 
+    generateStats,
+    editHistoryOrder,
+    deleteHistoryOrder
   } = useOrders();
 
   useEffect(() => {
@@ -57,6 +64,71 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     
     generateStats(statsYear, statsMonth);
   };
+  
+  const handleEditHistoryOrder = (order: Order) => {
+    setEditingOrder(order);
+    setEditQuantity(order.quantity.toString());
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleDeleteHistoryOrder = (orderId: string, productCode: string) => {
+    showConfirmDialog(`確定要刪除產品編號為 ${productCode} 的歷史訂單嗎？此操作不可逆。`, async () => {
+      try {
+        await deleteHistoryOrder(orderId, productCode);
+        toast({
+          title: "刪除成功",
+          description: "歷史訂單已成功刪除",
+        });
+        // 重新加载历史订单
+        if (startDate && endDate) {
+          loadHistory(startDate, endDate);
+        }
+      } catch (error) {
+        console.error("Delete history order error:", error);
+        toast({
+          title: "刪除失敗",
+          description: "無法刪除歷史訂單",
+          variant: "destructive",
+        });
+      }
+    });
+  };
+  
+  const handleSaveEdit = async () => {
+    if (!editingOrder) return;
+    
+    try {
+      const quantity = parseInt(editQuantity);
+      if (isNaN(quantity) || quantity <= 0) {
+        toast({
+          title: "數量無效",
+          description: "請輸入有效的數量（必須大於0）",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      await editHistoryOrder(editingOrder.id, editingOrder.product_code, quantity);
+      setIsEditDialogOpen(false);
+      
+      toast({
+        title: "編輯成功",
+        description: "訂單數量已成功更新",
+      });
+      
+      // 重新加载历史订单
+      if (startDate && endDate) {
+        loadHistory(startDate, endDate);
+      }
+    } catch (error) {
+      console.error("Edit history order error:", error);
+      toast({
+        title: "編輯失敗",
+        description: "無法更新訂單數量",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (!isVisible) {
     return null;
@@ -65,6 +137,55 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
   return (
     <div className="bg-[#f9f9f9] p-5 rounded-lg mt-8" id="adminSection">
       <h2 className="text-[26px] mb-4">管理員功能</h2>
+      
+      {/* 编辑订单对话框 */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-[24px]">編輯訂單</DialogTitle>
+          </DialogHeader>
+          {editingOrder && (
+            <>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="text-right text-[18px] font-medium">產品編號:</div>
+                  <div className="col-span-3 text-[18px]">{editingOrder.product_code}</div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="text-right text-[18px] font-medium">產品名稱:</div>
+                  <div className="col-span-3 text-[18px]">{editingOrder.product_name}</div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="text-right text-[18px] font-medium">數量 (公斤):</div>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    value={editQuantity}
+                    onChange={(e) => setEditQuantity(e.target.value)}
+                    className="col-span-3 text-[18px] p-2 border border-[#ccc] rounded"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  onClick={() => setIsEditDialogOpen(false)}
+                  className="px-4 py-2 text-[18px] bg-[#7f7f7f] text-white border-none rounded cursor-pointer hover:bg-opacity-90 mr-2"
+                >
+                  取消
+                </Button>
+                <Button 
+                  type="button" 
+                  onClick={handleSaveEdit}
+                  className="px-4 py-2 text-[18px] bg-[#4CAF50] text-white border-none rounded cursor-pointer hover:bg-[#45a049]"
+                >
+                  保存更改
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
       
       <div className="flex mb-5">
         <div 
@@ -151,6 +272,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                       <th className="border border-[#ddd] p-3 bg-[#f2f2f2] text-left">產品名稱</th>
                       <th className="border border-[#ddd] p-3 bg-[#f2f2f2] text-left">數量 (公斤)</th>
                       <th className="border border-[#ddd] p-3 bg-[#f2f2f2] text-left">完成時間</th>
+                      <th className="border border-[#ddd] p-3 bg-[#f2f2f2] text-left">操作</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -163,6 +285,20 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                           {order.completed_at 
                             ? new Date(order.completed_at).toLocaleString("zh-TW") 
                             : "未記錄"}
+                        </td>
+                        <td className="border border-[#ddd] p-3">
+                          <Button
+                            className="px-2.5 py-1 text-base bg-[#2196F3] text-white border-none rounded cursor-pointer hover:bg-[#0b7dda] mr-2"
+                            onClick={() => handleEditHistoryOrder(order)}
+                          >
+                            編輯
+                          </Button>
+                          <Button
+                            className="px-2.5 py-1 text-base bg-[#f44336] text-white border-none rounded cursor-pointer hover:bg-[#d32f2f]"
+                            onClick={() => handleDeleteHistoryOrder(order.id, order.product_code)}
+                          >
+                            刪除
+                          </Button>
                         </td>
                       </tr>
                     ))}

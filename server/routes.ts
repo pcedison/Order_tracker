@@ -217,6 +217,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to complete order" });
     }
   });
+  
+  // 编辑历史订单（完成的订单）
+  app.patch("/api/orders/history/:id", async (req, res) => {
+    try {
+      // Check if user is admin
+      if (!req.session?.isAdmin) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const { product_code, quantity } = req.body;
+      
+      if (!product_code || !quantity) {
+        return res.status(400).json({ message: "Product code and quantity are required" });
+      }
+      
+      // Validate quantity
+      const quantitySchema = z.number().positive();
+      const validQuantity = quantitySchema.safeParse(quantity);
+      
+      if (!validQuantity.success) {
+        return res.status(400).json({ message: "Quantity must be a positive number" });
+      }
+      
+      await storage.editHistoryOrder(id, product_code, quantity);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Edit history order error:", error);
+      return res.status(500).json({ message: "Failed to update history order" });
+    }
+  });
+  
+  // 删除历史订单（完成的订单）
+  app.delete("/api/orders/history/:id", async (req, res) => {
+    try {
+      // Check if user is admin
+      if (!req.session?.isAdmin) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const { product_code } = req.body;
+      
+      if (!product_code) {
+        return res.status(400).json({ message: "Product code is required" });
+      }
+      
+      await storage.deleteHistoryOrder(id, product_code);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Delete history order error:", error);
+      return res.status(500).json({ message: "Failed to delete history order" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

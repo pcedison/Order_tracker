@@ -197,6 +197,43 @@ export function useOrders() {
     }
   }, [toast]);
 
+  // Edit history order (Update quantity)
+  const editHistoryOrder = async (orderId: string, productCode: string, quantity: number) => {
+    try {
+      const response = await apiRequest('PATCH', `/api/orders/history/${orderId}`, {
+        product_code: productCode,
+        quantity
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Edit history order error:", error);
+      throw error;
+    }
+  };
+  
+  // Delete history order
+  const deleteHistoryOrder = async (orderId: string, productCode: string) => {
+    try {
+      const response = await apiRequest('DELETE', `/api/orders/history/${orderId}`, {
+        product_code: productCode
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Delete history order error:", error);
+      throw error;
+    }
+  };
+
   return {
     orders,
     historyOrders,
@@ -210,5 +247,7 @@ export function useOrders() {
     completeOrder,
     loadHistory,
     generateStats,
+    editHistoryOrder,
+    deleteHistoryOrder,
   };
 }

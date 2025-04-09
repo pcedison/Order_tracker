@@ -23,6 +23,8 @@ export interface IStorage {
   deleteOrder(id: string): Promise<void>;
   completeOrder(id: string): Promise<Order>;
   generateOrderStats(year: string, month?: string): Promise<OrderStats>;
+  editHistoryOrder(orderId: string, productCode: string, quantity: number): Promise<void>;
+  deleteHistoryOrder(orderId: string, productCode: string): Promise<void>;
 }
 
 export class SupabaseStorage implements IStorage {
@@ -388,6 +390,85 @@ export class SupabaseStorage implements IStorage {
       periodText,
       totalOrders: completedOrders.length
     };
+  }
+  
+  async editHistoryOrder(orderId: string, productCode: string, quantity: number): Promise<void> {
+    try {
+      // 查找订单项
+      const { data: orderItem, error: findError } = await supabase
+        .from(this.orderItemsTable)
+        .select('*')
+        .eq('order_id', orderId)
+        .eq('product_code', productCode)
+        .single();
+      
+      if (findError) {
+        console.error('Error finding order item:', findError);
+        throw findError;
+      }
+      
+      if (!orderItem) {
+        throw new Error('Order item not found');
+      }
+      
+      // 更新订单项数量
+      const { error: updateError } = await supabase
+        .from(this.orderItemsTable)
+        .update({ quantity })
+        .eq('order_id', orderId)
+        .eq('product_code', productCode);
+      
+      if (updateError) {
+        console.error('Error updating order item:', updateError);
+        throw updateError;
+      }
+    } catch (error) {
+      console.error('Error in editHistoryOrder:', error);
+      throw error;
+    }
+  }
+  
+  async deleteHistoryOrder(orderId: string, productCode: string): Promise<void> {
+    try {
+      // 删除订单项
+      const { error: deleteError } = await supabase
+        .from(this.orderItemsTable)
+        .delete()
+        .eq('order_id', orderId)
+        .eq('product_code', productCode);
+      
+      if (deleteError) {
+        console.error('Error deleting order item:', deleteError);
+        throw deleteError;
+      }
+      
+      // 检查是否还有其他订单项与该订单关联
+      const { data: remainingItems, error: checkError } = await supabase
+        .from(this.orderItemsTable)
+        .select('order_id')
+        .eq('order_id', orderId);
+      
+      if (checkError) {
+        console.error('Error checking remaining items:', checkError);
+        throw checkError;
+      }
+      
+      // 如果该订单没有其他订单项，则删除主订单
+      if (remainingItems.length === 0) {
+        const { error: deleteOrderError } = await supabase
+          .from(this.ordersTable)
+          .delete()
+          .eq('id', orderId);
+        
+        if (deleteOrderError) {
+          console.error('Error deleting main order:', deleteOrderError);
+          throw deleteOrderError;
+        }
+      }
+    } catch (error) {
+      console.error('Error in deleteHistoryOrder:', error);
+      throw error;
+    }
   }
 }
 
