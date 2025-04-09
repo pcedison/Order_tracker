@@ -6,6 +6,8 @@ import { z } from "zod";
 import { SpreadsheetService } from "./services/spreadsheet";
 import { AuthService } from "./services/auth";
 import MemoryStore from "memorystore";
+import pgSession from 'connect-pg-simple';
+import { pool } from "./db";
 
 // 扩展 session 类型，添加 isAdmin 属性
 declare module "express-session" {
@@ -14,22 +16,41 @@ declare module "express-session" {
   }
 }
 
-const MemoryStoreSession = MemoryStore(session);
+// 创建PostgreSQL会话存储
+const PostgresStore = pgSession(session);
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // 确保session表存在
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+      );
+      CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+    `);
+    console.log("Session table verified/created");
+  } catch (err) {
+    console.error("Failed to create session table:", err);
+  }
+
   // Setup session middleware
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "supersecretkey",
       resave: false,
       saveUninitialized: false,
-      store: new MemoryStoreSession({
-        checkPeriod: 86400000, // Prune expired entries every 24h
+      store: new PostgresStore({
+        pool: pool,
+        tableName: 'session',
+        createTableIfMissing: true,
       }),
       cookie: {
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       },
     })
   );

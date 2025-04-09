@@ -147,6 +147,9 @@ export function useOrders() {
       return;
     }
     
+    // 如果已经在加载中，避免重复请求
+    if (isLoadingHistory) return;
+    
     setIsLoadingHistory(true);
     try {
       const response = await fetch(
@@ -154,6 +157,18 @@ export function useOrders() {
       );
       
       if (!response.ok) {
+        // 检查是否是会话过期/未授权
+        if (response.status === 403) {
+          // 会话可能已过期，触发重新登录提示
+          toast({
+            title: "會話已過期",
+            description: "請重新登入以查看歷史訂單",
+            variant: "destructive",
+          });
+          // 触发会话过期事件
+          window.dispatchEvent(new CustomEvent('sessionExpired'));
+          return;
+        }
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
@@ -179,10 +194,13 @@ export function useOrders() {
     } finally {
       setIsLoadingHistory(false);
     }
-  }, [toast]);
+  }, [toast, isLoadingHistory]);
 
   // Generate statistics for completed orders
   const generateStats = useCallback(async (year: string, month: string = "") => {
+    // 避免重复请求
+    if (isLoadingStats) return;
+    
     setIsLoadingStats(true);
     try {
       const response = await fetch(
@@ -190,6 +208,18 @@ export function useOrders() {
       );
       
       if (!response.ok) {
+        // 检查是否是会话过期/未授权
+        if (response.status === 403) {
+          // 会话可能已过期，触发重新登录提示
+          toast({
+            title: "會話已過期",
+            description: "請重新登入以生成統計數據",
+            variant: "destructive",
+          });
+          // 触发会话过期事件
+          window.dispatchEvent(new CustomEvent('sessionExpired'));
+          return;
+        }
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
@@ -205,7 +235,7 @@ export function useOrders() {
     } finally {
       setIsLoadingStats(false);
     }
-  }, [toast]);
+  }, [toast, isLoadingStats]);
 
   // Edit history order (Update quantity)
   const editHistoryOrder = async (orderId: string, productCode: string, quantity: number) => {

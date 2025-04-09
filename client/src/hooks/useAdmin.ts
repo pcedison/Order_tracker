@@ -26,9 +26,27 @@ export function useAdmin() {
     }
   }, []);
   
-  // 在钩子初始化时自动检查管理员状态
+  // 在钩子初始化时自动检查管理员状态，并监听会话过期事件
   useEffect(() => {
     checkAdminStatus();
+    
+    // 添加会话过期的监听器
+    const handleSessionExpired = () => {
+      console.log("Session expired event received");
+      setIsAdmin(false);
+    };
+    
+    window.addEventListener('sessionExpired', handleSessionExpired);
+    
+    // 定期检查管理员状态（每10分钟），确保长时间活动时状态保持一致
+    const intervalId = setInterval(() => {
+      checkAdminStatus();
+    }, 10 * 60 * 1000); // 10分钟
+    
+    return () => {
+      window.removeEventListener('sessionExpired', handleSessionExpired);
+      clearInterval(intervalId);
+    };
   }, [checkAdminStatus]);
 
   // Login as admin

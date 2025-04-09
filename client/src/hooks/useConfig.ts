@@ -25,6 +25,18 @@ export function useConfig() {
       const response = await fetch('/api/configs');
       
       if (!response.ok) {
+        // 检查是否是会话过期/未授权
+        if (response.status === 403) {
+          // 会话可能已过期，触发重新登录提示
+          toast({
+            title: "會話已過期",
+            description: "請重新登入以加載配置信息",
+            variant: "destructive",
+          });
+          // 触发会话过期事件
+          window.dispatchEvent(new CustomEvent('sessionExpired'));
+          return;
+        }
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
@@ -47,11 +59,26 @@ export function useConfig() {
 
   // 更新单个配置
   const updateConfig = async (key: string, value: string) => {
+    // 如果已经在更新中，不重复发送请求
+    if (isUpdating) return false;
+    
     setIsUpdating(true);
     try {
       const response = await apiRequest('POST', '/api/configs', { key, value });
       
       if (!response.ok) {
+        // 检查是否是会话过期/未授权
+        if (response.status === 403) {
+          // 会话可能已过期，触发重新登录提示
+          toast({
+            title: "會話已過期",
+            description: "請重新登入以更新配置",
+            variant: "destructive",
+          });
+          // 触发会话过期事件
+          window.dispatchEvent(new CustomEvent('sessionExpired'));
+          return false;
+        }
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
@@ -86,6 +113,9 @@ export function useConfig() {
 
   // 更新管理员密码
   const updateAdminPassword = async (currentPassword: string, newPassword: string) => {
+    // 如果已经在更新中，避免重复请求
+    if (isUpdating) return false;
+    
     setIsUpdating(true);
     try {
       const response = await apiRequest('POST', '/api/admin/password', { 
@@ -94,6 +124,18 @@ export function useConfig() {
       });
       
       if (!response.ok) {
+        // 检查是否是会话过期
+        if (response.status === 403) {
+          toast({
+            title: "會話已過期",
+            description: "請重新登入以更新密碼",
+            variant: "destructive",
+          });
+          // 触发会话过期事件
+          window.dispatchEvent(new CustomEvent('sessionExpired'));
+          return false;
+        }
+        
         const errorData = await response.json();
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
