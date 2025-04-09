@@ -30,6 +30,25 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
 
   useEffect(() => {
     loadOrders();
+    
+    // 添加管理员登录成功事件监听器，登录成功后自动刷新订单列表
+    const handleAdminLogin = () => {
+      loadOrders();
+    };
+    
+    // 添加订单创建成功事件监听器，创建订单后自动刷新订单列表
+    const handleOrderCreated = (event: Event) => {
+      loadOrders();
+    };
+    
+    window.addEventListener('adminLoginSuccess', handleAdminLogin);
+    window.addEventListener('orderCreated', handleOrderCreated);
+    
+    // 清理函数
+    return () => {
+      window.removeEventListener('adminLoginSuccess', handleAdminLogin);
+      window.removeEventListener('orderCreated', handleOrderCreated);
+    };
   }, [loadOrders]);
 
   const handleDeleteOrder = (orderId: string) => {
@@ -48,6 +67,29 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
         await completeOrder(orderId);
       } catch (error) {
         console.error("Complete order error:", error);
+      }
+    });
+  };
+  
+  const handleCompleteDateOrders = (date: string, dateOrders: Order[]) => {
+    showConfirmDialog(`確定要將 ${new Date(date).toLocaleDateString("zh-TW")} 的所有訂單標記為已完成嗎？`, async () => {
+      try {
+        // 逐个完成该日期的所有订单
+        for (const order of dateOrders) {
+          await completeOrder(order.id);
+        }
+        
+        toast({
+          title: "批量完成成功",
+          description: "所有訂單已成功標記為完成",
+        });
+      } catch (error) {
+        console.error("Complete date orders error:", error);
+        toast({
+          title: "處理失敗",
+          description: "無法完成部分或全部訂單",
+          variant: "destructive",
+        });
       }
     });
   };
@@ -162,8 +204,18 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
         ) : (
           Object.keys(orders).sort((a, b) => new Date(b).getTime() - new Date(a).getTime()).map((date) => (
             <div key={date} className="mb-8 border border-neutral-dark rounded-lg p-5">
-              <div className="text-[24px] mb-4 font-bold">
-                到貨日期: {new Date(date).toLocaleDateString("zh-TW")}
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-[24px] font-bold">
+                  到貨日期: {new Date(date).toLocaleDateString("zh-TW")}
+                </div>
+                {isAdmin && (
+                  <Button
+                    className="px-4 py-2 text-[18px] bg-[#4CAF50] text-white border-none rounded cursor-pointer hover:bg-[#45a049]"
+                    onClick={() => handleCompleteDateOrders(date, orders[date])}
+                  >
+                    完成此日期所有訂單
+                  </Button>
+                )}
               </div>
               <table className="w-full border-collapse text-[22px]">
                 <thead>
@@ -193,14 +245,6 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
                         >
                           刪除
                         </Button>
-                        {isAdmin && (
-                          <Button
-                            className="px-2.5 py-1 text-base bg-[#4CAF50] text-white border-none rounded cursor-pointer ml-2 hover:bg-[#45a049]"
-                            onClick={() => handleCompleteOrder(order.id)}
-                          >
-                            完成訂單
-                          </Button>
-                        )}
                       </td>
                     </tr>
                   ))}

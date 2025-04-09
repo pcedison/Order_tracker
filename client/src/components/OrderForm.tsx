@@ -104,8 +104,9 @@ export default function OrderForm() {
       setQuantity("");
       setSelectedProduct(null);
       
-      // 重新加载订单列表以显示新添加的订单
-      loadOrders();
+      // 发送订单创建成功的自定义事件，通知其他组件刷新订单列表
+      const orderCreatedEvent = new CustomEvent('orderCreated');
+      window.dispatchEvent(orderCreatedEvent);
     } catch (error) {
       toast({
         title: "訂單建立失敗",
