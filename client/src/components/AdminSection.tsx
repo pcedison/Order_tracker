@@ -34,10 +34,10 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     deleteHistoryOrder
   } = useOrders();
 
-  // 使用当前日期作为默认日期范围
+  // 使用当前日期作为默认日期范围，只在第一次显示时设置
   useEffect(() => {
     if (isVisible) {
-      // 如果是首次显示且没有设置日期，设置默认日期范围为当前月
+      // 只在首次显示且没有设置日期时，设置默认日期范围为当前月
       if (!startDate || !endDate) {
         const today = new Date();
         const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -49,26 +49,34 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
         
         setStartDate(formatDate(firstDayOfMonth));
         setEndDate(formatDate(lastDayOfMonth));
-      } else if (activeTab === "history") {
-        // 如果已经有日期范围且当前是历史标签页，加载历史订单
-        loadHistory(startDate, endDate);
+        
+        // 不在这里加载历史订单，让第二个useEffect来处理
       }
     }
-  }, [isVisible, activeTab, loadHistory, startDate, endDate]);
+  }, [isVisible, startDate, endDate]);
   
   // 监听日期变化加载历史订单
   useEffect(() => {
+    // 只有在有真正的日期值变更时才加载历史订单，避免无限循环
     if (isVisible && activeTab === "history" && startDate && endDate) {
-      loadHistory(startDate, endDate);
+      // 添加防抖，避免频繁请求
+      const timer = setTimeout(() => {
+        loadHistory(startDate, endDate);
+      }, 300);
+      
+      return () => clearTimeout(timer);
     }
-  }, [isVisible, activeTab, startDate, endDate, loadHistory]);
+  }, [isVisible, activeTab, startDate, endDate]);
   
   // 监听订单完成事件，当临时订单被标记为完成时自动刷新历史订单
   useEffect(() => {
     const handleOrderCompleted = () => {
       console.log('订单完成事件接收，刷新历史订单');
       if (isVisible && activeTab === "history" && startDate && endDate) {
-        loadHistory(startDate, endDate);
+        // 添加防抖，避免短时间内多次触发
+        setTimeout(() => {
+          loadHistory(startDate, endDate);
+        }, 300);
       }
     };
     
@@ -79,7 +87,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     return () => {
       window.removeEventListener('orderCompleted', handleOrderCompleted);
     };
-  }, [isVisible, activeTab, startDate, endDate, loadHistory]);
+  }, [isVisible, activeTab, startDate, endDate]);
 
   const handleFilterHistory = () => {
     if (!startDate || !endDate) {
