@@ -105,6 +105,17 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
           title: "批量完成成功",
           description: "所有訂單已成功標記為完成",
         });
+        
+        // 在所有订单完成后，再次触发一个批量完成事件，确保历史订单页面被刷新
+        const batchOrderCompletedEvent = new CustomEvent('orderCompleted', {
+          detail: { 
+            isBatch: true, 
+            date, 
+            count: dateOrders.length,
+            timestamp: new Date().toISOString() 
+          }
+        });
+        window.dispatchEvent(batchOrderCompletedEvent);
       } catch (error) {
         console.error("Complete date orders error:", error);
         toast({

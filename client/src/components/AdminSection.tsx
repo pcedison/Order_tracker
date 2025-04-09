@@ -61,6 +61,24 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       loadHistory(startDate, endDate);
     }
   }, [isVisible, activeTab, startDate, endDate, loadHistory]);
+  
+  // 监听订单完成事件，当临时订单被标记为完成时自动刷新历史订单
+  useEffect(() => {
+    const handleOrderCompleted = () => {
+      console.log('订单完成事件接收，刷新历史订单');
+      if (isVisible && activeTab === "history" && startDate && endDate) {
+        loadHistory(startDate, endDate);
+      }
+    };
+    
+    // 添加事件监听器
+    window.addEventListener('orderCompleted', handleOrderCompleted);
+    
+    // 清理函数
+    return () => {
+      window.removeEventListener('orderCompleted', handleOrderCompleted);
+    };
+  }, [isVisible, activeTab, startDate, endDate, loadHistory]);
 
   const handleFilterHistory = () => {
     if (!startDate || !endDate) {

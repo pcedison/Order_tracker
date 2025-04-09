@@ -120,13 +120,14 @@ export function useOrders() {
       // Reload orders after completion
       await loadOrders();
       
-      // 如果在管理員頁面，也重新加載歷史訂單
-      const today = new Date();
-      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      const startDate = firstDay.toISOString().split('T')[0];
-      const endDate = lastDay.toISOString().split('T')[0];
-      await loadHistory(startDate, endDate);
+      // 发送自定义事件，通知其他组件订单已完成
+      const orderCompletedEvent = new CustomEvent('orderCompleted', {
+        detail: { orderId, timestamp: new Date().toISOString() }
+      });
+      window.dispatchEvent(orderCompletedEvent);
+      
+      // 不再在这里加载历史订单，而是让监听事件的 AdminSection 组件负责刷新
+      // 避免重复加载和不必要的网络请求
       
       return true;
     } catch (error) {
