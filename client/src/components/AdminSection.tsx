@@ -154,8 +154,8 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                     </tr>
                   </thead>
                   <tbody>
-                    {historyOrders[date].map((order) => (
-                      <tr key={order.id}>
+                    {historyOrders[date].map((order, index) => (
+                      <tr key={`${order.id}-${order.product_code}-${index}`}>
                         <td className="border border-[#ddd] p-3">{order.product_code}</td>
                         <td className="border border-[#ddd] p-3">{order.product_name}</td>
                         <td className="border border-[#ddd] p-3">{order.quantity}</td>

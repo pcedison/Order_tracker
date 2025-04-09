@@ -1,0 +1,33 @@
+Warning: Encountered two children with the same key, &#x60;d510c375-523a-4cc7-a9a5-ec102cea75f5&#x60;. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at tbody
+    at table
+    at div
+    at div
+    at div
+    at div
+    at AdminSection (https://bde54f2a-5c59-43cb-a1f0-d932b12dd875-00-3pzkjczsa0bko.kirk.replit.dev/src/components/AdminSection.tsx:23:40)
+    at div
+    at HomePage (https://bde54f2a-5c59-43cb-a1f0-d932b12dd875-00-3pzkjczsa0bko.kirk.replit.dev/src/pages/HomePage.tsx:28:45)
+    at Route (https://bde54f2a-5c59-43cb-a1f0-d932b12dd875-00-3pzkjczsa0bko.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=fd30c9be:323:16)
+    at Switch (https://bde54f2a-5c59-43cb-a1f0-d932b12dd875-00-3pzkjczsa0bko.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=fd30c9be:379:17)
+    at Router
+    at QueryClientProvider (https://bde54f2a-5c59-43cb-a1f0-d932b12dd875-00-3pzkjczsa0bko.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=fd30c9be:2805:3)
+    at App
+at tbody
+at table
+at div
+at div
+at div
+at div
+at AdminSection (https://bde54f2a-5c59-43cb-a1f0-d932b12dd875-00-3pzkjczsa0bko.kirk.replit.dev/src/components/AdminSection.tsx:23:40)
+at div
+at HomePage (https://bde54f2a-5c59-43cb-a1f0-d932b12dd875-00-3pzkjczsa0bko.kirk.replit.dev/src/pages/HomePage.tsx:28:45)
+at Route (https://bde54f2a-5c59-43cb-a1f0-d932b12dd875-00-3pzkjczsa0bko.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=fd30c9be:323:16)
+at Switch (https://bde54f2a-5c59-43cb-a1f0-d932b12dd875-00-3pzkjczsa0bko.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=fd30c9be:379:17)
+at Router
+at QueryClientProvider (https://bde54f2a-5c59-43cb-a1f0-d932b12dd875-00-3pzkjczsa0bko.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=fd30c9be:2805:3)
+at App
+at t.value (https://bde54f2a-5c59-43cb-a1f0-d932b12dd875-00-3pzkjczsa0bko.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://bde54f2a-5c59-43cb-a1f0-d932b12dd875-00-3pzkjczsa0bko.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://bde54f2a-5c59-43cb-a1f0-d932b12dd875-00-3pzkjczsa0bko.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://bde54f2a-5c59-43cb-a1f0-d932b12dd875-00-3pzkjczsa0bko.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
