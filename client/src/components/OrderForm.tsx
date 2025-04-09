@@ -20,7 +20,7 @@ export default function OrderForm() {
   const { toast } = useToast();
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const { products, isLoadingProducts, searchProducts, loadingStatus } = useProducts();
-  const { createOrder } = useOrders();
+  const { createOrder, loadOrders } = useOrders();
   
   // Handle click outside suggestions dropdown
   useEffect(() => {
@@ -103,6 +103,9 @@ export default function OrderForm() {
       setProductQuery("");
       setQuantity("");
       setSelectedProduct(null);
+      
+      // 重新加载订单列表以显示新添加的订单
+      loadOrders();
     } catch (error) {
       toast({
         title: "訂單建立失敗",

@@ -160,7 +160,7 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
         ) : Object.keys(orders).length === 0 ? (
           <div className="text-center py-5 text-[22px] text-gray-600">目前沒有待處理的訂單</div>
         ) : (
-          Object.keys(orders).sort().map((date) => (
+          Object.keys(orders).sort((a, b) => new Date(b).getTime() - new Date(a).getTime()).map((date) => (
             <div key={date} className="mb-8 border border-neutral-dark rounded-lg p-5">
               <div className="text-[24px] mb-4 font-bold">
                 到貨日期: {new Date(date).toLocaleDateString("zh-TW")}

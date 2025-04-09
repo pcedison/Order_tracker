@@ -119,6 +119,15 @@ export function useOrders() {
       
       // Reload orders after completion
       await loadOrders();
+      
+      // 如果在管理員頁面，也重新加載歷史訂單
+      const today = new Date();
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      const startDate = firstDay.toISOString().split('T')[0];
+      const endDate = lastDay.toISOString().split('T')[0];
+      await loadHistory(startDate, endDate);
+      
       return true;
     } catch (error) {
       console.error("Complete order error:", error);

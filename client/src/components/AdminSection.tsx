@@ -283,7 +283,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
           ) : Object.keys(historyOrders).length === 0 ? (
             <div className="text-center py-5 text-[22px] text-gray-600">選定範圍內沒有完成的訂單</div>
           ) : (
-            Object.keys(historyOrders).sort().map((date) => (
+            Object.keys(historyOrders).sort((a, b) => new Date(b).getTime() - new Date(a).getTime()).map((date) => (
               <div key={date} className="mb-8 border border-neutral-dark rounded-lg p-5">
                 <div className="text-[24px] mb-4 font-bold">
                   到貨日期: {new Date(date).toLocaleDateString("zh-TW")}
