@@ -15,28 +15,24 @@ export function useConfig() {
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
-  // 加载配置信息
-  const loadConfigs = async () => {
+  // 加载配置信息 - 不触发错误提示
+  const loadConfigs = async (showErrors = false) => {
     // 如果已经在加载中，不重复加载
     if (isLoading) return;
     
     setIsLoading(true);
     try {
-      const response = await fetch('/api/configs');
-      
-      if (!response.ok) {
-        // 检查是否是会话过期/未授权
-        if (response.status === 403) {
-          // 会话可能已过期，触发重新登录提示
-          toast({
-            title: "會話已過期",
-            description: "請重新登入以加載配置信息",
-            variant: "destructive",
-          });
-          // 触发会话过期事件
-          window.dispatchEvent(new CustomEvent('sessionExpired'));
-          return;
+      // 添加缓存控制头部，避免使用缓存
+      const response = await fetch('/api/configs', {
+        cache: 'no-cache',
+        headers: {
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache'
         }
+      });
+      
+      // 即使返回403，也不再触发会话过期，因为我们已经修改了服务器以允许非管理员用户访问
+      if (!response.ok && response.status !== 403) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
@@ -44,8 +40,8 @@ export function useConfig() {
       setConfigs(data);
     } catch (error) {
       console.error("Error loading configs:", error);
-      // 避免频繁显示错误提示，只有当有明确的HTTP错误时才提示
-      if (error instanceof Error && error.message.includes('Error')) {
+      // 仅当用户请求显示错误时才显示错误提示
+      if (showErrors && error instanceof Error && error.message.includes('Error')) {
         toast({
           title: "載入配置失敗",
           description: error.message,

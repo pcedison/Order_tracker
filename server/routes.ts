@@ -337,24 +337,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // 配置相关 API
-  // 获取所有配置信息
+  // 获取所有配置信息 - 允许非管理员访问，但仅返回公共配置
   app.get("/api/configs", async (req, res) => {
     try {
       const isAuthenticated = req.session && req.session.isAdmin;
-      if (!isAuthenticated) {
-        return res.status(403).json({ message: "Unauthorized" });
-      }
-      
       const configs = await storage.getAllConfigs();
       
       // 移除敏感信息，仅返回是否配置了该项
+      // 对于非管理员，只返回非敏感配置
       const safeConfigs = Object.keys(configs).reduce((result, key) => {
-        // 对于密码和密钥，不返回具体值
+        // 对于密码和密钥，对管理员显示掩码，对非管理员不显示
         if (key.toLowerCase().includes('password') || 
             key.toLowerCase().includes('key') || 
             key.toLowerCase().includes('secret')) {
-          result[key] = configs[key] ? '******' : null;
+          if (isAuthenticated) {
+            result[key] = configs[key] ? '******' : null;
+          }
         } else {
+          // 非敏感配置对所有用户可见
           result[key] = configs[key];
         }
         return result;

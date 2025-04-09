@@ -82,9 +82,10 @@ export default function ConfigSettings() {
     }
   }, [configs]);
   
-  // 加载配置
+  // 加载配置 - 不显示错误提示
   useEffect(() => {
-    loadConfigs();
+    // 第一个参数 false 表示不显示错误提示
+    loadConfigs(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 只在组件挂载时加载一次
   
