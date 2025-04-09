@@ -26,82 +26,162 @@ export interface IStorage {
 }
 
 export class SupabaseStorage implements IStorage {
-  private tableName = 'temp_orders'; // 使用与原 HTML 文件相同的表名
+  private tempOrdersTable = 'temp_orders'; // 临时订单表
+  private ordersTable = 'orders'; // 已完成订单表
+  private orderItemsTable = 'order_items'; // 订单项表
   
   async getOrders(status?: "temporary" | "completed"): Promise<Order[]> {
-    let query = supabase
-      .from(this.tableName)
-      .select('*');
-    
-    // 由于原始表可能没有 status 字段，我们不在查询中使用它
-    // 而是在后处理中根据 completed_at 字段推断状态
-    
-    // Order by created_at in descending order
-    query = query.order('created_at', { ascending: false });
-    
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error('Error fetching orders:', error);
-      throw error;
+    if (status === "completed") {
+      // 从订单项表中获取订单，带外键关联
+      const { data, error } = await supabase
+        .from(this.orderItemsTable)
+        .select(`
+          product_code,
+          product_name,
+          quantity,
+          order_id,
+          orders!inner (
+            id,
+            order_date,
+            created_at
+          )
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching completed orders:', error);
+        throw error;
+      }
+      
+      // 转换结果集成应用期望的格式
+      const orders = data.map((item: any) => ({
+        id: item.orders?.id || "",
+        delivery_date: item.orders?.order_date || "",
+        product_code: item.product_code,
+        product_name: item.product_name,
+        quantity: item.quantity.toString(),
+        status: "completed" as "completed",
+        created_at: item.orders?.created_at || "",
+        completed_at: item.orders?.created_at || ""
+      }));
+      
+      return orders;
+    } else {
+      // 获取临时订单（从 temp_orders 表中）
+      let query = supabase
+        .from(this.tempOrdersTable)
+        .select('*');
+      
+      // 由于原始表结构可能没有 completed_at 字段
+      // 我们不使用这个条件，而是在客户端进行过滤
+      
+      // Order by created_at in descending order
+      query = query.order('created_at', { ascending: false });
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching orders:', error);
+        throw error;
+      }
+      
+      // 转换 Supabase 格式到应用期望的格式
+      const orders = data.map(item => ({
+        id: item.item_id, // 原始 HTML 文件中使用 item_id 字段作为主键
+        delivery_date: item.order_date, // 原始 HTML 使用 order_date 字段
+        product_code: item.product_code,
+        product_name: item.product_name,
+        quantity: item.quantity.toString(), // 确保是字符串类型
+        status: "temporary" as "temporary", // 临时订单表的状态都是临时
+        created_at: item.created_at,
+        completed_at: null // 临时订单无完成时间
+      }));
+      
+      return orders;
     }
-    
-    // 转换 Supabase 格式到应用期望的格式
-    // 通过 completed_at 字段判断订单状态
-    let orders = data.map(item => ({
-      id: item.item_id, // 原始 HTML 文件中使用 item_id 字段作为主键
-      delivery_date: item.order_date, // 原始 HTML 使用 order_date 字段
-      product_code: item.product_code,
-      product_name: item.product_name,
-      quantity: item.quantity.toString(), // 确保是字符串类型
-      status: item.completed_at ? "completed" : "temporary",
-      created_at: item.created_at,
-      completed_at: item.completed_at
-    }));
-    
-    // 如果请求了特定状态的订单，则在内存中筛选
-    if (status) {
-      orders = orders.filter(order => order.status === status);
-    }
-    
-    return orders;
   }
 
   async getOrdersByDateRange(startDate: string, endDate: string, status?: "temporary" | "completed"): Promise<Order[]> {
-    let query = supabase
-      .from(this.tableName)
-      .select('*')
-      .gte('order_date', startDate)  // 使用原始字段名 order_date 而不是 delivery_date
-      .lte('order_date', endDate);
-    
-    // 由于原始表可能没有 status 字段，我们不在查询中使用它
-    
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error('Error fetching orders by date range:', error);
-      throw error;
+    if (status === "completed") {
+      // 获取已完成的历史订单（从 orders 和 order_items 表中）
+      const { data: orderData, error: orderError } = await supabase
+        .from(this.ordersTable)
+        .select('id, order_date, created_at')
+        .gte('order_date', startDate)
+        .lte('order_date', endDate)
+        .order('created_at', { ascending: false });
+      
+      if (orderError) {
+        console.error('Error fetching completed orders:', orderError);
+        throw orderError;
+      }
+      
+      if (orderData.length === 0) {
+        return [];
+      }
+      
+      // 准备返回的订单数组
+      const orders: Order[] = [];
+      
+      // 对每个订单获取其订单项
+      for (const order of orderData) {
+        const { data: items, error: itemsError } = await supabase
+          .from(this.orderItemsTable)
+          .select('*')
+          .eq('order_id', order.id);
+        
+        if (itemsError) {
+          console.error(`Error fetching items for order ${order.id}:`, itemsError);
+          continue;
+        }
+        
+        // 将每个订单项转换为应用期望的格式并添加到数组
+        for (const item of items) {
+          orders.push({
+            id: order.id,
+            delivery_date: order.order_date,
+            product_code: item.product_code,
+            product_name: item.product_name,
+            quantity: item.quantity.toString(),
+            status: "completed" as "completed",
+            created_at: order.created_at,
+            completed_at: order.created_at // 历史订单已完成
+          });
+        }
+      }
+      
+      return orders;
+    } else {
+      // 获取临时订单（从 temp_orders 表中）
+      let query = supabase
+        .from(this.tempOrdersTable)
+        .select('*')
+        .gte('order_date', startDate)
+        .lte('order_date', endDate);
+      
+      // 由于原始表结构可能没有 completed_at 字段，我们不使用这个条件
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching orders by date range:', error);
+        throw error;
+      }
+      
+      // 转换数据格式
+      const orders = data.map(item => ({
+        id: item.item_id,
+        delivery_date: item.order_date,
+        product_code: item.product_code,
+        product_name: item.product_name,
+        quantity: item.quantity.toString(),
+        status: "temporary" as "temporary", // 临时订单都是temporary
+        created_at: item.created_at,
+        completed_at: null // 临时订单无完成时间
+      }));
+      
+      return orders;
     }
-    
-    // 转换 Supabase 格式到应用期望的格式
-    // 通过 completed_at 字段判断订单状态
-    let orders = data.map(item => ({
-      id: item.item_id, // 原始 HTML 文件中使用 item_id 字段作为主键
-      delivery_date: item.order_date, // 原始 HTML 使用 order_date 字段
-      product_code: item.product_code,
-      product_name: item.product_name,
-      quantity: item.quantity.toString(), // 确保是字符串类型
-      status: item.completed_at ? "completed" : "temporary",
-      created_at: item.created_at,
-      completed_at: item.completed_at
-    }));
-    
-    // 如果请求了特定状态的订单，则在内存中筛选
-    if (status) {
-      orders = orders.filter(order => order.status === status);
-    }
-    
-    return orders;
   }
 
   async createOrder(orderData: InsertOrder): Promise<Order> {
@@ -121,7 +201,7 @@ export class SupabaseStorage implements IStorage {
     };
     
     const { data, error } = await supabase
-      .from(this.tableName)
+      .from(this.tempOrdersTable)
       .insert(orderRecord)
       .select()
       .single();
@@ -138,16 +218,16 @@ export class SupabaseStorage implements IStorage {
       product_code: data.product_code,
       product_name: data.product_name,
       quantity: data.quantity.toString(),
-      status: data.completed_at ? "completed" : "temporary",
+      status: "temporary" as "temporary", // 新建订单都是临时订单
       created_at: data.created_at,
-      completed_at: data.completed_at
+      completed_at: null // 无完成时间
     };
   }
 
   async deleteOrder(id: string): Promise<void> {
     // 使用 item_id 字段
     const { error } = await supabase
-      .from(this.tableName)
+      .from(this.tempOrdersTable)
       .delete()
       .eq('item_id', id);
     
@@ -158,34 +238,94 @@ export class SupabaseStorage implements IStorage {
   }
 
   async completeOrder(id: string): Promise<Order> {
-    const now = new Date().toISOString();
-    
-    // 使用 item_id 字段
-    const { data, error } = await supabase
-      .from(this.tableName)
-      .update({
-        completed_at: now
-      })
+    // 1. 获取临时订单
+    const { data: tempOrder, error: getError } = await supabase
+      .from(this.tempOrdersTable)
+      .select('*')
       .eq('item_id', id)
-      .select()
       .single();
     
-    if (error) {
-      console.error('Error completing order:', error);
-      throw error;
+    if (getError) {
+      console.error('Error fetching temporary order:', getError);
+      throw getError;
     }
     
-    // 转换为应用期望的格式
-    return {
-      id: data.item_id,
-      delivery_date: data.order_date,
-      product_code: data.product_code,
-      product_name: data.product_name,
-      quantity: data.quantity.toString(),
-      status: "completed", // 直接设置为已完成
-      created_at: data.created_at,
-      completed_at: data.completed_at
-    };
+    try {
+      // 2. 创建主订单（如果该日期不存在）
+      const { data: existingOrder, error: checkError } = await supabase
+        .from(this.ordersTable)
+        .select('id')
+        .eq('order_date', tempOrder.order_date)
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error('Error checking existing order:', checkError);
+        throw checkError;
+      }
+      
+      let orderId: string;
+      
+      if (!existingOrder) {
+        // 创建新的主订单记录
+        const { data: newOrder, error: createOrderError } = await supabase
+          .from(this.ordersTable)
+          .insert([{ order_date: tempOrder.order_date }])
+          .select('id')
+          .single();
+        
+        if (createOrderError) {
+          console.error('Error creating order record:', createOrderError);
+          throw createOrderError;
+        }
+        
+        orderId = newOrder.id;
+      } else {
+        // 使用现有订单ID
+        orderId = existingOrder.id;
+      }
+      
+      // 3. 创建订单项
+      const { error: createItemError } = await supabase
+        .from(this.orderItemsTable)
+        .insert([{
+          order_id: orderId,
+          product_code: tempOrder.product_code,
+          product_name: tempOrder.product_name,
+          quantity: tempOrder.quantity
+        }]);
+      
+      if (createItemError) {
+        console.error('Error creating order item:', createItemError);
+        throw createItemError;
+      }
+      
+      // 4. 删除临时订单
+      const { error: deleteError } = await supabase
+        .from(this.tempOrdersTable)
+        .delete()
+        .eq('item_id', id);
+      
+      if (deleteError) {
+        console.error('Error deleting temporary order:', deleteError);
+        throw deleteError;
+      }
+      
+      // 5. 返回转换后的订单
+      const completedOrder: Order = {
+        id: tempOrder.item_id,
+        delivery_date: tempOrder.order_date,
+        product_code: tempOrder.product_code,
+        product_name: tempOrder.product_name,
+        quantity: tempOrder.quantity as any, // 类型转换
+        status: "completed" as "completed",
+        created_at: tempOrder.created_at as any, // 类型转换
+        completed_at: new Date() as any // 类型转换
+      };
+      return completedOrder;
+    } catch (error) {
+      console.error('Error in complete order process:', error);
+      throw error;
+    }
   }
 
   async generateOrderStats(year: string, month?: string): Promise<OrderStats> {
