@@ -49,8 +49,8 @@ export class SupabaseStorage implements IStorage {
     // 转换 Supabase 格式到应用期望的格式
     // 通过 completed_at 字段判断订单状态
     let orders = data.map(item => ({
-      id: item.item_id || item.id, // 兼容原始 HTML 文件中的 item_id 字段
-      delivery_date: item.order_date || item.delivery_date, // 兼容 order_date 字段
+      id: item.item_id, // 原始 HTML 文件中使用 item_id 字段作为主键
+      delivery_date: item.order_date, // 原始 HTML 使用 order_date 字段
       product_code: item.product_code,
       product_name: item.product_name,
       quantity: item.quantity.toString(), // 确保是字符串类型
@@ -86,8 +86,8 @@ export class SupabaseStorage implements IStorage {
     // 转换 Supabase 格式到应用期望的格式
     // 通过 completed_at 字段判断订单状态
     let orders = data.map(item => ({
-      id: item.item_id || item.id,
-      delivery_date: item.order_date || item.delivery_date,
+      id: item.item_id, // 原始 HTML 文件中使用 item_id 字段作为主键
+      delivery_date: item.order_date, // 原始 HTML 使用 order_date 字段
       product_code: item.product_code,
       product_name: item.product_name,
       quantity: item.quantity.toString(), // 确保是字符串类型
@@ -105,19 +105,19 @@ export class SupabaseStorage implements IStorage {
   }
 
   async createOrder(orderData: InsertOrder): Promise<Order> {
-    // 从错误信息来看，item_id 在 Supabase 表中可能被定义为 bigint 类型
-    // 我们不再使用 nanoid 生成 ID，而是让数据库自动生成
+    // 生成唯一 ID
+    const itemId = Date.now().toString();
     const now = new Date().toISOString();
     
     // 准备数据，适配原始 HTML 中使用的字段名
     const orderRecord = {
-      // 移除 item_id 字段，让数据库自动生成
+      item_id: itemId, // 使用与原始 HTML 相同的 item_id 字段
       order_date: orderData.delivery_date, // 原 HTML 使用 order_date 字段
       product_code: orderData.product_code,
       product_name: orderData.product_name,
       quantity: orderData.quantity,
       created_at: now
-      // 移除 status 字段，因为原始表可能没有这个字段
+      // 没有 status 字段，原始表使用 completed_at 判断状态
     };
     
     const { data, error } = await supabase
@@ -133,7 +133,7 @@ export class SupabaseStorage implements IStorage {
     
     // 转换为应用期望的格式
     return {
-      id: data.id || data.item_id, // 支持自动生成的 id 或自定义 item_id
+      id: data.item_id,
       delivery_date: data.order_date,
       product_code: data.product_code,
       product_name: data.product_name,
@@ -145,11 +145,11 @@ export class SupabaseStorage implements IStorage {
   }
 
   async deleteOrder(id: string): Promise<void> {
-    // 尝试使用 id 字段
+    // 使用 item_id 字段
     const { error } = await supabase
       .from(this.tableName)
       .delete()
-      .eq('id', id);
+      .eq('item_id', id);
     
     if (error) {
       console.error('Error deleting order:', error);
@@ -160,13 +160,13 @@ export class SupabaseStorage implements IStorage {
   async completeOrder(id: string): Promise<Order> {
     const now = new Date().toISOString();
     
-    // 使用 id 字段而不是 item_id
+    // 使用 item_id 字段
     const { data, error } = await supabase
       .from(this.tableName)
       .update({
         completed_at: now
       })
-      .eq('id', id)
+      .eq('item_id', id)
       .select()
       .single();
     
@@ -177,7 +177,7 @@ export class SupabaseStorage implements IStorage {
     
     // 转换为应用期望的格式
     return {
-      id: data.id || data.item_id,
+      id: data.item_id,
       delivery_date: data.order_date,
       product_code: data.product_code,
       product_name: data.product_name,
