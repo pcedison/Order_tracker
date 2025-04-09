@@ -13,7 +13,7 @@ export class AuthService {
   }
 
   // Hash a password using SHA-256
-  private hashPassword(password: string): string {
+  public hashPassword(password: string): string {
     return createHash('sha256').update(password).digest('hex');
   }
 
@@ -23,8 +23,15 @@ export class AuthService {
       throw new Error('Admin password not configured');
     }
     
-    // For improved security, you would typically hash passwords and compare hashes
-    // But for direct migration from the original system, we're comparing plain text
-    return password === this.adminPassword;
+    // 支持旧系统的明文密码以及新系统的哈希密码
+    // 检查当前存储的密码是否是哈希值（假设哈希值长度为64个字符）
+    if (this.adminPassword.length === 64 && /^[0-9a-f]+$/.test(this.adminPassword)) {
+      // 存储的是哈希密码，对输入的密码进行哈希再比较
+      const hashedPassword = this.hashPassword(password);
+      return hashedPassword === this.adminPassword;
+    } else {
+      // 存储的是明文密码，直接比较
+      return password === this.adminPassword;
+    }
   }
 }

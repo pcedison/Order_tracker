@@ -1,6 +1,7 @@
 import { type Order, type InsertOrder } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { supabase } from "./supabase";
+import { AuthService } from "./services/auth";
 
 // Define types for statistics
 interface StatItem {
@@ -26,12 +27,20 @@ export interface IStorage {
   generateOrderStats(year: string, month?: string): Promise<OrderStats>;
   editHistoryOrder(orderId: string, productCode: string, quantity: number): Promise<void>;
   deleteHistoryOrder(orderId: string, productCode: string): Promise<void>;
+  
+  // 配置相关方法
+  getConfig(key: string): Promise<string | null>;
+  setConfig(key: string, value: string): Promise<void>;
+  getAllConfigs(): Promise<{[key: string]: string}>;
+  updateAdminPassword(currentPassword: string, newPassword: string): Promise<boolean>;
 }
 
 export class SupabaseStorage implements IStorage {
   private tempOrdersTable = 'temp_orders'; // 临时订单表
   private ordersTable = 'orders'; // 已完成订单表
   private orderItemsTable = 'order_items'; // 订单项表
+  private configsTable = 'configs'; // 配置表
+  private authService = new AuthService(); // 用于密码验证和哈希
   
   async getOrders(status?: "temporary" | "completed"): Promise<Order[]> {
     if (status === "completed") {
@@ -490,6 +499,114 @@ export class SupabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error in deleteHistoryOrder:', error);
       throw error;
+    }
+  }
+
+  // 配置管理方法实现
+  async getConfig(key: string): Promise<string | null> {
+    try {
+      const { data, error } = await supabase
+        .from(this.configsTable)
+        .select('value')
+        .eq('key', key)
+        .maybeSingle();
+      
+      if (error) {
+        console.error(`Error getting config for key ${key}:`, error);
+        throw error;
+      }
+      
+      return data ? data.value : null;
+    } catch (error) {
+      console.error(`Error in getConfig for key ${key}:`, error);
+      return null;
+    }
+  }
+
+  async setConfig(key: string, value: string): Promise<void> {
+    try {
+      // 检查配置是否已存在
+      const { data: existingConfig } = await supabase
+        .from(this.configsTable)
+        .select('id')
+        .eq('key', key)
+        .maybeSingle();
+      
+      if (existingConfig) {
+        // 更新现有配置
+        const { error } = await supabase
+          .from(this.configsTable)
+          .update({ value })
+          .eq('key', key);
+        
+        if (error) {
+          console.error(`Error updating config for key ${key}:`, error);
+          throw error;
+        }
+      } else {
+        // 创建新配置
+        const { error } = await supabase
+          .from(this.configsTable)
+          .insert({ key, value });
+        
+        if (error) {
+          console.error(`Error creating config for key ${key}:`, error);
+          throw error;
+        }
+      }
+    } catch (error) {
+      console.error(`Error in setConfig for key ${key}:`, error);
+      throw error;
+    }
+  }
+
+  async getAllConfigs(): Promise<{[key: string]: string}> {
+    try {
+      const { data, error } = await supabase
+        .from(this.configsTable)
+        .select('key, value');
+      
+      if (error) {
+        console.error('Error getting all configs:', error);
+        throw error;
+      }
+      
+      // 转换为键值对对象
+      const configs: {[key: string]: string} = {};
+      data.forEach(item => {
+        configs[item.key] = item.value;
+      });
+      
+      return configs;
+    } catch (error) {
+      console.error('Error in getAllConfigs:', error);
+      return {};
+    }
+  }
+
+  async updateAdminPassword(currentPassword: string, newPassword: string): Promise<boolean> {
+    try {
+      // 首先验证当前密码是否正确
+      const isValidPassword = await this.authService.verifyPassword(currentPassword);
+      
+      if (!isValidPassword) {
+        console.error('Invalid current password');
+        return false;
+      }
+      
+      // 更新环境变量 ADMIN_PASSWORD
+      // 注意：在实际环境中，这需要特殊处理，因为环境变量通常是只读的
+      // 这里我们假设管理员密码存储在配置表中
+      const hashedNewPassword = this.authService.hashPassword(newPassword);
+      await this.setConfig('ADMIN_PASSWORD', hashedNewPassword);
+      
+      // 更新环境变量
+      process.env.ADMIN_PASSWORD = hashedNewPassword;
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating admin password:', error);
+      return false;
     }
   }
 }

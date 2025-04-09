@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useOrders } from "@/hooks/useOrders";
 import { Order } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import ConfigSettings from "./ConfigSettings";
 
 interface AdminSectionProps {
   isVisible: boolean;
@@ -12,7 +13,7 @@ interface AdminSectionProps {
 }
 
 export default function AdminSection({ isVisible, showConfirmDialog }: AdminSectionProps) {
-  const [activeTab, setActiveTab] = useState<"history" | "stats">("history");
+  const [activeTab, setActiveTab] = useState<"history" | "stats" | "config">("history");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [statsYear, setStatsYear] = useState<string>("2025");
@@ -248,6 +249,16 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
           onClick={() => setActiveTab("stats")}
         >
           訂單統計
+        </div>
+        <div 
+          className={`px-5 py-2.5 text-[20px] cursor-pointer rounded-t-lg mr-1 ${
+            activeTab === "config" 
+              ? "active bg-white border border-[#ccc] border-b-0" 
+              : "bg-[#ddd]"
+          }`}
+          onClick={() => setActiveTab("config")}
+        >
+          系統設定
         </div>
       </div>
       
@@ -506,6 +517,15 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             </div>
           )}
         </div>
+      </div>
+      
+      {/* Config Tab */}
+      <div 
+        className={`p-5 bg-white border border-[#ccc] rounded-b-lg rounded-tr-lg ${
+          activeTab === "config" ? "block" : "hidden"
+        }`}
+      >
+        <ConfigSettings />
       </div>
     </div>
   );

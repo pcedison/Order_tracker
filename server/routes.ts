@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import session from "express-session";
@@ -6,6 +6,13 @@ import { z } from "zod";
 import { SpreadsheetService } from "./services/spreadsheet";
 import { AuthService } from "./services/auth";
 import MemoryStore from "memorystore";
+
+// 扩展 session 类型，添加 isAdmin 属性
+declare module "express-session" {
+  interface SessionData {
+    isAdmin: boolean;
+  }
+}
 
 const MemoryStoreSession = MemoryStore(session);
 
@@ -305,6 +312,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete history order error:", error);
       return res.status(500).json({ message: "Failed to delete history order" });
+    }
+  });
+  
+  // 配置相关 API
+  // 获取所有配置信息
+  app.get("/api/configs", async (req, res) => {
+    try {
+      const isAuthenticated = req.session && req.session.isAdmin;
+      if (!isAuthenticated) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      const configs = await storage.getAllConfigs();
+      
+      // 移除敏感信息，仅返回是否配置了该项
+      const safeConfigs = Object.keys(configs).reduce((result, key) => {
+        // 对于密码和密钥，不返回具体值
+        if (key.toLowerCase().includes('password') || 
+            key.toLowerCase().includes('key') || 
+            key.toLowerCase().includes('secret')) {
+          result[key] = configs[key] ? '******' : null;
+        } else {
+          result[key] = configs[key];
+        }
+        return result;
+      }, {} as Record<string, string | null>);
+      
+      return res.json(safeConfigs);
+    } catch (error) {
+      console.error("Error getting configs:", error);
+      return res.status(500).json({ message: "Failed to get configurations" });
+    }
+  });
+  
+  // 更新配置信息
+  app.post("/api/configs", async (req, res) => {
+    try {
+      const isAuthenticated = req.session && req.session.isAdmin;
+      if (!isAuthenticated) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      const { key, value } = req.body;
+      
+      if (!key || value === undefined) {
+        return res.status(400).json({ message: "Key and value are required" });
+      }
+      
+      await storage.setConfig(key, value);
+      
+      // 对于环境变量，也实时更新（这通常只在开发环境中有效）
+      if (key === 'SUPABASE_URL' || key === 'SUPABASE_KEY' || 
+          key === 'SPREADSHEET_API_KEY' || key === 'SPREADSHEET_ID') {
+        process.env[key] = value;
+      }
+      
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating config:", error);
+      return res.status(500).json({ message: "Failed to update configuration" });
+    }
+  });
+  
+  // 更新管理员密码
+  app.post("/api/admin/password", async (req, res) => {
+    try {
+      const isAuthenticated = req.session && req.session.isAdmin;
+      if (!isAuthenticated) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+      
+      const success = await storage.updateAdminPassword(currentPassword, newPassword);
+      
+      if (!success) {
+        return res.status(400).json({ message: "Invalid current password" });
+      }
+      
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating admin password:", error);
+      return res.status(500).json({ message: "Failed to update admin password" });
     }
   });
 
