@@ -429,20 +429,80 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                     <th className="p-3 text-left bg-[#f8f8f8] text-gray-800 border-b-2 border-[#ddd]">產品名稱</th>
                     <th className="p-3 text-left bg-[#f8f8f8] text-gray-800 border-b-2 border-[#ddd]">訂單數量</th>
                     <th className="p-3 text-left bg-[#f8f8f8] text-gray-800 border-b-2 border-[#ddd]">總公斤數</th>
+                    <th className="p-3 text-left bg-[#f8f8f8] text-gray-800 border-b-2 border-[#ddd]">銷售熱度比例</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {statsData.stats.map((stat) => (
-                    <tr key={stat.code}>
-                      <td className="p-3 border-b border-[#eee]">{stat.code}</td>
-                      <td className="p-3 border-b border-[#eee]">{stat.name}</td>
-                      <td className="p-3 border-b border-[#eee]">{stat.orderCount}</td>
-                      <td className="p-3 border-b border-[#eee]">{stat.totalQuantity.toFixed(2)}</td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    // 计算总销售量作为比例基准
+                    const totalQuantity = statsData.stats.reduce((sum, stat) => sum + stat.totalQuantity, 0);
+                    
+                    // 按销售量排序，销量高的排在前面
+                    const sortedStats = [...statsData.stats].sort((a, b) => b.totalQuantity - a.totalQuantity);
+                    
+                    return sortedStats.map((stat) => {
+                      // 计算百分比和热度显示
+                      const percentage = totalQuantity > 0 ? (stat.totalQuantity / totalQuantity) * 100 : 0;
+                      
+                      // 根据百分比确定热度颜色
+                      let heatColor = "";
+                      if (percentage >= 25) {
+                        heatColor = "bg-red-600"; // 热销商品 (>= 25%)
+                      } else if (percentage >= 15) {
+                        heatColor = "bg-orange-500"; // 较热销商品 (15-25%)
+                      } else if (percentage >= 5) {
+                        heatColor = "bg-yellow-400"; // 一般热销商品 (5-15%)
+                      } else {
+                        heatColor = "bg-blue-500"; // 低热度商品 (< 5%)
+                      }
+                      
+                      return (
+                        <tr key={stat.code}>
+                          <td className="p-3 border-b border-[#eee]">{stat.code}</td>
+                          <td className="p-3 border-b border-[#eee]">{stat.name}</td>
+                          <td className="p-3 border-b border-[#eee]">{stat.orderCount}</td>
+                          <td className="p-3 border-b border-[#eee]">{stat.totalQuantity.toFixed(2)}</td>
+                          <td className="p-3 border-b border-[#eee]">
+                            <div className="flex items-center">
+                              <div className="w-24 bg-gray-200 rounded-full h-2.5 mr-2">
+                                <div 
+                                  className={`${heatColor} h-2.5 rounded-full`} 
+                                  style={{ width: `${percentage}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-sm text-gray-700">{percentage.toFixed(1)}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
                 </tbody>
               </table>
               <div className="mt-4 text-gray-600">總計: {statsData.totalOrders} 筆訂單</div>
+              
+              {/* 热度图例 */}
+              <div className="mt-6 border border-gray-200 rounded-md p-3 bg-gray-50">
+                <h3 className="font-medium text-gray-700 mb-2">銷售熱度說明:</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-red-600 mr-2"></div>
+                    <span className="text-sm">熱銷商品 (≥ 25%)</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-orange-500 mr-2"></div>
+                    <span className="text-sm">較熱銷商品 (15-25%)</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-yellow-400 mr-2"></div>
+                    <span className="text-sm">一般熱銷商品 (5-15%)</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
+                    <span className="text-sm">低熱度商品 (小於 5%)</span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
