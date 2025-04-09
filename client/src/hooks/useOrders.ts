@@ -233,6 +233,24 @@ export function useOrders() {
       throw error;
     }
   };
+  
+  // Update temporary order (edit quantity)
+  const updateTemporaryOrder = async (orderId: string, quantity: number) => {
+    try {
+      const response = await apiRequest('PATCH', `/api/orders/${orderId}`, {
+        quantity
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Update temporary order error:", error);
+      throw error;
+    }
+  };
 
   return {
     orders,
@@ -249,5 +267,6 @@ export function useOrders() {
     generateStats,
     editHistoryOrder,
     deleteHistoryOrder,
+    updateTemporaryOrder,
   };
 }

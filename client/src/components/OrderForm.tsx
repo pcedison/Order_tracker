@@ -8,10 +8,9 @@ import { Product } from "@/lib/types";
 
 export default function OrderForm() {
   const [deliveryDate, setDeliveryDate] = useState<string>(() => {
-    // Default to next day
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
+    // Default to current day
+    const today = new Date();
+    return today.toISOString().split('T')[0];
   });
   const [productQuery, setProductQuery] = useState("");
   const [quantity, setQuantity] = useState("");

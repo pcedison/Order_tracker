@@ -21,6 +21,7 @@ export interface IStorage {
   getOrdersByDateRange(startDate: string, endDate: string, status?: "temporary" | "completed"): Promise<Order[]>;
   createOrder(order: InsertOrder): Promise<Order>;
   deleteOrder(id: string): Promise<void>;
+  updateTemporaryOrder(id: string, quantity: number): Promise<void>;
   completeOrder(id: string): Promise<Order>;
   generateOrderStats(year: string, month?: string): Promise<OrderStats>;
   editHistoryOrder(orderId: string, productCode: string, quantity: number): Promise<void>;
@@ -235,6 +236,19 @@ export class SupabaseStorage implements IStorage {
     
     if (error) {
       console.error('Error deleting order:', error);
+      throw error;
+    }
+  }
+  
+  async updateTemporaryOrder(id: string, quantity: number): Promise<void> {
+    // 更新临时订单数量
+    const { error } = await supabase
+      .from(this.tempOrdersTable)
+      .update({ quantity })
+      .eq('item_id', id);
+    
+    if (error) {
+      console.error('Error updating temporary order:', error);
       throw error;
     }
   }

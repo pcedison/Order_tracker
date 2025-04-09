@@ -201,6 +201,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to delete order" });
     }
   });
+  
+  // 更新暂存订单（编辑数量）
+  app.patch("/api/orders/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { quantity } = req.body;
+      
+      if (!quantity) {
+        return res.status(400).json({ message: "Quantity is required" });
+      }
+      
+      // 验证数量是否为正数
+      const quantitySchema = z.number().positive();
+      const validQuantity = quantitySchema.safeParse(quantity);
+      
+      if (!validQuantity.success) {
+        return res.status(400).json({ message: "Quantity must be a positive number" });
+      }
+      
+      await storage.updateTemporaryOrder(id, quantity);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Update order error:", error);
+      return res.status(500).json({ message: "Failed to update order" });
+    }
+  });
 
   app.patch("/api/orders/:id/complete", async (req, res) => {
     try {
