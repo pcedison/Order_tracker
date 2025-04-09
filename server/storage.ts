@@ -21,7 +21,7 @@ export interface IStorage {
   getOrdersByDateRange(startDate: string, endDate: string, status?: "temporary" | "completed"): Promise<Order[]>;
   createOrder(order: InsertOrder): Promise<Order>;
   deleteOrder(id: string): Promise<void>;
-  updateTemporaryOrder(id: string, quantity: number): Promise<void>;
+  updateTemporaryOrder(id: string, quantity: number, delivery_date?: string): Promise<void>;
   completeOrder(id: string): Promise<Order>;
   generateOrderStats(year: string, month?: string): Promise<OrderStats>;
   editHistoryOrder(orderId: string, productCode: string, quantity: number): Promise<void>;
@@ -240,11 +240,19 @@ export class SupabaseStorage implements IStorage {
     }
   }
   
-  async updateTemporaryOrder(id: string, quantity: number): Promise<void> {
-    // 更新临时订单数量
+  async updateTemporaryOrder(id: string, quantity: number, delivery_date?: string): Promise<void> {
+    // 准备更新数据
+    const updateData: { quantity: number; order_date?: string } = { quantity };
+    
+    // 如果提供了日期，同时更新日期
+    if (delivery_date) {
+      updateData.order_date = delivery_date;
+    }
+    
+    // 更新临时订单
     const { error } = await supabase
       .from(this.tempOrdersTable)
-      .update({ quantity })
+      .update(updateData)
       .eq('item_id', id);
     
     if (error) {

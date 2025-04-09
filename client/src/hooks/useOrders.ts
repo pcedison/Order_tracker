@@ -243,12 +243,17 @@ export function useOrders() {
     }
   };
   
-  // Update temporary order (edit quantity)
-  const updateTemporaryOrder = async (orderId: string, quantity: number) => {
+  // Update temporary order (edit quantity and/or delivery date)
+  const updateTemporaryOrder = async (orderId: string, quantity: number, delivery_date?: string) => {
     try {
-      const response = await apiRequest('PATCH', `/api/orders/${orderId}`, {
-        quantity
-      });
+      const updateData: { quantity: number; delivery_date?: string } = { quantity };
+      
+      // 只有在传入日期时才更新日期
+      if (delivery_date) {
+        updateData.delivery_date = delivery_date;
+      }
+      
+      const response = await apiRequest('PATCH', `/api/orders/${orderId}`, updateData);
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);

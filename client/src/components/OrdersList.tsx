@@ -14,6 +14,7 @@ interface OrdersListProps {
 export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [editQuantity, setEditQuantity] = useState<string>("");
+  const [editDeliveryDate, setEditDeliveryDate] = useState<string>("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
   
   const { 
@@ -41,13 +42,21 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
       loadOrders();
     };
     
+    // 添加管理员状态变化事件监听器
+    const handleAdminStatusChanged = (event: Event) => {
+      // 强制组件重新渲染以显示或隐藏管理员按钮
+      loadOrders();
+    };
+    
     window.addEventListener('adminLoginSuccess', handleAdminLogin);
     window.addEventListener('orderCreated', handleOrderCreated);
+    window.addEventListener('adminStatusChanged', handleAdminStatusChanged);
     
     // 清理函数
     return () => {
       window.removeEventListener('adminLoginSuccess', handleAdminLogin);
       window.removeEventListener('orderCreated', handleOrderCreated);
+      window.removeEventListener('adminStatusChanged', handleAdminStatusChanged);
     };
   }, [loadOrders]);
 
@@ -97,6 +106,7 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
   const handleEditOrder = (order: Order) => {
     setEditingOrder(order);
     setEditQuantity(order.quantity.toString());
+    setEditDeliveryDate(order.delivery_date);
     setIsEditDialogOpen(true);
   };
   
@@ -104,6 +114,7 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
     if (!editingOrder) return;
     
     try {
+      // 验证数量
       const quantity = parseInt(editQuantity);
       if (isNaN(quantity) || quantity <= 0) {
         toast({
@@ -114,12 +125,23 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
         return;
       }
       
-      await updateTemporaryOrder(editingOrder.id, quantity);
+      // 验证日期格式是否有效
+      if (!editDeliveryDate || !editDeliveryDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        toast({
+          title: "日期格式無效",
+          description: "請選擇有效的日期",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // 更新订单的数量和日期
+      await updateTemporaryOrder(editingOrder.id, quantity, editDeliveryDate);
       setIsEditDialogOpen(false);
       
       toast({
         title: "編輯成功",
-        description: "訂單數量已成功更新",
+        description: "訂單資訊已成功更新",
       });
       
       // 重新加载订单列表
@@ -128,7 +150,7 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
       console.error("Edit order error:", error);
       toast({
         title: "編輯失敗",
-        description: "無法更新訂單數量",
+        description: "無法更新訂單資訊",
         variant: "destructive",
       });
     }
@@ -152,6 +174,16 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
                 <div className="grid grid-cols-4 items-center gap-4">
                   <div className="text-right text-[18px] font-medium">產品名稱:</div>
                   <div className="col-span-3 text-[18px]">{editingOrder.product_name}</div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="text-right text-[18px] font-medium">到貨日期:</div>
+                  <Input
+                    id="deliveryDate"
+                    type="date"
+                    value={editDeliveryDate}
+                    onChange={(e) => setEditDeliveryDate(e.target.value)}
+                    className="col-span-3 text-[18px] p-2 border border-[#ccc] rounded"
+                  />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <div className="text-right text-[18px] font-medium">數量 (公斤):</div>

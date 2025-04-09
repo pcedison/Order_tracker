@@ -202,11 +202,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // 更新暂存订单（编辑数量）
+  // 更新暂存订单（编辑数量和/或日期）
   app.patch("/api/orders/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const { quantity } = req.body;
+      const { quantity, delivery_date } = req.body;
       
       if (!quantity) {
         return res.status(400).json({ message: "Quantity is required" });
@@ -220,7 +220,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Quantity must be a positive number" });
       }
       
-      await storage.updateTemporaryOrder(id, quantity);
+      // 如果提供了日期，验证日期格式是否正确
+      if (delivery_date) {
+        const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+        const validDate = dateSchema.safeParse(delivery_date);
+        
+        if (!validDate.success) {
+          return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD" });
+        }
+      }
+      
+      await storage.updateTemporaryOrder(id, quantity, delivery_date);
       return res.json({ success: true });
     } catch (error) {
       console.error("Update order error:", error);

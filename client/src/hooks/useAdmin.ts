@@ -37,7 +37,14 @@ export function useAdmin() {
       const response = await apiRequest('POST', '/api/auth/login', { password });
       const data = await response.json();
       
-      setIsAdmin(data.success);
+      if (data.success) {
+        setIsAdmin(true);
+        // 触发自定义事件，通知其他组件管理员状态已改变
+        const adminStatusEvent = new CustomEvent('adminStatusChanged', { 
+          detail: { isAdmin: true } 
+        });
+        window.dispatchEvent(adminStatusEvent);
+      }
       return data.success;
     } catch (error) {
       console.error("Login error:", error);
@@ -50,6 +57,13 @@ export function useAdmin() {
     try {
       await apiRequest('POST', '/api/auth/logout', {});
       setIsAdmin(false);
+      
+      // 触发自定义事件，通知其他组件管理员状态已改变
+      const adminStatusEvent = new CustomEvent('adminStatusChanged', { 
+        detail: { isAdmin: false } 
+      });
+      window.dispatchEvent(adminStatusEvent);
+      
       return true;
     } catch (error) {
       console.error("Logout error:", error);
