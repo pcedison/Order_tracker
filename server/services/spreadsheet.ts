@@ -1,5 +1,4 @@
-import { GoogleSpreadsheet } from 'google-spreadsheet';
-
+// Using direct fetch instead of google-spreadsheet library to match original implementation
 interface Product {
   code: string;
   name: string;
@@ -11,10 +10,10 @@ interface Product {
 export class SpreadsheetService {
   private apiKey: string;
   private spreadsheetId: string;
-  private doc: GoogleSpreadsheet | null = null;
   private productsCache: Product[] = [];
   private lastFetchTime: number = 0;
   private cacheDuration: number = 1000 * 60 * 5; // 5 minutes cache
+  private RANGE = '產品清單!A2:B300'; // Match the original range from the HTML
 
   constructor() {
     // Get API key and spreadsheet ID from environment variables
@@ -24,19 +23,6 @@ export class SpreadsheetService {
     if (!this.apiKey || !this.spreadsheetId) {
       console.warn('Spreadsheet API key or ID not provided in environment variables');
     }
-  }
-
-  private async initializeDoc() {
-    if (!this.doc) {
-      if (!this.apiKey || !this.spreadsheetId) {
-        throw new Error('Spreadsheet API key or ID not provided');
-      }
-      
-      this.doc = new GoogleSpreadsheet(this.spreadsheetId);
-      await this.doc.useApiKey(this.apiKey);
-    }
-    
-    return this.doc;
   }
 
   // Refresh the products cache if needed
@@ -49,43 +35,35 @@ export class SpreadsheetService {
     }
     
     try {
-      const doc = await this.initializeDoc();
-      await doc.loadInfo();
+      if (!this.apiKey || !this.spreadsheetId) {
+        throw new Error('Spreadsheet API key or ID not provided');
+      }
       
-      // Assuming products are in the first sheet
-      const sheet = doc.sheetsByIndex[0];
-      await sheet.loadHeaderRow();
+      // Use the Google Sheets API directly via fetch (like the original HTML implementation)
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/${encodeURIComponent(this.RANGE)}?key=${this.apiKey}`;
       
-      const rows = await sheet.getRows();
+      const response = await fetch(url);
       
-      // Convert rows to product objects
-      const products: Product[] = rows.map(row => {
-        const product: Product = {
-          code: row.get('code') || '',
-          name: row.get('name') || '',
+      if (!response.ok) {
+        throw new Error(`Failed to fetch spreadsheet data: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.values || !Array.isArray(data.values)) {
+        throw new Error('Invalid spreadsheet data format');
+      }
+      
+      // Transform spreadsheet data to product objects
+      const products: Product[] = data.values.map((row: any[]) => {
+        if (!row[0]) return null; // Skip empty rows
+        
+        return {
+          code: row[0] || '',
+          name: row[1] || '',
+          // Can add more fields here if needed based on spreadsheet columns
         };
-        
-        // Add optional fields if they exist
-        if (row.get('color')) {
-          product.color = row.get('color');
-        }
-        
-        if (row.get('price')) {
-          product.price = parseFloat(row.get('price'));
-        }
-        
-        // Add any other fields from the spreadsheet
-        sheet.headerValues.forEach(header => {
-          if (header !== 'code' && header !== 'name' && header !== 'color' && header !== 'price') {
-            const value = row.get(header);
-            if (value !== undefined && value !== null && value !== '') {
-              product[header] = value;
-            }
-          }
-        });
-        
-        return product;
-      });
+      }).filter(Boolean); // Remove null entries
       
       // Update cache
       this.productsCache = products;
