@@ -88,63 +88,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Orders API routes
-  app.get("/api/orders", async (req, res) => {
-    try {
-      const status = req.query.status as string | undefined;
-      
-      const statusSchema = z.enum(["temporary", "completed"]).optional();
-      const validStatus = statusSchema.safeParse(status);
-      
-      if (status && !validStatus.success) {
-        return res.status(400).json({ message: "Invalid status parameter" });
-      }
-      
-      const orders = await storage.getOrders(status as "temporary" | "completed" | undefined);
-      return res.json(orders);
-    } catch (error) {
-      console.error("Get orders error:", error);
-      return res.status(500).json({ message: "Failed to fetch orders" });
-    }
-  });
-
-  app.post("/api/orders", async (req, res) => {
-    try {
-      const orderData = req.body;
-      const order = await storage.createOrder(orderData);
-      return res.status(201).json(order);
-    } catch (error) {
-      console.error("Create order error:", error);
-      return res.status(500).json({ message: "Failed to create order" });
-    }
-  });
-
-  app.delete("/api/orders/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      await storage.deleteOrder(id);
-      return res.json({ success: true });
-    } catch (error) {
-      console.error("Delete order error:", error);
-      return res.status(500).json({ message: "Failed to delete order" });
-    }
-  });
-
-  app.patch("/api/orders/:id/complete", async (req, res) => {
-    try {
-      // Check if user is admin
-      if (!req.session?.isAdmin) {
-        return res.status(403).json({ message: "Unauthorized" });
-      }
-
-      const { id } = req.params;
-      const order = await storage.completeOrder(id);
-      return res.json(order);
-    } catch (error) {
-      console.error("Complete order error:", error);
-      return res.status(500).json({ message: "Failed to complete order" });
-    }
-  });
-
+  
+  // 1. 特殊路由应该放在前面，避免被参数路由拦截
   app.get("/api/orders/history", async (req, res) => {
     try {
       // Check if user is admin
@@ -211,6 +156,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get stats error:", error);
       return res.status(500).json({ message: "Failed to generate statistics" });
+    }
+  });
+  
+  // 2. 然后是基本路由
+  app.get("/api/orders", async (req, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      
+      const statusSchema = z.enum(["temporary", "completed"]).optional();
+      const validStatus = statusSchema.safeParse(status);
+      
+      if (status && !validStatus.success) {
+        return res.status(400).json({ message: "Invalid status parameter" });
+      }
+      
+      const orders = await storage.getOrders(status as "temporary" | "completed" | undefined);
+      return res.json(orders);
+    } catch (error) {
+      console.error("Get orders error:", error);
+      return res.status(500).json({ message: "Failed to fetch orders" });
+    }
+  });
+
+  app.post("/api/orders", async (req, res) => {
+    try {
+      const orderData = req.body;
+      const order = await storage.createOrder(orderData);
+      return res.status(201).json(order);
+    } catch (error) {
+      console.error("Create order error:", error);
+      return res.status(500).json({ message: "Failed to create order" });
+    }
+  });
+  
+  // 3. 最后是参数路由
+  app.delete("/api/orders/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteOrder(id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Delete order error:", error);
+      return res.status(500).json({ message: "Failed to delete order" });
+    }
+  });
+
+  app.patch("/api/orders/:id/complete", async (req, res) => {
+    try {
+      // Check if user is admin
+      if (!req.session?.isAdmin) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const order = await storage.completeOrder(id);
+      return res.json(order);
+    } catch (error) {
+      console.error("Complete order error:", error);
+      return res.status(500).json({ message: "Failed to complete order" });
     }
   });
 
