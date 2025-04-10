@@ -9,10 +9,13 @@ import MemoryStore from "memorystore";
 import pgSession from 'connect-pg-simple';
 import { pool } from "./db";
 
-// 扩展 session 类型，添加 isAdmin 属性
+// 擴展會話類型，增加所有需要的屬性
 declare module "express-session" {
   interface SessionData {
     isAdmin: boolean;
+    loginTime?: number;
+    userAgent?: string;
+    lastActivity?: number;
   }
 }
 
@@ -36,29 +39,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error("Failed to create session table:", err);
   }
 
-  // 設置更強大的會話中間件，提高持久性和安全性
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || "supersecretkey",
-      resave: false,
-      saveUninitialized: false,
-      rolling: true, // 每次響應都會重設過期時間
-      store: new PostgresStore({
-        pool: pool,
-        tableName: 'session',
-        createTableIfMissing: true,
-        // 設置更長的清理間隔時間，避免會話被過早清除
-        pruneSessionInterval: 24 * 60 * 60 // 24小時
-      }),
-      cookie: {
-        secure: process.env.NODE_ENV === "production",
-        httpOnly: true,
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30天
-        sameSite: 'lax', // 增強安全性但允許從同站的連結訪問
-        path: '/' // 確保所有路徑都能獲取會話
-      },
-    })
-  );
+  // 完全重寫會話管理，提供最高級別的持久性和可靠性
+  const sessionMiddleware = session({
+    secret: process.env.SESSION_SECRET || "supersecretkey",
+    name: 'admin.sid', // 使用更具體的cookie名，避免衝突
+    resave: true, // 強制在每次請求時保存會話，確保不會丟失
+    saveUninitialized: false,
+    rolling: true, // 每次響應都會重設過期時間
+    store: new PostgresStore({
+      pool: pool,
+      tableName: 'session',
+      createTableIfMissing: true,
+      disableTouch: false, // 確保touch能夠更新存儲中的cookie過期時間
+      pruneSessionInterval: 60 * 60 // 每小時進行一次過期會話清理
+    }),
+    cookie: {
+      secure: false, // 即使在生產環境也不要使用secure，避免部署問題
+      httpOnly: true,
+      maxAge: 180 * 24 * 60 * 60 * 1000, // 180天超長有效期
+      sameSite: 'lax',
+      path: '/'
+    },
+  });
+  
+  app.use(sessionMiddleware);
 
   // Initialize services
   const spreadsheetService = new SpreadsheetService();
@@ -76,11 +80,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const success = await authService.verifyPassword(password);
 
       if (success) {
-        // Set admin session
+        // 強化管理員會話設置
         if (req.session) {
+          // 設置會話數據
           req.session.isAdmin = true;
+          req.session.loginTime = Date.now();
+          req.session.userAgent = req.headers['user-agent'] || 'unknown';
+          
+          // 確保立即保存會話並同步到數據庫
+          await new Promise<void>((resolve, reject) => {
+            req.session.save((err) => {
+              if (err) {
+                console.error("Error saving session:", err);
+                reject(err);
+              } else {
+                console.log("Admin session saved successfully");
+                resolve();
+              }
+            });
+          });
+          
+          // 返回登入成功响應和會話ID供診斷用
+          return res.json({
+            success: true,
+            sessionId: req.sessionID, // 僅用於診斷，實際生產環境不應返回
+            message: "Authentication successful"
+          });
+        } else {
+          console.error("Session object not available");
+          return res.status(500).json({ success: false, message: "Session initialization failed" });
         }
-        return res.json({ success: true });
       } else {
         return res.status(401).json({ success: false, message: "Incorrect password" });
       }
@@ -94,19 +123,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (req.session) {
       req.session.destroy((err) => {
         if (err) {
+          console.error("Error destroying session:", err);
           return res.status(500).json({ success: false, message: "Logout failed" });
         }
-        res.clearCookie("connect.sid");
+        
+        // 確保清除正確的cookie（使用與會話中間件相同的名稱）
+        res.clearCookie("admin.sid", {
+          path: '/',
+          httpOnly: true,
+          secure: false,
+          sameSite: 'lax'
+        });
+        
+        console.log("Session destroyed successfully, cookie cleared");
         return res.json({ success: true });
       });
     } else {
+      console.log("No session to destroy");
       return res.json({ success: true });
     }
   });
 
+  // 增強身份驗證狀態端點，增加更多診斷信息
   app.get("/api/auth/status", (req, res) => {
-    const isAuthenticated = req.session?.isAdmin === true;
-    return res.json({ authenticated: isAuthenticated });
+    try {
+      // 檢查會話對象是否可用
+      if (!req.session) {
+        console.error("Session object not available in status check");
+        return res.json({ 
+          authenticated: false,
+          error: "Session not initialized",
+          sessionExists: false
+        });
+      }
+      
+      const isAuthenticated = req.session.isAdmin === true;
+      
+      // 觸發會話保存，更新過期時間
+      req.session.touch();
+      
+      // 返回狀態（生產環境中應該僅返回authenticated字段）
+      return res.json({
+        authenticated: isAuthenticated,
+        sessionId: req.sessionID,
+        sessionAge: req.session.loginTime ? Math.floor((Date.now() - req.session.loginTime) / 1000) + "s" : "unknown",
+        cookie: {
+          maxAge: req.session.cookie?.maxAge ? Math.floor(req.session.cookie.maxAge / 1000) + "s" : "unknown"
+        }
+      });
+    } catch (error) {
+      console.error("Error checking auth status:", error);
+      return res.json({ authenticated: false, error: "Status check failed" });
+    }
   });
 
   // Products API routes
