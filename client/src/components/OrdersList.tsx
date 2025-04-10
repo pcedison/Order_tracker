@@ -261,12 +261,34 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
           Object.keys(orders).sort((a, b) => new Date(b).getTime() - new Date(a).getTime()).map((date) => (
             <div key={date} className="mb-8 border border-neutral-dark rounded-lg p-5">
               <div className="flex justify-between items-center mb-4">
-                <div className="text-[24px] font-bold">
-                  到貨日期: {new Date(date).toLocaleDateString("zh-TW")}
+                <div className="text-[24px] font-bold flex items-center flex-wrap">
+                  <span>到貨日期: {new Date(date).toLocaleDateString("zh-TW")}</span>
+                  {(() => {
+                    // 計算當日總公斤數
+                    let totalKilograms = 0;
+                    
+                    // 遍歷該日期的所有訂單並累加數量
+                    orders[date].forEach(order => {
+                      // 將字符串數量轉換為數字
+                      const orderQuantity = Number(order.quantity);
+                      if (!isNaN(orderQuantity)) {
+                        totalKilograms += orderQuantity;
+                      }
+                    });
+                    
+                    // 計算包數（除以25並無條件進位）
+                    const totalPackages = Math.ceil(totalKilograms / 25);
+                    
+                    return (
+                      <span className="ml-4 text-[20px] text-indigo-700 font-medium">
+                        總公斤數: {totalKilograms} kg（{totalPackages} 包）
+                      </span>
+                    );
+                  })()}
                 </div>
                 {(isAdmin || localAdminState) && (
                   <Button
-                    className="px-4 py-2 text-[18px] bg-[#4CAF50] text-white border-none rounded cursor-pointer hover:bg-[#45a049]"
+                    className="px-4 py-2 text-[18px] bg-[#4CAF50] text-white border-none rounded cursor-pointer hover:bg-[#45a049] ml-2"
                     onClick={() => handleCompleteDateOrders(date, orders[date])}
                   >
                     完成此日期所有訂單
