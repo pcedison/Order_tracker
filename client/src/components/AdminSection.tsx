@@ -322,8 +322,20 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
           ) : (
             Object.keys(historyOrders).sort((a, b) => new Date(b).getTime() - new Date(a).getTime()).map((date) => (
               <div key={date} className="mb-8 border border-neutral-dark rounded-lg p-5">
-                <div className="text-[24px] mb-4 font-bold">
-                  到貨日期: {new Date(date).toLocaleDateString("zh-TW")}
+                <div className="text-[24px] mb-4 font-bold flex items-center">
+                  <span>到貨日期: {new Date(date).toLocaleDateString("zh-TW")}</span>
+                  {(() => {
+                    // 計算當天總公斤數
+                    const totalKilograms = historyOrders[date].reduce((sum, order) => sum + order.quantity, 0);
+                    // 計算包數（除以25並無條件進位）
+                    const totalPackages = Math.ceil(totalKilograms / 25);
+                    
+                    return (
+                      <span className="ml-auto text-[20px] text-indigo-700 font-medium">
+                        總公斤數: {totalKilograms} kg（{totalPackages} 包）
+                      </span>
+                    );
+                  })()}
                 </div>
                 <table className="w-full border-collapse text-[22px]">
                   <thead>
