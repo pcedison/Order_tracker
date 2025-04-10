@@ -343,7 +343,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                         <td className="border border-[#ddd] p-3">{order.quantity}</td>
                         <td className="border border-[#ddd] p-3">
                           {order.completed_at 
-                            ? new Date(order.completed_at).toLocaleString("zh-TW") 
+                            ? new Date(order.completed_at).toLocaleDateString("zh-TW") 
                             : "未記錄"}
                         </td>
                         <td className="border border-[#ddd] p-3">
