@@ -36,21 +36,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error("Failed to create session table:", err);
   }
 
-  // Setup session middleware
+  // 設置更強大的會話中間件，提高持久性和安全性
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "supersecretkey",
       resave: false,
       saveUninitialized: false,
+      rolling: true, // 每次響應都會重設過期時間
       store: new PostgresStore({
         pool: pool,
         tableName: 'session',
         createTableIfMissing: true,
+        // 設置更長的清理間隔時間，避免會話被過早清除
+        pruneSessionInterval: 24 * 60 * 60 // 24小時
       }),
       cookie: {
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30天
+        sameSite: 'lax', // 增強安全性但允許從同站的連結訪問
+        path: '/' // 確保所有路徑都能獲取會話
       },
     })
   );

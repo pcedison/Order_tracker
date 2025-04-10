@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useConfig } from "@/hooks/useConfig";
+import { useAdmin } from "@/hooks/useAdmin";
 import {
   Card,
   CardContent,
@@ -62,6 +63,10 @@ function ConfigField({
 export default function ConfigSettings() {
   const { toast } = useToast();
   const { configs, isLoading, isUpdating, loadConfigs, updateConfig, updateAdminPassword } = useConfig();
+  const { isAdmin, checkAdminStatus } = useAdmin();
+  
+  // 用於追蹤配置加載重試次數
+  const configLoadRetryCount = useRef(0);
   
   const [supabaseUrl, setSupabaseUrl] = useState("");
   const [supabaseKey, setSupabaseKey] = useState("");
@@ -82,12 +87,51 @@ export default function ConfigSettings() {
     }
   }, [configs]);
   
-  // 加载配置 - 不显示错误提示
+  // 增強配置加載邏輯，添加重試機制和管理員會話檢查
   useEffect(() => {
-    // 第一个参数 false 表示不显示错误提示
-    loadConfigs(false);
+    const loadConfigsWithRetry = async () => {
+      // 第一个参数 false 表示不显示错误提示
+      await loadConfigs(false);
+      
+      // 先檢查管理員狀態，確保會話有效
+      const adminStatus = await checkAdminStatus(false);
+      
+      // 如果當前是管理員但看不到配置數據，可能需要重試
+      if (adminStatus && (!configs || Object.keys(configs).length === 0)) {
+        if (configLoadRetryCount.current < 3) {
+          configLoadRetryCount.current += 1;
+          console.log(`配置加載重試 (${configLoadRetryCount.current}/3)...`);
+          
+          // 延遲重試，給會話時間完全建立
+          setTimeout(() => {
+            loadConfigs(configLoadRetryCount.current >= 2); // 最後一次嘗試時顯示錯誤
+          }, 1000 * configLoadRetryCount.current); // 逐漸增加延遲時間
+        }
+      }
+    };
+    
+    loadConfigsWithRetry();
+    
+    // 監聽管理員狀態變化，當狀態變為 true 時重新加載配置
+    const handleAdminStatusChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<{isAdmin: boolean}>;
+      if (customEvent.detail.isAdmin) {
+        // 重置重試計數器
+        configLoadRetryCount.current = 0;
+        // 管理員登入後，重新加載配置
+        setTimeout(() => {
+          loadConfigs(false);
+        }, 500);
+      }
+    };
+    
+    window.addEventListener('adminStatusChanged', handleAdminStatusChanged);
+    
+    return () => {
+      window.removeEventListener('adminStatusChanged', handleAdminStatusChanged);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 只在组件挂载时加载一次
+  }, []);
   
   // 更新管理员密码
   const handlePasswordUpdate = async () => {

@@ -108,7 +108,7 @@ export function useAdmin() {
     };
   }, [checkAdminStatus, toast]);
 
-  // Login as admin
+  // 增強的管理員登錄功能
   const login = async (password: string): Promise<boolean> => {
     try {
       const response = await apiRequest('POST', '/api/auth/login', { password });
@@ -116,6 +116,18 @@ export function useAdmin() {
       
       if (data.success) {
         setIsAdmin(true);
+        
+        // 嘗試進行多次會話驗證以確保會話已正確建立
+        setTimeout(() => {
+          // 登錄成功後1秒鐘再檢查一次會話狀態，確保會話已被正確設置
+          checkAdminStatus(false);
+          
+          // 2秒後再確認一次
+          setTimeout(() => {
+            checkAdminStatus(false);
+          }, 1000);
+        }, 1000);
+        
         // 触发自定义事件，通知其他组件管理员状态已改变
         const adminStatusEvent = new CustomEvent('adminStatusChanged', { 
           detail: { isAdmin: true } 
