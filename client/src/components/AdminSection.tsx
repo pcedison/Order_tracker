@@ -325,10 +325,17 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                 <div className="text-[24px] mb-4 font-bold flex items-center">
                   <span>到貨日期: {new Date(date).toLocaleDateString("zh-TW")}</span>
                   {(() => {
-                    // 正確計算當天總公斤數 - 把所有訂單數量相加
-                    const totalKilograms = historyOrders[date].reduce((sum, order) => {
-                      return sum + order.quantity;
-                    }, 0);
+                    // 計算當日總公斤數
+                    let totalKilograms = 0;
+                    
+                    // 遍歷該日期的所有訂單並累加數量
+                    historyOrders[date].forEach(order => {
+                      // 將字符串數量轉換為數字
+                      const orderQuantity = Number(order.quantity);
+                      if (!isNaN(orderQuantity)) {
+                        totalKilograms += orderQuantity;
+                      }
+                    });
                     
                     // 計算包數（除以25並無條件進位）
                     const totalPackages = Math.ceil(totalKilograms / 25);
