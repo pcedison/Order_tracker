@@ -12,13 +12,31 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  // 創建基礎 headers
+  const headers: Record<string, string> = {
+    'Accept': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  };
+  
+  // 添加 Content-Type，但僅當有數據時
+  if (data) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  // 發送請求，確保所有必要的選項都已設置
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: "include", // 始終包含 cookie
+    mode: 'same-origin', // 僅允許同源請求
+    redirect: 'follow',
+    cache: 'no-store' // 禁止緩存響應
   });
 
+  // 若請求失敗，拋出錯誤
   await throwIfResNotOk(res);
   return res;
 }
@@ -29,8 +47,19 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // 使用與 apiRequest 相同的嚴格 headers 和選項
     const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      credentials: "include", // 始終包含 cookie
+      mode: 'same-origin',    // 僅允許同源請求
+      redirect: 'follow',
+      cache: 'no-store'       // 禁止緩存響應
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
