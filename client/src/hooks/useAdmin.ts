@@ -173,8 +173,8 @@ export function useAdmin() {
         if (data.authenticated && data.remainingTimeSeconds !== undefined) {
           setRemainingTime(data.remainingTimeSeconds);
           
-          // 測試用：如果剩餘時間小於10秒且尚未顯示警告，顯示超時警告
-          if (data.remainingTimeSeconds < 10 && !timeoutWarningShown.current) {
+          // 如果剩餘時間小於60秒(1分鐘)且尚未顯示警告，顯示超時警告
+          if (data.remainingTimeSeconds < 60 && !timeoutWarningShown.current) {
             timeoutWarningShown.current = true;
             
             toast({
