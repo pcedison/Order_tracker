@@ -51,14 +51,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       tableName: 'session',
       createTableIfMissing: true,
       disableTouch: false, // 確保touch能夠更新存儲中的cookie過期時間
-      pruneSessionInterval: 60 * 60 // 每小時進行一次過期會話清理
+      pruneSessionInterval: 60 * 60, // 每小時進行一次過期會話清理
+      // 強制控制資料庫中的會話過期時間
+      ttl: 5 * 60 // 明確設置資料庫中的會話存活時間為5分鐘
     }),
     cookie: {
       secure: false, // 即使在生產環境也不要使用secure，避免部署問題
       httpOnly: true,
       maxAge: 5 * 60 * 1000, // 5分鐘自動超時
       sameSite: 'lax',
-      path: '/'
+      path: '/',
+      expires: new Date(Date.now() + 5 * 60 * 1000) // 明確設置過期時間
     },
   });
   
@@ -115,7 +118,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // 設置會話數據
           req.session.isAdmin = true;
           req.session.loginTime = Date.now();
+          req.session.lastActivity = Date.now(); // 重要: 顯式設置最後活動時間
           req.session.userAgent = req.headers['user-agent'] || 'unknown';
+          
+          // 明確設定會話 cookie 的過期時間，確保與會話配置一致
+          if (req.session.cookie) {
+            // 更新 cookie 的過期時間為最新的 5 分鐘
+            req.session.cookie.expires = new Date(Date.now() + 5 * 60 * 1000);
+            req.session.cookie.maxAge = 5 * 60 * 1000;
+          }
           
           // 確保立即保存會話並同步到數據庫
           await new Promise<void>((resolve, reject) => {
@@ -191,6 +202,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 觸發會話保存，更新過期時間
       req.session.touch();
+      
+      // 強制更新最後活動時間，確保會話不會在活動狀態下過期
+      if (isAuthenticated) {
+        req.session.lastActivity = Date.now(); 
+        
+        // 同步更新 cookie 過期時間為最新的 5 分鐘
+        if (req.session.cookie) {
+          req.session.cookie.expires = new Date(Date.now() + 5 * 60 * 1000);
+          req.session.cookie.maxAge = 5 * 60 * 1000;
+        }
+        
+        // 強制保存會話到數據庫
+        req.session.save();
+      }
       
       // 計算剩餘有效時間（用於超時提醒）
       let remainingTime = 0;
