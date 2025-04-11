@@ -6,7 +6,139 @@ export function useAdmin() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkCount, setCheckCount] = useState(0);
   const [lastCheck, setLastCheck] = useState(0);
+  const [remainingTime, setRemainingTime] = useState<number | null>(null);
+  const timeoutWarningShown = useRef(false); // 追蹤是否已顯示超時警告
+  const inactivityTimerRef = useRef<number | null>(null); // 用於追蹤不活動計時器
   const { toast } = useToast();
+
+  // 在這裡先定義登出函數，以避免 hooks 順序問題
+  const performLogout = async (): Promise<boolean> => {
+    try {
+      console.log("開始登出管理員...");
+      
+      // 使用自定義請求，不使用 apiRequest，確保完全控制
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        credentials: 'include',
+        mode: 'same-origin',
+        cache: 'no-store'
+      });
+      
+      // 檢查响應狀態
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("登出請求失敗:", response.status, text);
+        // 即使請求失敗，也將本地狀態設置為已登出
+        setIsAdmin(false);
+      } else {
+        console.log("登出請求成功");
+        setIsAdmin(false);
+      }
+      
+      // 即使請求失敗，也嘗試手動清除 cookie
+      document.cookie = 'admin.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      
+      // 觸發自定義事件，通知其他組件管理員狀態已改變
+      const adminStatusEvent = new CustomEvent('adminStatusChanged', { 
+        detail: { isAdmin: false } 
+      });
+      window.dispatchEvent(adminStatusEvent);
+      
+      // 確認會話已清除
+      setTimeout(async () => {
+        try {
+          const statusCheck = await fetch('/api/auth/status', {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-store'
+          });
+          
+          if (statusCheck.ok) {
+            const statusData = await statusCheck.json();
+            console.log("登出後會話狀態:", statusData);
+          }
+        } catch (e) {
+          console.error("登出後狀態檢查失敗:", e);
+        }
+      }, 500);
+      
+      return true;
+    } catch (error) {
+      console.error("登出過程中出錯:", error);
+      // 即使出錯，也強制本地狀態為已登出
+      setIsAdmin(false);
+      return false;
+    }
+  };
+
+  // 重置不活動計時器
+  const resetInactivityTimer = useCallback(() => {
+    // 清除現有計時器
+    if (inactivityTimerRef.current !== null) {
+      window.clearTimeout(inactivityTimerRef.current);
+    }
+
+    // 如果用戶是管理員，設置一個新的計時器
+    if (isAdmin) {
+      // 30分鐘後自動登出
+      inactivityTimerRef.current = window.setTimeout(async () => {
+        console.log("管理員不活動超時，自動登出");
+        await performLogout();
+        toast({
+          title: "自動登出",
+          description: "由於30分鐘無操作，系統已自動將您登出",
+          variant: "default",
+        });
+      }, 30 * 60 * 1000);
+    }
+  }, [isAdmin, toast, performLogout]);
+
+  // 添加用戶活動監聽
+  useEffect(() => {
+    if (!isAdmin) return;
+    
+    // 用戶活動事件列表
+    const activityEvents = [
+      'mousedown', 'mousemove', 'keypress', 
+      'scroll', 'touchstart', 'click'
+    ];
+    
+    // 活動事件處理函數
+    const handleUserActivity = () => {
+      // 重置不活動計時器
+      resetInactivityTimer();
+      
+      // 重置警告狀態
+      timeoutWarningShown.current = false;
+    };
+    
+    // 添加所有活動事件監聽器
+    activityEvents.forEach(event => {
+      document.addEventListener(event, handleUserActivity);
+    });
+    
+    // 初始化計時器
+    resetInactivityTimer();
+    
+    // 清理函數
+    return () => {
+      // 移除所有活動事件監聽器
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, handleUserActivity);
+      });
+      
+      // 清除計時器
+      if (inactivityTimerRef.current !== null) {
+        window.clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, [isAdmin, resetInactivityTimer]);
 
   // Check if user is already authenticated as admin
   const checkAdminStatus = useCallback(async (showErrors = false) => {
@@ -34,10 +166,30 @@ export function useAdmin() {
       if (response.ok) {
         const data = await response.json();
         setIsAdmin(data.authenticated);
+        
+        // 設置剩餘時間
+        if (data.authenticated && data.remainingTimeSeconds !== undefined) {
+          setRemainingTime(data.remainingTimeSeconds);
+          
+          // 如果剩餘時間小於5分鐘且尚未顯示警告，顯示超時警告
+          if (data.remainingTimeSeconds < 300 && !timeoutWarningShown.current) {
+            timeoutWarningShown.current = true;
+            
+            toast({
+              title: "會話即將過期",
+              description: `您的管理員會話將在${Math.floor(data.remainingTimeSeconds / 60)}分鐘後過期，請繼續操作以保持會話活動`,
+              variant: "destructive",
+            });
+          }
+        } else {
+          setRemainingTime(null);
+        }
+        
         if (data.authenticated) {
           // 重置错误计数
           setCheckCount(0);
         }
+        
         return data.authenticated;
       } else {
         if (isAdmin && showErrors) {
@@ -48,6 +200,7 @@ export function useAdmin() {
           });
         }
         setIsAdmin(false);
+        setRemainingTime(null);
         return false;
       }
     } catch (error) {
@@ -68,6 +221,7 @@ export function useAdmin() {
       // 如果连续多次检查失败，可能需要重置状态
       if (checkCount > 3) {
         setIsAdmin(false);
+        setRemainingTime(null);
       }
       
       return false;
