@@ -53,15 +53,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       disableTouch: false, // 確保touch能夠更新存儲中的cookie過期時間
       pruneSessionInterval: 60 * 60, // 每小時進行一次過期會話清理
       // 強制控制資料庫中的會話過期時間
-      ttl: 5 * 60 // 明確設置資料庫中的會話存活時間為5分鐘
+      ttl: 20 // 測試用：明確設置資料庫中的會話存活時間為20秒
     }),
     cookie: {
       secure: false, // 即使在生產環境也不要使用secure，避免部署問題
       httpOnly: true,
-      maxAge: 5 * 60 * 1000, // 5分鐘自動超時
+      maxAge: 20 * 1000, // 測試用：20秒超時
       sameSite: 'lax',
       path: '/',
-      expires: new Date(Date.now() + 5 * 60 * 1000) // 明確設置過期時間
+      expires: new Date(Date.now() + 20 * 1000) // 測試用：明確設置20秒過期時間
     },
   });
   
@@ -74,7 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lastActivity = req.session.lastActivity || req.session.loginTime || Date.now();
       const now = Date.now();
       const inactiveTime = now - lastActivity;
-      const TIMEOUT = 5 * 60 * 1000; // 5分鐘超時
+      const TIMEOUT = 20 * 1000; // 測試用：20秒超時
       
       // 如果不活動時間超過30分鐘，則自動登出
       if (inactiveTime > TIMEOUT) {
@@ -123,9 +123,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // 明確設定會話 cookie 的過期時間，確保與會話配置一致
           if (req.session.cookie) {
-            // 更新 cookie 的過期時間為最新的 5 分鐘
-            req.session.cookie.expires = new Date(Date.now() + 5 * 60 * 1000);
-            req.session.cookie.maxAge = 5 * 60 * 1000;
+            // 測試用：更新 cookie 的過期時間為20秒
+            req.session.cookie.expires = new Date(Date.now() + 20 * 1000);
+            req.session.cookie.maxAge = 20 * 1000;
           }
           
           // 確保立即保存會話並同步到數據庫
@@ -207,10 +207,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isAuthenticated) {
         req.session.lastActivity = Date.now(); 
         
-        // 同步更新 cookie 過期時間為最新的 5 分鐘
+        // 測試用：同步更新 cookie 過期時間為 20 秒
         if (req.session.cookie) {
-          req.session.cookie.expires = new Date(Date.now() + 5 * 60 * 1000);
-          req.session.cookie.maxAge = 5 * 60 * 1000;
+          req.session.cookie.expires = new Date(Date.now() + 20 * 1000);
+          req.session.cookie.maxAge = 20 * 1000;
         }
         
         // 強制保存會話到數據庫
@@ -219,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 計算剩餘有效時間（用於超時提醒）
       let remainingTime = 0;
-      const TIMEOUT = 5 * 60 * 1000; // 5分鐘超時
+      const TIMEOUT = 20 * 1000; // 測試用：20秒超時
       
       if (isAuthenticated && req.session.lastActivity) {
         const now = Date.now();

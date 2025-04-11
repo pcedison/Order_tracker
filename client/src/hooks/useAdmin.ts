@@ -86,8 +86,8 @@ export function useAdmin() {
 
     // 如果用戶是管理員，設置一個新的計時器
     if (isAdmin) {
-      // 5分鐘後自動登出
-      const TIMEOUT = 5 * 60 * 1000; // 5分鐘
+      // 測試用：20秒後自動登出
+      const TIMEOUT = 20 * 1000; // 20秒
       
       inactivityTimerRef.current = window.setTimeout(async () => {
         console.log("管理員不活動超時，自動登出");
@@ -173,8 +173,8 @@ export function useAdmin() {
         if (data.authenticated && data.remainingTimeSeconds !== undefined) {
           setRemainingTime(data.remainingTimeSeconds);
           
-          // 如果剩餘時間小於60秒(1分鐘)且尚未顯示警告，顯示超時警告
-          if (data.remainingTimeSeconds < 60 && !timeoutWarningShown.current) {
+          // 測試用：如果剩餘時間小於10秒且尚未顯示警告，顯示超時警告
+          if (data.remainingTimeSeconds < 10 && !timeoutWarningShown.current) {
             timeoutWarningShown.current = true;
             
             toast({
