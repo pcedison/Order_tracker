@@ -431,10 +431,14 @@ export class SupabaseStorage implements IStorage {
       b.totalQuantity - a.totalQuantity
     );
     
+    // 計算所有訂單的總公斤數
+    const totalKilograms = statsArray.reduce((sum, item) => sum + item.totalQuantity, 0);
+    
     return {
       stats: statsArray,
       periodText,
-      totalOrders: completedOrders.length
+      totalOrders: completedOrders.length,
+      totalKilograms: parseFloat(totalKilograms.toFixed(2)) // 保留兩位小數
     };
   }
   

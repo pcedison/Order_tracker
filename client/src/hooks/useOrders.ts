@@ -15,6 +15,7 @@ interface StatsData {
   stats: StatItem[];
   periodText: string;
   totalOrders: number;
+  totalKilograms: number; // 新增總公斤數字段
 }
 
 export function useOrders() {

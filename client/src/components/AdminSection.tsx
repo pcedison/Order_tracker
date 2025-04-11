@@ -462,6 +462,9 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             <div>
               <div className="text-[24px] mt-5 mb-2.5 font-bold text-gray-800">
                 {statsData.periodText}銷售統計
+                <span className="ml-4 text-indigo-700">
+                  （總計: {statsData.totalKilograms || 0} 公斤）
+                </span>
               </div>
               <table className="w-full border-collapse mt-2.5">
                 <thead>
