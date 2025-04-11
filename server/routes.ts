@@ -56,13 +56,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     cookie: {
       secure: false, // 即使在生產環境也不要使用secure，避免部署問題
       httpOnly: true,
-      maxAge: 180 * 24 * 60 * 60 * 1000, // 180天超長有效期
+      maxAge: 30 * 60 * 1000, // 30分鐘自動超時
       sameSite: 'lax',
       path: '/'
     },
   });
   
   app.use(sessionMiddleware);
+
+  // 添加活動監測中間件，實現會話超時自動登出
+  app.use((req, res, next) => {
+    // 如果是管理員會話，進行活動時間檢查
+    if (req.session?.isAdmin) {
+      const lastActivity = req.session.lastActivity || req.session.loginTime || Date.now();
+      const now = Date.now();
+      const inactiveTime = now - lastActivity;
+      const TIMEOUT = 30 * 60 * 1000; // 30分鐘超時
+      
+      // 如果不活動時間超過30分鐘，則自動登出
+      if (inactiveTime > TIMEOUT) {
+        console.log(`管理員會話自動超時登出，不活動時間: ${Math.floor(inactiveTime/1000)}秒`);
+        
+        // 清除管理員狀態
+        req.session.isAdmin = false;
+        req.session.loginTime = undefined;
+        
+        // 完成當前請求，下一個請求需要重新登入
+        next();
+        return;
+      }
+      
+      // 更新最後活動時間
+      req.session.lastActivity = now;
+    }
+    
+    // 繼續處理請求
+    next();
+  });
 
   // Initialize services
   const spreadsheetService = new SpreadsheetService();
@@ -162,11 +192,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 觸發會話保存，更新過期時間
       req.session.touch();
       
+      // 計算剩餘有效時間（用於超時提醒）
+      let remainingTime = 0;
+      const TIMEOUT = 30 * 60 * 1000; // 30分鐘超時
+      
+      if (isAuthenticated && req.session.lastActivity) {
+        const now = Date.now();
+        const inactiveTime = now - req.session.lastActivity;
+        remainingTime = Math.max(0, TIMEOUT - inactiveTime);
+      }
+      
       // 返回狀態（生產環境中應該僅返回authenticated字段）
       return res.json({
         authenticated: isAuthenticated,
         sessionId: req.sessionID,
         sessionAge: req.session.loginTime ? Math.floor((Date.now() - req.session.loginTime) / 1000) + "s" : "unknown",
+        lastActivity: req.session.lastActivity ? new Date(req.session.lastActivity).toISOString() : null,
+        remainingTimeSeconds: Math.floor(remainingTime / 1000),
         cookie: {
           maxAge: req.session.cookie?.maxAge ? Math.floor(req.session.cookie.maxAge / 1000) + "s" : "unknown"
         }
