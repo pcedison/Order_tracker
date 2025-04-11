@@ -86,8 +86,8 @@ export function useAdmin() {
 
     // 如果用戶是管理員，設置一個新的計時器
     if (isAdmin) {
-      // 測試用：20秒後自動登出
-      const TIMEOUT = 20 * 1000; // 20秒
+      // 10分鐘後自動登出
+      const TIMEOUT = 10 * 60 * 1000; // 10分鐘
       
       inactivityTimerRef.current = window.setTimeout(async () => {
         console.log("管理員不活動超時，自動登出");
