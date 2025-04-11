@@ -87,15 +87,17 @@ export function useAdmin() {
     // 如果用戶是管理員，設置一個新的計時器
     if (isAdmin) {
       // 5分鐘後自動登出
+      const TIMEOUT = 5 * 60 * 1000; // 5分鐘
+      
       inactivityTimerRef.current = window.setTimeout(async () => {
         console.log("管理員不活動超時，自動登出");
         await performLogout();
         toast({
           title: "自動登出",
-          description: "由於5分鐘無操作，系統已自動將您登出管理員模式",
+          description: "由於無操作，系統已自動將您登出管理員模式",
           variant: "default",
         });
-      }, 5 * 60 * 1000);
+      }, TIMEOUT);
     }
   }, [isAdmin, toast, performLogout]);
 
@@ -171,7 +173,7 @@ export function useAdmin() {
         if (data.authenticated && data.remainingTimeSeconds !== undefined) {
           setRemainingTime(data.remainingTimeSeconds);
           
-          // 如果剩餘時間小於1分鐘且尚未顯示警告，顯示超時警告
+          // 如果剩餘時間小於60秒(1分鐘)且尚未顯示警告，顯示超時警告
           if (data.remainingTimeSeconds < 60 && !timeoutWarningShown.current) {
             timeoutWarningShown.current = true;
             
