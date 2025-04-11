@@ -56,7 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     cookie: {
       secure: false, // 即使在生產環境也不要使用secure，避免部署問題
       httpOnly: true,
-      maxAge: 30 * 60 * 1000, // 30分鐘自動超時
+      maxAge: 5 * 60 * 1000, // 5分鐘自動超時
       sameSite: 'lax',
       path: '/'
     },
@@ -71,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lastActivity = req.session.lastActivity || req.session.loginTime || Date.now();
       const now = Date.now();
       const inactiveTime = now - lastActivity;
-      const TIMEOUT = 30 * 60 * 1000; // 30分鐘超時
+      const TIMEOUT = 5 * 60 * 1000; // 5分鐘超時
       
       // 如果不活動時間超過30分鐘，則自動登出
       if (inactiveTime > TIMEOUT) {
@@ -194,7 +194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 計算剩餘有效時間（用於超時提醒）
       let remainingTime = 0;
-      const TIMEOUT = 30 * 60 * 1000; // 30分鐘超時
+      const TIMEOUT = 5 * 60 * 1000; // 5分鐘超時
       
       if (isAuthenticated && req.session.lastActivity) {
         const now = Date.now();

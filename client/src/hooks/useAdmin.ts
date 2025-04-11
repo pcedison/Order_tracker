@@ -86,16 +86,16 @@ export function useAdmin() {
 
     // 如果用戶是管理員，設置一個新的計時器
     if (isAdmin) {
-      // 30分鐘後自動登出
+      // 5分鐘後自動登出
       inactivityTimerRef.current = window.setTimeout(async () => {
         console.log("管理員不活動超時，自動登出");
         await performLogout();
         toast({
           title: "自動登出",
-          description: "由於30分鐘無操作，系統已自動將您登出",
+          description: "由於5分鐘無操作，系統已自動將您登出管理員模式",
           variant: "default",
         });
-      }, 30 * 60 * 1000);
+      }, 5 * 60 * 1000);
     }
   }, [isAdmin, toast, performLogout]);
 
@@ -171,13 +171,13 @@ export function useAdmin() {
         if (data.authenticated && data.remainingTimeSeconds !== undefined) {
           setRemainingTime(data.remainingTimeSeconds);
           
-          // 如果剩餘時間小於5分鐘且尚未顯示警告，顯示超時警告
-          if (data.remainingTimeSeconds < 300 && !timeoutWarningShown.current) {
+          // 如果剩餘時間小於1分鐘且尚未顯示警告，顯示超時警告
+          if (data.remainingTimeSeconds < 60 && !timeoutWarningShown.current) {
             timeoutWarningShown.current = true;
             
             toast({
               title: "會話即將過期",
-              description: `您的管理員會話將在${Math.floor(data.remainingTimeSeconds / 60)}分鐘後過期，請繼續操作以保持會話活動`,
+              description: `您的管理員會話將在不到1分鐘後過期，請繼續操作以保持會話活動`,
               variant: "destructive",
             });
           }
