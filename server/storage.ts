@@ -15,6 +15,7 @@ interface OrderStats {
   stats: StatItem[];
   periodText: string;
   totalOrders: number;
+  totalKilograms: number; // 新增總公斤數字段
 }
 
 export interface IStorage {
@@ -368,20 +369,34 @@ export class SupabaseStorage implements IStorage {
     let periodText: string;
     
     if (month) {
-      // Specific month
+      // 特定月份: 使用從上個月26號到當月25號的範圍
+      const yearNum = parseInt(year, 10);
       const monthNum = parseInt(month, 10);
-      const paddedMonth = monthNum.toString().padStart(2, '0');
-      startDate = `${year}-${paddedMonth}-01`;
       
-      // Calculate last day of month
-      const lastDay = new Date(parseInt(year), monthNum, 0).getDate();
-      endDate = `${year}-${paddedMonth}-${lastDay}`;
+      // 計算上個月的年份和月份
+      let prevMonth = monthNum - 1;
+      let prevYear = yearNum;
+      
+      // 處理跨年情況
+      if (prevMonth === 0) {
+        prevMonth = 12;
+        prevYear -= 1;
+      }
+      
+      // 格式化月份
+      const paddedMonth = monthNum.toString().padStart(2, '0');
+      const paddedPrevMonth = prevMonth.toString().padStart(2, '0');
+      
+      // 上個月26號至當月25號
+      startDate = `${prevYear}-${paddedPrevMonth}-26`;
+      endDate = `${year}-${paddedMonth}-25`;
       
       periodText = `${year}年${monthNum}月`;
     } else {
-      // Entire year
-      startDate = `${year}-01-01`;
-      endDate = `${year}-12-31`;
+      // 整年: 前一年12月26號至當年12月25號
+      const prevYear = parseInt(year, 10) - 1;
+      startDate = `${prevYear}-12-26`;
+      endDate = `${year}-12-25`;
       periodText = `${year}年全年`;
     }
     
