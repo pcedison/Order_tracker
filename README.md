@@ -1,109 +1,82 @@
 # 訂單管理系統
 
-一個安全且動態的訂單管理系統，具有全面的管理員功能，用於提供強大的追蹤、監控和管理複雜訂單工作流程的能力。
+一個安全的動態訂單管理系統，具有完整的管理功能，設計用於提供健全的追蹤、監控和複雜訂單工作流程管理。
 
 ## 主要功能
 
-- 使用 TypeScript 的 React 前端
-- 多級身份驗證系統
-- 高級訂單處理與細粒度追蹤
+- 以TypeScript編寫的React前端
+- 多層身份驗證系統
+- 進階訂單處理與細粒度追蹤
 - 實時數據可視化和報告
 - 增強的安全協議
 - 靈活的系統配置管理
-- 管理員會話自動超時（5分鐘）
-- PostgreSQL 數據庫支持
 
-## 技術棧
+## 環境需求
 
-- 前端: React, TypeScript, TailwindCSS, shadcn/ui
-- 後端: Node.js, Express.js
-- 數據庫: PostgreSQL
-- ORM: Drizzle ORM
-- 外部服務: Supabase, Google Sheets API
+- Node.js 20或更高版本
+- PostgreSQL (可選用Supabase)
+- 有效的Google表單API密鑰和表單ID
 
-## 安裝和設置
+## 本地安裝和使用方法
 
-### 前提條件
+### 1. 複製倉庫
 
-- Node.js (v18+)
-- PostgreSQL 數據庫
-- Supabase 帳戶
-- Google Cloud Platform 帳戶（用於 Sheets API）
+```bash
+git clone [倉庫URL]
+cd [倉庫目錄]
+```
 
-### 安裝步驟
+### 2. 安裝依賴
 
-1. 克隆存儲庫:
-   ```bash
-   git clone https://github.com/yourusername/order-management-system.git
-   cd order-management-system
-   ```
+```bash
+npm install
+```
 
-2. 安裝依賴:
-   ```bash
-   npm install
-   ```
+### 3. 配置環境變數
 
-3. 環境變數配置:
-   - 複製 `.env.example` 到 `.env`
-   - 填入您的實際配置值
+複製`.env.example`到`.env`並填入您的實際環境值：
 
-4. 初始化數據庫:
-   ```bash
-   npm run db:push
-   ```
+```bash
+cp .env.example .env
+```
 
-5. 啟動開發服務器:
-   ```bash
-   npm run dev
-   ```
+編輯`.env`文件以包含：
+- Supabase URL和密鑰
+- Google Spreadsheet API密鑰和表單ID
+- PostgreSQL數據庫連接字符串
+- 管理員密碼
 
-## 使用說明
+### 4. 啟動開發服務器
 
-### 基本功能
+```bash
+npm run dev
+```
 
-- **查詢產品**: 使用者可以從 Google Sheets 中查詢產品信息
-- **創建臨時訂單**: 使用者可以創建臨時訂單
-- **編輯訂單**: 修改訂單的數量和交付日期
+應用程序將在`http://localhost:5000`啟動。
 
-### 管理員功能
+## 數據庫初始化
 
-- **完成訂單**: 將臨時訂單標記為已完成
-- **查看歷史訂單**: 查看和管理已完成的訂單
-- **訂單統計**: 查看月度和年度訂單統計
-- **系統配置**: 更新系統連接設置和管理員密碼
+系統使用了PostgreSQL資料庫，如果您想要本地開發而不使用Supabase，您可以：
 
-## 數據庫結構
+```bash
+# 確保PostgreSQL已安裝並運行
+npm run db:push
+```
 
-系統使用以下主要數據表:
+這將根據`shared/schema.ts`中的定義創建所有必要的資料表。
 
-- `users`: 用戶信息
-- `orders`: 訂單基本信息
-- `configs`: 系統配置
-- `session`: 會話管理
+## 環境變數說明
 
-## 安全特性
+- `DATABASE_URL`: PostgreSQL連接字符串
+- `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`: PostgreSQL連接詳情
+- `SUPABASE_URL`: Supabase項目URL
+- `SUPABASE_KEY`: Supabase客戶端密鑰
+- `SPREADSHEET_API_KEY`: Google API密鑰，用於訪問表單
+- `SPREADSHEET_ID`: Google表單的唯一ID
+- `ADMIN_PASSWORD`: 管理員登入密碼
 
-- 所有敏感信息存儲在環境變量中
-- 數據庫認證和授權
-- 管理員密碼使用 SHA-256 哈希
-- HttpOnly cookie 用於會話管理
-- 5分鐘無操作自動登出管理員
-- 會話數據持久化到 PostgreSQL
+## 重要說明
 
-## 貢獻指南
-
-1. Fork 存儲庫
-2. 創建您的功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交您的變更 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 開啟一個 Pull Request
-
-## 許可證
-
-[MIT](LICENSE)
-
-## 聯繫方式
-
-您的姓名 - [您的郵箱地址](mailto:your.email@example.com)
-
-項目鏈接: [https://github.com/yourusername/order-management-system](https://github.com/yourusername/order-management-system)
+- 系統默認有10分鐘的管理員會話超時
+- 臨時訂單需要由管理員確認才會變為已完成訂單
+- 所有API密鑰和密碼都應安全存放，不應公開分享
