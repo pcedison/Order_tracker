@@ -25,6 +25,7 @@ const checkEnvVars = () => {
     'DATABASE_URL',
     'SUPABASE_URL',
     'SUPABASE_KEY',
+    'SUPABASE_SERVICE_KEY',
     'SPREADSHEET_API_KEY',
     'SPREADSHEET_ID'
   ];
@@ -142,6 +143,7 @@ const initializeConfigs = async (pool) => {
     const configsToSave = [
       { key: 'SUPABASE_URL', value: process.env.SUPABASE_URL },
       { key: 'SUPABASE_KEY', value: process.env.SUPABASE_KEY },
+      { key: 'SUPABASE_SERVICE_KEY', value: process.env.SUPABASE_SERVICE_KEY },
       { key: 'SPREADSHEET_API_KEY', value: process.env.SPREADSHEET_API_KEY },
       { key: 'SPREADSHEET_ID', value: process.env.SPREADSHEET_ID }
     ];

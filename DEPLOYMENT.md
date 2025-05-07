@@ -168,7 +168,19 @@ npm start
 └── vite.config.ts          # Vite配置
 ```
 
-## 六、注意事項
+## 六、Supabase 安全設置
+
+使用Supabase時，正確配置安全性非常重要。我們已經為您創建了一個詳細的安全設置指南，請參閱專案根目錄中的 `SUPABASE_SECURITY.md` 文件。
+
+### Supabase 行級安全 (RLS)
+
+Supabase的安全診斷可能會顯示關於未啟用Row Level Security(RLS)的警告。這些警告非常重要，應該解決。主要步驟包括：
+
+1. 為所有表啟用RLS
+2. 創建適當的安全策略
+3. 使用服務角色密鑰進行服務器操作
+
+詳細設置步驟請參考 `SUPABASE_SECURITY.md`。
 
 ### 使用遠程Supabase
 
@@ -177,6 +189,7 @@ npm start
 1. 所有數據將繼續存儲在Supabase中
 2. 您需要確保您的Supabase項目保持可訪問狀態
 3. 本地應用程序將需要互聯網連接才能正常工作
+4. 您需要同時擁有公共密鑰(anon key)和服務角色密鑰(service_role key)
 
 如果您想完全脫離Supabase並使用本地PostgreSQL：
 1. 安裝本地PostgreSQL服務器
