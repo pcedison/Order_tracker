@@ -6,6 +6,8 @@ import { useOrders } from "@/hooks/useOrders";
 import { Order } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ConfigSettings from "./ConfigSettings";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface AdminSectionProps {
   isVisible: boolean;
@@ -31,8 +33,113 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     loadHistory, 
     generateStats,
     editHistoryOrder,
-    deleteHistoryOrder
+    deleteHistoryOrder,
+    rawOrders
   } = useOrders();
+  
+  // 新增函數：依照日期分組訂單
+  const groupByDate = (orders: Order[]) => {
+    const grouped: {[date: string]: Order[]} = {};
+    
+    // 依照日期排序
+    const sortedOrders = [...orders].sort((a, b) => {
+      return new Date(a.delivery_date).getTime() - new Date(b.delivery_date).getTime();
+    });
+    
+    sortedOrders.forEach(order => {
+      const date = order.delivery_date.split('T')[0]; // 只取日期部分
+      if (!grouped[date]) {
+        grouped[date] = [];
+      }
+      grouped[date].push(order);
+    });
+    
+    return grouped;
+  };
+  
+  // 生成PDF報表
+  const generateOrderStatsPDF = () => {
+    if (!statsData || !statsData.orders || statsData.orders.length === 0) {
+      toast({
+        title: "無法生成PDF",
+        description: "請先生成訂單統計數據",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const doc = new jsPDF();
+      
+      // 設置標題
+      const title = `達遠塑膠 ${statsMonth ? statsMonth : ""} 月銷售清單`;
+      doc.setFontSize(28);
+      doc.text(title, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+      
+      // 按日期分組的訂單數據
+      const groupedOrders = groupByDate(statsData.orders);
+      
+      // 表格數據
+      let tableData: any[] = [];
+      let totalQuantity = 0;
+      
+      Object.entries(groupedOrders).forEach(([date, orders], index) => {
+        // 添加日期行
+        tableData.push([
+          { content: `日期: ${date}`, colSpan: 4, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
+        ]);
+        
+        // 添加該日期的訂單
+        orders.forEach(order => {
+          tableData.push([
+            date,
+            order.product_code,
+            order.product_name,
+            Number(order.quantity).toFixed(2)
+          ]);
+          
+          totalQuantity += Number(order.quantity);
+        });
+      });
+      
+      // 添加總計行
+      tableData.push([
+        { content: '', colSpan: 3, styles: { fontStyle: 'bold' } },
+        { content: totalQuantity.toFixed(2), styles: { fontStyle: 'bold' } }
+      ]);
+      
+      // 生成表格
+      autoTable(doc, {
+        head: [['日期', '產品編號', '產品顏色', '銷售公斤數']],
+        body: tableData,
+        startY: 30,
+        theme: 'grid',
+        styles: { fontSize: 10, cellPadding: 3 },
+        headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+        columnStyles: {
+          0: { cellWidth: 30 },
+          1: { cellWidth: 30 },
+          2: { cellWidth: 50 },
+          3: { cellWidth: 30, halign: 'right' }
+        }
+      });
+      
+      // 保存PDF
+      doc.save(`達遠塑膠_${statsData.periodText}_銷售清單.pdf`);
+      
+      toast({
+        title: "PDF生成成功",
+        description: "銷售清單已下載",
+      });
+    } catch (error) {
+      console.error("PDF生成錯誤:", error);
+      toast({
+        title: "PDF生成失敗",
+        description: "請稍後再試",
+        variant: "destructive",
+      });
+    }
+  };
 
   // 使用当前日期作为默认日期范围，只在第一次显示时设置
   useEffect(() => {
@@ -250,11 +357,21 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
         </div>
         <div 
           className={`px-5 py-2.5 text-[20px] cursor-pointer rounded-t-lg mr-1 ${
-            activeTab === "stats" 
+            activeTab === "product_popularity" 
               ? "active bg-white border border-[#ccc] border-b-0" 
               : "bg-[#ddd]"
           }`}
-          onClick={() => setActiveTab("stats")}
+          onClick={() => setActiveTab("product_popularity")}
+        >
+          產品熱銷度
+        </div>
+        <div 
+          className={`px-5 py-2.5 text-[20px] cursor-pointer rounded-t-lg mr-1 ${
+            activeTab === "order_stats" 
+              ? "active bg-white border border-[#ccc] border-b-0" 
+              : "bg-[#ddd]"
+          }`}
+          onClick={() => setActiveTab("order_stats")}
         >
           訂單統計
         </div>
@@ -392,10 +509,10 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
         </div>
       </div>
       
-      {/* Stats Tab */}
+      {/* 產品熱銷度 Tab */}
       <div 
         className={`p-5 bg-white border border-[#ccc] rounded-b-lg rounded-tr-lg ${
-          activeTab === "stats" ? "block" : "hidden"
+          activeTab === "product_popularity" ? "block" : "hidden"
         }`}
       >
         <div className="flex items-center gap-2.5 mb-2.5">
