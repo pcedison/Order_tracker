@@ -96,16 +96,15 @@ export default function ConfigSettings() {
       // 先檢查管理員狀態，確保會話有效
       const adminStatus = await checkAdminStatus(false);
       
-      // 如果當前是管理員但看不到配置數據，可能需要重試
+      // 如果當前是管理員但看不到配置數據，僅嘗試一次重新加載
       if (adminStatus && (!configs || Object.keys(configs).length === 0)) {
-        if (configLoadRetryCount.current < 3) {
+        if (configLoadRetryCount.current === 0) {
           configLoadRetryCount.current += 1;
-          console.log(`配置加載重試 (${configLoadRetryCount.current}/3)...`);
           
-          // 延遲重試，給會話時間完全建立
+          // 延遲500ms重新加載一次，之後不再嘗試
           setTimeout(() => {
-            loadConfigs(configLoadRetryCount.current >= 2); // 最後一次嘗試時顯示錯誤
-          }, 1000 * configLoadRetryCount.current); // 逐漸增加延遲時間
+            loadConfigs(true); // 如果這次還不成功，就顯示錯誤
+          }, 500);
         }
       }
     };

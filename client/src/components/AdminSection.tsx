@@ -13,7 +13,7 @@ interface AdminSectionProps {
 }
 
 export default function AdminSection({ isVisible, showConfirmDialog }: AdminSectionProps) {
-  const [activeTab, setActiveTab] = useState<"history" | "stats" | "config">("history");
+  const [activeTab, setActiveTab] = useState<"history" | "product_popularity" | "order_stats" | "config">("history");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [statsYear, setStatsYear] = useState<string>("2025");
