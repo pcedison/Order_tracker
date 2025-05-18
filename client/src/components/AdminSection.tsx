@@ -77,7 +77,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     }
   };
   
-  // 新增 CSV 下載功能 - 完全支持中文
+  // 直接在前端生成CSV功能 - 完全支持中文
   const downloadOrderStatsCSV = () => {
     if (!statsData) {
       // 如果還沒有生成統計數據，則自動調用生成功能
@@ -91,7 +91,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       return;
     }
     
-    if (!statsData.stats || statsData.stats.length === 0) {
+    if (!statsData.stats || statsData.stats.length === 0 || !statsData.orders || statsData.orders.length === 0) {
       toast({
         title: "無法生成報表",
         description: "所選時間段內沒有訂單數據",
@@ -101,35 +101,59 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     }
     
     try {
-      // 建立URL
-      const url = `/api/orders/export-csv?year=${statsYear}${statsMonth ? `&month=${statsMonth}` : ''}`;
+      // 在前端直接生成CSV內容，避免編碼問題
+      // 添加 BOM (Byte Order Mark) 以確保Excel正確識別UTF-8編碼
+      const BOM = '\uFEFF';
+      let csvContent = BOM + "日期,產品編號,產品顏色,數量(公斤)\n";
       
-      // 創建一個動態的a標籤來下載CSV
+      // 根據日期對訂單進行排序
+      const sortedOrders = [...statsData.orders].sort((a, b) => {
+        return new Date(a.delivery_date).getTime() - new Date(b.delivery_date).getTime();
+      });
+      
+      // 添加訂單數據到CSV
+      sortedOrders.forEach(order => {
+        const date = order.delivery_date.split('T')[0];
+        csvContent += `${date},${order.product_code},${order.product_name},${Number(order.quantity).toFixed(2)}\n`;
+      });
+      
+      // 計算總重量
+      const totalWeight = sortedOrders.reduce((sum, order) => sum + Number(order.quantity), 0).toFixed(2);
+      csvContent += `\n總計,,,${totalWeight}\n`;
+      
+      // 創建Blob對象
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      
+      // 創建URL
+      const url = URL.createObjectURL(blob);
+      
+      // 創建下載連結
       const link = document.createElement('a');
-      link.href = url;
+      link.setAttribute('href', url);
       
       // 設置檔案名稱
       const fileName = statsMonth 
         ? `達遠塑膠_銷售清單_${statsYear}_${statsMonth}月.csv` 
         : `達遠塑膠_銷售清單_${statsYear}.csv`;
       
-      link.download = fileName;
+      link.setAttribute('download', fileName);
       
       // 添加到文檔中並觸發點擊
       document.body.appendChild(link);
       link.click();
       
-      // 清理DOM
+      // 清理
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       
       toast({
-        title: "銷售報表下載中",
+        title: "銷售報表已下載",
         description: "CSV文件包含完整的中文支持",
       });
     } catch (error) {
-      console.error("CSV download error:", error);
+      console.error("CSV generation error:", error);
       toast({
-        title: "報表下載失敗",
+        title: "報表生成失敗",
         description: error instanceof Error ? error.message : "未知錯誤",
         variant: "destructive",
       });

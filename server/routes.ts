@@ -327,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // 新增API端點 - CSV匯出功能 (保證中文顯示正確)
+  // 新增API端點 - CSV匯出功能 (使用BOM來確保中文顯示正確)
   app.get("/api/orders/export-csv", async (req, res) => {
     try {
       // 檢查用戶是否為管理員
@@ -378,12 +378,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         csvContent += `${date},${order.product_code},${order.product_name},${Number(order.quantity).toFixed(2)}\n`;
       });
       
-      // 設置響應頭
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename=達遠塑膠_銷售清單_${year}${month ? '_' + month + '月' : ''}.csv`);
+      // 添加 BOM (Byte Order Mark) 以確保 Excel 能正確識別 UTF-8 編碼
+      const BOM = '\uFEFF';
+      const csvContentWithBOM = BOM + csvContent;
       
-      // 發送CSV內容
-      return res.send(csvContent);
+      // 設置響應頭，使用英文檔名避免跨平台編碼問題
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename=Dayuan_Sales_Report_${year}${month ? '_' + month : ''}.csv`);
+      
+      // 發送包含 BOM 的 CSV 內容
+      return res.send(csvContentWithBOM);
     } catch (error) {
       console.error("Export error:", error);
       return res.status(500).json({ message: "Failed to export data" });
