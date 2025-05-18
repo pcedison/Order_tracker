@@ -327,6 +327,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // 新增API端點 - CSV匯出功能 (保證中文顯示正確)
+  app.get("/api/orders/export-csv", async (req, res) => {
+    try {
+      // 檢查用戶是否為管理員
+      if (!req.session?.isAdmin) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { year, month } = req.query;
+      
+      if (!year) {
+        return res.status(400).json({ message: "Year is required" });
+      }
+      
+      // 驗證參數
+      const yearSchema = z.string().regex(/^\d{4}$/);
+      const validYear = yearSchema.safeParse(year);
+      
+      if (!validYear.success) {
+        return res.status(400).json({ message: "Invalid year format" });
+      }
+
+      const monthSchema = z.string().regex(/^\d{1,2}$/).optional();
+      const validMonth = monthSchema.safeParse(month);
+      
+      if (month && !validMonth.success) {
+        return res.status(400).json({ message: "Invalid month format" });
+      }
+
+      // 獲取訂單統計數據
+      const data = await storage.generateOrderStats(year as string, month as string | undefined);
+      
+      // 檢查是否有訂單數據
+      if (!data.stats || data.stats.length === 0 || !data.orders || data.orders.length === 0) {
+        return res.status(404).json({ message: "No order data found" });
+      }
+      
+      // 生成CSV內容
+      let csvContent = "日期,產品編號,產品顏色,數量(公斤)\n";
+      
+      // 根據日期對訂單進行排序
+      const sortedOrders = [...data.orders].sort((a, b) => {
+        return new Date(a.delivery_date).getTime() - new Date(b.delivery_date).getTime();
+      });
+      
+      // 添加訂單數據到CSV
+      sortedOrders.forEach(order => {
+        const date = order.delivery_date.split('T')[0];
+        csvContent += `${date},${order.product_code},${order.product_name},${Number(order.quantity).toFixed(2)}\n`;
+      });
+      
+      // 設置響應頭
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename=達遠塑膠_銷售清單_${year}${month ? '_' + month + '月' : ''}.csv`);
+      
+      // 發送CSV內容
+      return res.send(csvContent);
+    } catch (error) {
+      console.error("Export error:", error);
+      return res.status(500).json({ message: "Failed to export data" });
+    }
+  });
+  
   // 2. 然后是基本路由
   app.get("/api/orders", async (req, res) => {
     try {

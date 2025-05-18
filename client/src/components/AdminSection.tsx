@@ -76,6 +76,50 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       return doc;
     }
   };
+  
+  // 新增 CSV 下載功能 - 完全支持中文
+  const downloadOrderStatsCSV = () => {
+    if (!statsData) {
+      // 如果還沒有生成統計數據，則自動調用生成功能
+      handleGenerateStats();
+      
+      // 顯示一個消息通知用戶稍後再試
+      toast({
+        title: "正在生成數據",
+        description: "請等待數據生成完成後再試",
+      });
+      return;
+    }
+    
+    if (!statsData.stats || statsData.stats.length === 0) {
+      toast({
+        title: "無法生成報表",
+        description: "所選時間段內沒有訂單數據",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      // 建立URL
+      const url = `/api/orders/export-csv?year=${statsYear}${statsMonth ? `&month=${statsMonth}` : ''}`;
+      
+      // 使用瀏覽器的方式直接下載文件
+      window.location.href = url;
+      
+      toast({
+        title: "銷售報表下載中",
+        description: "CSV文件包含完整的中文支持",
+      });
+    } catch (error) {
+      console.error("CSV download error:", error);
+      toast({
+        title: "報表下載失敗",
+        description: error instanceof Error ? error.message : "未知錯誤",
+        variant: "destructive",
+      });
+    }
+  };
 
   // 生成PDF報表 - 支持中文
   const generateOrderStatsPDF = () => {
@@ -950,10 +994,17 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             >
               下載PDF
             </Button>
+            
+            <Button
+              onClick={downloadOrderStatsCSV}
+              className="box-border h-10 px-5 text-[20px] ml-2.5 bg-[#FF9800] text-white border-none rounded cursor-pointer hover:bg-[#e68a00]"
+            >
+              下載CSV
+            </Button>
           </div>
           
           <div className="w-full mt-2 text-sm text-gray-500">
-            PDF匯出功能已優化，現在可正常下載銷售報表
+            CSV匯出功能已添加，可完整顯示中文字符
           </div>
         </div>
         
