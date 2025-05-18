@@ -199,17 +199,23 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
         alignment: { horizontal: 'center' as const }
       };
       
-      // 添加標題
+      // 添加標題 (移除底線，使用正式格式)
       const titleText = statsMonth 
-        ? `達遠塑膠 ${statsYear}年 ${statsMonth}月 銷售清單` 
-        : `達遠塑膠 ${statsYear}年 銷售清單`;
+        ? `達遠塑膠 銷售清單 ${statsYear} ${statsMonth}月` 
+        : `達遠塑膠 銷售清單 ${statsYear}`;
       
+      // 合併儲存格建立標題區域
       worksheet.mergeCells('A1:D1');
       const titleCell = worksheet.getCell('A1');
       titleCell.value = titleText;
-      titleCell.style = titleStyle;
+      titleCell.style = {
+        font: { size: 18, bold: true },
+        alignment: { horizontal: 'center' as const, vertical: 'middle' as const }
+      };
+      // 調整標題行高
+      worksheet.getRow(1).height = 30;
       
-      // 設置列寬
+      // 設置列寬和欄位標題說明
       worksheet.columns = [
         { header: '日期', key: 'date', width: 15 },
         { header: '產品編號', key: 'code', width: 15 },
@@ -217,9 +223,31 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
         { header: '數量(公斤)', key: 'quantity', width: 15 }
       ];
       
-      // 設置表頭樣式
-      worksheet.getRow(2).font = { bold: true };
-      worksheet.getRow(2).alignment = { horizontal: 'center' as const };
+      // 設置標題行樣式
+      worksheet.getRow(2).height = 24; // 加高標題行
+      worksheet.getRow(2).font = { bold: true, size: 12 };
+      worksheet.getRow(2).alignment = { 
+        horizontal: 'center' as const, 
+        vertical: 'middle' as const
+      };
+      
+      // 為標題行添加底色
+      for (let i = 1; i <= 4; i++) {
+        const cell = worksheet.getRow(2).getCell(i);
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFD3D3D3' } // 淺灰色底色
+        };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      }
+      
+      // 表頭樣式已在上方設置，這裡不需重複
       
       // 根據日期對訂單進行排序
       const sortedOrders = [...statsData.orders].sort((a, b) => {
@@ -238,13 +266,25 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
         // 如果是新的一天，並且不是第一筆數據，則添加前一天的小計
         if (currentDate !== '' && currentDate !== date && index > 0) {
           // 添加日期小計行
-          worksheet.addRow({});
+          const totalRow = worksheet.addRow({
+            date: `${currentDate} 小計`,
+            code: '',
+            name: '',
+            quantity: Number(dailyTotal.toFixed(2))
+          });
           rowIndex++;
           
-          const totalRow = worksheet.getRow(rowIndex);
-          totalRow.getCell(1).value = `${currentDate} 小計`;
-          totalRow.getCell(4).value = Number(dailyTotal.toFixed(2));
+          // 設置小計行樣式
           totalRow.font = { bold: true };
+          totalRow.getCell(1).alignment = { horizontal: 'left' as const };
+          totalRow.getCell(4).alignment = { horizontal: 'right' as const };
+          
+          // 添加小計行的底部邊框
+          for (let i = 1; i <= 4; i++) {
+            totalRow.getCell(i).border = {
+              bottom: { style: 'thin' }
+            };
+          }
           
           // 添加空行作為分隔
           worksheet.addRow({});
@@ -258,7 +298,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
         currentDate = date;
         
         // 添加訂單數據
-        worksheet.addRow({
+        const dataRow = worksheet.addRow({
           date: date,
           code: order.product_code,
           name: order.product_name,
@@ -266,19 +306,43 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
         });
         rowIndex++;
         
+        // 設置數據行樣式
+        dataRow.getCell(1).alignment = { horizontal: 'left' as const };
+        dataRow.getCell(4).alignment = { horizontal: 'right' as const };
+        
+        // 為數據行添加輕微的邊框
+        for (let i = 1; i <= 4; i++) {
+          dataRow.getCell(i).border = {
+            bottom: { style: 'hair' }
+          };
+        }
+        
         // 累加當日總計
         dailyTotal += quantity;
       });
       
       // 添加最後一天的小計
       if (sortedOrders.length > 0) {
-        worksheet.addRow({});
+        // 添加最後一天小計行
+        const lastTotalRow = worksheet.addRow({
+          date: `${currentDate} 小計`,
+          code: '',
+          name: '',
+          quantity: Number(dailyTotal.toFixed(2))
+        });
         rowIndex++;
         
-        const totalRow = worksheet.getRow(rowIndex);
-        totalRow.getCell(1).value = `${currentDate} 小計`;
-        totalRow.getCell(4).value = Number(dailyTotal.toFixed(2));
-        totalRow.font = { bold: true };
+        // 設置小計行樣式
+        lastTotalRow.font = { bold: true };
+        lastTotalRow.getCell(1).alignment = { horizontal: 'left' as const };
+        lastTotalRow.getCell(4).alignment = { horizontal: 'right' as const };
+        
+        // 添加小計行的底部邊框
+        for (let i = 1; i <= 4; i++) {
+          lastTotalRow.getCell(i).border = {
+            bottom: { style: 'thin' }
+          };
+        }
         
         // 添加空行作為分隔
         worksheet.addRow({});
@@ -288,10 +352,27 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       // 添加總計行
       const grandTotal = sortedOrders.reduce((sum, order) => sum + Number(order.quantity), 0);
       
-      const grandTotalRow = worksheet.getRow(rowIndex + 1);
-      grandTotalRow.getCell(1).value = "總計";
-      grandTotalRow.getCell(4).value = Number(grandTotal.toFixed(2));
+      const grandTotalRow = worksheet.addRow({
+        date: '總計',
+        code: '',
+        name: '',
+        quantity: Number(grandTotal.toFixed(2))
+      });
+      rowIndex++;
+      
+      // 設置總計行樣式
       grandTotalRow.font = { bold: true, size: 12 };
+      grandTotalRow.height = 24;
+      grandTotalRow.getCell(1).alignment = { horizontal: 'left' as const };
+      grandTotalRow.getCell(4).alignment = { horizontal: 'right' as const };
+      
+      // 添加總計行的底部和頂部粗邊框
+      for (let i = 1; i <= 4; i++) {
+        grandTotalRow.getCell(i).border = {
+          top: { style: 'medium' },
+          bottom: { style: 'double' }
+        };
+      }
       
       // 設置數字列為數字格式
       worksheet.getColumn(4).numFmt = '0.00';
