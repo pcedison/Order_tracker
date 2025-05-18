@@ -668,6 +668,122 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
         </div>
       </div>
       
+      {/* 訂單統計 Tab */}
+      <div 
+        className={`p-5 bg-white border border-[#ccc] rounded-b-lg rounded-tr-lg ${
+          activeTab === "order_stats" ? "block" : "hidden"
+        }`}
+      >
+        <div className="flex items-center gap-2.5 mb-2.5">
+          <label htmlFor="orderStatsYearSelect" className="text-lg">選擇年份：</label>
+          <select 
+            id="orderStatsYearSelect" 
+            value={statsYear}
+            onChange={(e) => setStatsYear(e.target.value)}
+            className="box-border text-[20px] h-10 leading-10 px-2.5 w-56 border border-[#ccc] rounded"
+          >
+            {/* Years 2025 ~ 2035 */}
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+            <option value="2028">2028</option>
+            <option value="2029">2029</option>
+            <option value="2030">2030</option>
+            <option value="2031">2031</option>
+            <option value="2032">2032</option>
+            <option value="2033">2033</option>
+            <option value="2034">2034</option>
+            <option value="2035">2035</option>
+          </select>
+          
+          <label htmlFor="orderStatsMonthSelect" className="text-lg">選擇月份：</label>
+          <select 
+            id="orderStatsMonthSelect"
+            value={statsMonth}
+            onChange={(e) => setStatsMonth(e.target.value)}
+            className="box-border text-[20px] h-10 leading-10 px-2.5 w-56 border border-[#ccc] rounded"
+          >
+            <option value="">全部月份</option>
+            <option value="1">1月</option>
+            <option value="2">2月</option>
+            <option value="3">3月</option>
+            <option value="4">4月</option>
+            <option value="5">5月</option>
+            <option value="6">6月</option>
+            <option value="7">7月</option>
+            <option value="8">8月</option>
+            <option value="9">9月</option>
+            <option value="10">10月</option>
+            <option value="11">11月</option>
+            <option value="12">12月</option>
+          </select>
+          
+          <Button
+            onClick={handleGenerateStats}
+            className="box-border h-10 px-5 text-[20px] ml-2.5 bg-[#4CAF50] text-white border-none rounded cursor-pointer hover:bg-[#45a049]"
+          >
+            生成統計
+          </Button>
+          
+          <Button
+            onClick={generateOrderStatsPDF}
+            className="box-border h-10 px-5 text-[20px] ml-2.5 bg-[#2196F3] text-white border-none rounded cursor-pointer hover:bg-[#0b7dda]"
+          >
+            下載PDF
+          </Button>
+        </div>
+        
+        {isLoadingStats && (
+          <div className="flex justify-center p-10">
+            <div className="w-16 h-16 border-4 border-t-4 border-[#3498db] rounded-full animate-spin"></div>
+          </div>
+        )}
+        
+        {!isLoadingStats && statsData && statsData.orders && (
+          <div className="bg-white rounded shadow-md p-5">
+            <h2 className="text-[28px] text-center mb-4">訂單統計 - {statsData.periodText}</h2>
+            
+            {Object.entries(groupByDate(statsData.orders)).length === 0 ? (
+              <p className="text-center text-[20px] my-10">無訂單數據</p>
+            ) : (
+              <div>
+                {Object.entries(groupByDate(statsData.orders)).map(([date, orders]) => (
+                  <div key={date} className="mb-6 border-b pb-4">
+                    <h3 className="text-[22px] font-bold mb-2">日期: {date}</h3>
+                    <table className="w-full border-collapse text-lg">
+                      <thead>
+                        <tr className="bg-[#f2f2f2]">
+                          <th className="p-3 text-left border-b border-[#ddd]">產品編號</th>
+                          <th className="p-3 text-left border-b border-[#ddd]">產品顏色</th>
+                          <th className="p-3 text-left border-b border-[#ddd]">數量 (公斤)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orders.map((order) => (
+                          <tr key={order.id} className="hover:bg-[#f5f5f5]">
+                            <td className="p-3 border-b border-[#ddd]">{order.product_code}</td>
+                            <td className="p-3 border-b border-[#ddd]">{order.product_name}</td>
+                            <td className="p-3 border-b border-[#ddd]">{Number(order.quantity).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+                <div className="mt-4 text-right">
+                  <p className="text-[20px]">
+                    總訂單數: <span className="font-bold">{statsData.totalOrders}</span>
+                  </p>
+                  <p className="text-[22px]">
+                    總公斤數: <span className="font-bold">{statsData.totalKilograms.toFixed(2)}</span>
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      
       {/* Config Tab */}
       <div 
         className={`p-5 bg-white border border-[#ccc] rounded-b-lg rounded-tr-lg ${
