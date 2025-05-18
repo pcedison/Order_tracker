@@ -56,7 +56,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     return grouped;
   };
   
-  // 生成PDF報表
+  // 生成PDF報表 - 使用更安全的方式
   const generateOrderStatsPDF = () => {
     if (!statsData || !statsData.orders || statsData.orders.length === 0) {
       toast({
@@ -68,76 +68,146 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     }
     
     try {
-      // 創建一個支持中文字體的PDF
+      // 創建一個基本PDF
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
       });
       
-      // 使用內置字體，通過使用英文和數字替代顯示
-      // 實際使用時需要引入中文字體或使用ASCII碼替代的方式
-      
-      // 設置標題（使用英文代替中文）
+      // 設置標題（使用英文）
       const titleMonth = statsMonth ? statsMonth : "";
       const title = `Dayuan Plastic ${titleMonth} Month Sales List`;
-      doc.setFontSize(28);
+      doc.setFontSize(24);
       doc.text(title, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
       
-      // 添加中文標題說明（使用英文代替）
+      // 添加標題說明
       doc.setFontSize(10);
-      doc.text("(PDF format does not support Chinese characters)", doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
+      doc.text("(PDF format uses English for compatibility)", doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
       
-      // 按日期分組的訂單數據
-      const groupedOrders = groupByDate(statsData.orders);
-      
-      // 表格數據
-      let tableData: any[] = [];
+      // 使用更簡單的數據處理方式，避免處理太複雜的數據結構
+      let simpleTableData: string[][] = [];
       let totalQuantity = 0;
       
-      Object.entries(groupedOrders).forEach(([date, orders], index) => {
-        // 添加日期行
-        tableData.push([
-          { content: `Date: ${date}`, colSpan: 4, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
-        ]);
+      // 表頭
+      simpleTableData.push(['Date', 'Product ID', 'Product Color', 'Quantity (kg)']);
+      
+      // 添加數據行，一次性生成所有數據避免太多循環
+      if (statsData.orders) {
+        // 對訂單排序
+        const sortedOrders = [...statsData.orders].sort((a, b) => {
+          return new Date(a.delivery_date).getTime() - new Date(b.delivery_date).getTime();
+        });
         
-        // 添加該日期的訂單
-        orders.forEach(order => {
-          tableData.push([
+        let currentDate = '';
+        
+        sortedOrders.forEach(order => {
+          // 格式化日期
+          const date = order.delivery_date.split('T')[0];
+          
+          // 如果日期變了，添加一個日期分隔行
+          if (date !== currentDate) {
+            currentDate = date;
+            simpleTableData.push([`Date: ${date}`, '', '', '']);
+          }
+          
+          // 添加訂單行
+          simpleTableData.push([
             date,
-            order.product_code,
-            order.product_name,
+            order.product_code || '',
+            order.product_name || '',
             Number(order.quantity).toFixed(2)
           ]);
           
           totalQuantity += Number(order.quantity);
         });
-      });
+      }
       
       // 添加總計行
-      tableData.push([
-        { content: 'Total', colSpan: 3, styles: { fontStyle: 'bold' } },
-        { content: totalQuantity.toFixed(2), styles: { fontStyle: 'bold' } }
-      ]);
+      simpleTableData.push(['Total', '', '', totalQuantity.toFixed(2)]);
       
-      // 生成表格
-      autoTable(doc, {
-        head: [['Date', 'Product ID', 'Product Color', 'Quantity (kg)']],
-        body: tableData,
-        startY: 35,
-        theme: 'grid',
-        styles: { fontSize: 10, cellPadding: 3 },
-        headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-        columnStyles: {
-          0: { cellWidth: 30 },
-          1: { cellWidth: 30 },
-          2: { cellWidth: 50 },
-          3: { cellWidth: 30, halign: 'right' }
+      // 生成表格 - 使用更簡單的方式生成表格避免複雜格式設置
+      doc.setFontSize(10);
+      let startY = 35;
+      const lineHeight = 7;
+      const margin = 15;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const colWidths = [30, 30, 40, 30];
+      
+      // 簡單繪製表格
+      simpleTableData.forEach((row, rowIndex) => {
+        // 設置背景色
+        if (rowIndex === 0) {
+          // 表頭
+          doc.setFillColor(41, 128, 185);
+          doc.setTextColor(255);
+        } else if (row[0].startsWith('Date:')) {
+          // 日期行
+          doc.setFillColor(240, 240, 240);
+          doc.setTextColor(0);
+        } else if (row[0] === 'Total') {
+          // 總計行
+          doc.setFillColor(220, 220, 220);
+          doc.setTextColor(0);
+        } else {
+          // 普通行
+          doc.setFillColor(255);
+          doc.setTextColor(0);
         }
+        
+        // 繪製行背景
+        doc.rect(margin, startY, pageWidth - 2 * margin, lineHeight, 'F');
+        
+        // 繪製文字
+        let xPos = margin;
+        row.forEach((cell, cellIndex) => {
+          const width = colWidths[cellIndex] || 30;
+          
+          // 調整文本對齊方式
+          let textAlign = 'left';
+          let textXPos = xPos + 2; // 文字左邊距離2mm
+          
+          // 對於數量欄位，右對齊
+          if (cellIndex === 3 && rowIndex !== 0 && !row[0].startsWith('Date:')) {
+            textAlign = 'right';
+            textXPos = xPos + width - 2; // 文字右邊距離2mm
+          }
+          
+          // 繪製文字
+          doc.text(cell, textXPos, startY + lineHeight/2 + 1, { align: textAlign });
+          
+          // 移動到下一列
+          xPos += width;
+        });
+        
+        // 移動到下一行
+        startY += lineHeight;
+        
+        // 重設樣式
+        doc.setFillColor(255);
+        doc.setTextColor(0);
       });
       
+      // 繪製表格線
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.1);
+      
+      // 橫線
+      for (let i = 0; i <= simpleTableData.length; i++) {
+        const y = 35 + i * lineHeight;
+        doc.line(margin, y, pageWidth - margin, y);
+      }
+      
+      // 直線
+      let xPos = margin;
+      for (let i = 0; i <= colWidths.length; i++) {
+        const width = colWidths[i] || 30;
+        doc.line(xPos, 35, xPos, 35 + simpleTableData.length * lineHeight);
+        xPos += width;
+      }
+      
       // 保存PDF，使用英文檔名
-      const fileName = `Dayuan_Plastic_${statsData.periodText.replace(/[^\x00-\x7F]/g, '_')}_Sales_List.pdf`;
+      const fileName = `Dayuan_Plastic_Sales_List.pdf`;
       doc.save(fileName);
       
       toast({
