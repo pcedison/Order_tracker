@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import ConfigSettings from "./ConfigSettings";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as ExcelJS from "exceljs";
 // 引入中文字體
 import "@fontsource/noto-sans-tc/400.css";
 import "@fontsource/noto-sans-tc/700.css";
@@ -154,6 +155,179 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       console.error("CSV generation error:", error);
       toast({
         title: "報表生成失敗",
+        description: error instanceof Error ? error.message : "未知錯誤",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // 生成Excel功能 - 原生支持中文
+  const downloadOrderStatsExcel = async () => {
+    if (!statsData) {
+      // 如果還沒有生成統計數據，則自動調用生成功能
+      handleGenerateStats();
+      
+      // 顯示一個消息通知用戶稍後再試
+      toast({
+        title: "正在生成數據",
+        description: "請等待數據生成完成後再試",
+      });
+      return;
+    }
+    
+    if (!statsData.stats || statsData.stats.length === 0 || !statsData.orders || statsData.orders.length === 0) {
+      toast({
+        title: "無法生成報表",
+        description: "所選時間段內沒有訂單數據",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      // 創建一個新的Excel工作簿
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "達遠塑膠銷售系統";
+      workbook.created = new Date();
+      
+      // 添加一個工作表
+      const worksheet = workbook.addWorksheet('銷售清單');
+      
+      // 標題樣式
+      const titleStyle = {
+        font: { size: 16, bold: true },
+        alignment: { horizontal: 'center' }
+      };
+      
+      // 添加標題
+      const titleText = statsMonth 
+        ? `達遠塑膠 ${statsYear}年 ${statsMonth}月 銷售清單` 
+        : `達遠塑膠 ${statsYear}年 銷售清單`;
+      
+      worksheet.mergeCells('A1:D1');
+      const titleCell = worksheet.getCell('A1');
+      titleCell.value = titleText;
+      titleCell.style = titleStyle;
+      
+      // 設置列寬
+      worksheet.columns = [
+        { header: '日期', key: 'date', width: 15 },
+        { header: '產品編號', key: 'code', width: 15 },
+        { header: '產品顏色', key: 'name', width: 20 },
+        { header: '數量(公斤)', key: 'quantity', width: 15 }
+      ];
+      
+      // 設置表頭樣式
+      worksheet.getRow(2).font = { bold: true };
+      worksheet.getRow(2).alignment = { horizontal: 'center' };
+      
+      // 根據日期對訂單進行排序
+      const sortedOrders = [...statsData.orders].sort((a, b) => {
+        return new Date(a.delivery_date).getTime() - new Date(b.delivery_date).getTime();
+      });
+      
+      // 添加數據行
+      let currentDate = '';
+      let rowIndex = 3; // 從第3行開始添加數據
+      let dailyTotal = 0;
+      
+      sortedOrders.forEach((order, index) => {
+        const date = order.delivery_date.split('T')[0];
+        const quantity = Number(order.quantity);
+        
+        // 如果是新的一天，並且不是第一筆數據，則添加前一天的小計
+        if (currentDate !== '' && currentDate !== date && index > 0) {
+          // 添加日期小計行
+          worksheet.addRow({});
+          rowIndex++;
+          
+          const totalRow = worksheet.getRow(rowIndex);
+          totalRow.getCell(1).value = `${currentDate} 小計`;
+          totalRow.getCell(4).value = Number(dailyTotal.toFixed(2));
+          totalRow.font = { bold: true };
+          
+          // 添加空行作為分隔
+          worksheet.addRow({});
+          rowIndex++;
+          
+          // 重置日期總計
+          dailyTotal = 0;
+        }
+        
+        // 設置當前日期
+        currentDate = date;
+        
+        // 添加訂單數據
+        worksheet.addRow({
+          date: date,
+          code: order.product_code,
+          name: order.product_name,
+          quantity: Number(quantity.toFixed(2))
+        });
+        rowIndex++;
+        
+        // 累加當日總計
+        dailyTotal += quantity;
+      });
+      
+      // 添加最後一天的小計
+      if (sortedOrders.length > 0) {
+        worksheet.addRow({});
+        rowIndex++;
+        
+        const totalRow = worksheet.getRow(rowIndex);
+        totalRow.getCell(1).value = `${currentDate} 小計`;
+        totalRow.getCell(4).value = Number(dailyTotal.toFixed(2));
+        totalRow.font = { bold: true };
+        
+        // 添加空行作為分隔
+        worksheet.addRow({});
+        rowIndex++;
+      }
+      
+      // 添加總計行
+      const grandTotal = sortedOrders.reduce((sum, order) => sum + Number(order.quantity), 0);
+      
+      const grandTotalRow = worksheet.getRow(rowIndex + 1);
+      grandTotalRow.getCell(1).value = "總計";
+      grandTotalRow.getCell(4).value = Number(grandTotal.toFixed(2));
+      grandTotalRow.font = { bold: true, size: 12 };
+      
+      // 設置數字列為數字格式
+      worksheet.getColumn(4).numFmt = '0.00';
+      
+      // 寫入Excel文件並下載
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      
+      // 創建下載連結
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // 設置檔案名稱
+      const fileName = statsMonth 
+        ? `達遠塑膠_銷售清單_${statsYear}_${statsMonth}月.xlsx` 
+        : `達遠塑膠_銷售清單_${statsYear}.xlsx`;
+      
+      link.download = fileName;
+      
+      // 觸發下載
+      document.body.appendChild(link);
+      link.click();
+      
+      // 清理
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Excel報表已下載",
+        description: "Excel文件包含完整的中文支持與格式化",
+      });
+    } catch (error) {
+      console.error("Excel generation error:", error);
+      toast({
+        title: "Excel報表生成失敗",
         description: error instanceof Error ? error.message : "未知錯誤",
         variant: "destructive",
       });
@@ -1019,7 +1193,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             </select>
           </div>
           
-          <div className="flex items-center">
+          <div className="flex items-center flex-wrap gap-2">
             <Button
               onClick={handleGenerateStats}
               className="box-border h-10 px-5 text-[20px] bg-[#4CAF50] text-white border-none rounded cursor-pointer hover:bg-[#45a049]"
@@ -1029,21 +1203,28 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             
             <Button
               onClick={generateOrderStatsPDF}
-              className="box-border h-10 px-5 text-[20px] ml-2.5 bg-[#2196F3] text-white border-none rounded cursor-pointer hover:bg-[#0b7dda]"
+              className="box-border h-10 px-5 text-[20px] bg-[#2196F3] text-white border-none rounded cursor-pointer hover:bg-[#0b7dda]"
             >
               下載PDF
             </Button>
             
             <Button
               onClick={downloadOrderStatsCSV}
-              className="box-border h-10 px-5 text-[20px] ml-2.5 bg-[#FF9800] text-white border-none rounded cursor-pointer hover:bg-[#e68a00]"
+              className="box-border h-10 px-5 text-[20px] bg-[#FF9800] text-white border-none rounded cursor-pointer hover:bg-[#e68a00]"
             >
               下載CSV
+            </Button>
+            
+            <Button
+              onClick={() => downloadOrderStatsExcel()}
+              className="box-border h-10 px-5 text-[20px] bg-[#9C27B0] text-white border-none rounded cursor-pointer hover:bg-[#7B1FA2]"
+            >
+              下載Excel
             </Button>
           </div>
           
           <div className="w-full mt-2 text-sm text-gray-500">
-            CSV匯出功能已添加，可完整顯示中文字符
+            已添加Excel與CSV匯出功能，完整支持中文字符顯示
           </div>
         </div>
         
