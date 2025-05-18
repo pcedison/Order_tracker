@@ -199,45 +199,54 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
         alignment: { horizontal: 'center' as const }
       };
       
-      // 添加標題 (移除底線，使用正式格式)
+      // 完全按照截圖要求設置標題格式
       const titleText = statsMonth 
-        ? `達遠塑膠 銷售清單 ${statsYear} ${statsMonth}月` 
-        : `達遠塑膠 銷售清單 ${statsYear}`;
+        ? `達遠塑膠_銷售清單_${statsYear}_${statsMonth}月` 
+        : `達遠塑膠_銷售清單_${statsYear}`;
       
       // 合併儲存格建立標題區域
       worksheet.mergeCells('A1:D1');
       const titleCell = worksheet.getCell('A1');
       titleCell.value = titleText;
       titleCell.style = {
-        font: { size: 18, bold: true },
+        font: { size: 16, bold: true },
         alignment: { horizontal: 'center' as const, vertical: 'middle' as const }
       };
       // 調整標題行高
-      worksheet.getRow(1).height = 30;
+      worksheet.getRow(1).height = 28;
       
-      // 設置列寬和欄位標題說明
-      worksheet.columns = [
-        { header: '日期', key: 'date', width: 15 },
-        { header: '產品編號', key: 'code', width: 15 },
-        { header: '產品顏色', key: 'name', width: 20 },
-        { header: '數量(公斤)', key: 'quantity', width: 15 }
-      ];
-      
-      // 設置標題行樣式
-      worksheet.getRow(2).height = 24; // 加高標題行
-      worksheet.getRow(2).font = { bold: true, size: 12 };
-      worksheet.getRow(2).alignment = { 
-        horizontal: 'center' as const, 
-        vertical: 'middle' as const
+      // 設置數量標題
+      worksheet.mergeCells('A2:D2');
+      const quantityHeaderCell = worksheet.getCell('A2');
+      quantityHeaderCell.value = '數量(公斤)';
+      quantityHeaderCell.style = {
+        font: { size: 14, bold: true },
+        alignment: { horizontal: 'center' as const, vertical: 'middle' as const }
       };
+      worksheet.getRow(2).height = 24;
       
-      // 為標題行添加底色
+      // 第三行設置欄位標題
+      worksheet.getRow(3).values = ['日期', '產品編號', '產品顏色', '數量(公斤)'];
+      worksheet.getRow(3).height = 22;
+      worksheet.getRow(3).font = { bold: true, size: 11 };
+      worksheet.getRow(3).alignment = { horizontal: 'center' as const, vertical: 'middle' as const };
+      
+      // 設置列寬
+      worksheet.getColumn(1).width = 15;
+      worksheet.getColumn(2).width = 15;
+      worksheet.getColumn(3).width = 20;
+      worksheet.getColumn(4).width = 15;
+      
+      // 標題行樣式已在上方設置完成
+      
+      // 為標題欄位添加底色和邊框
       for (let i = 1; i <= 4; i++) {
-        const cell = worksheet.getRow(2).getCell(i);
+        // 第三行才是標題行
+        const cell = worksheet.getRow(3).getCell(i);
         cell.fill = {
           type: 'pattern',
           pattern: 'solid',
-          fgColor: { argb: 'FFD3D3D3' } // 淺灰色底色
+          fgColor: { argb: 'FFD3D3D3' } // 淺灰色底色，匹配截圖
         };
         cell.border = {
           top: { style: 'thin' },
@@ -256,7 +265,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       
       // 添加數據行
       let currentDate = '';
-      let rowIndex = 3; // 從第3行開始添加數據
+      let rowIndex = 4; // 從第4行開始添加數據 (因為前面有1行標題和2行表頭)
       let dailyTotal = 0;
       
       sortedOrders.forEach((order, index) => {
