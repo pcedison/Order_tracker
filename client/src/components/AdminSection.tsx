@@ -91,10 +91,22 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
 
   // 生成PDF報表 - 支持中文
   const generateOrderStatsPDF = () => {
-    if (!statsData || !statsData.orders || statsData.orders.length === 0) {
+    if (!statsData) {
+      // 如果還沒有生成統計數據，則自動調用生成功能
+      handleGenerateStats();
+      
+      // 顯示一個消息通知用戶稍後再試
+      toast({
+        title: "正在生成數據",
+        description: "請等待數據生成完成後再試",
+      });
+      return;
+    }
+    
+    if (!statsData.orders || statsData.orders.length === 0) {
       toast({
         title: "無法生成PDF",
-        description: "請先生成訂單統計數據",
+        description: "所選時間段內沒有訂單數據",
         variant: "destructive",
       });
       return;
@@ -824,7 +836,6 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             <Button
               onClick={generateOrderStatsPDF}
               className="box-border h-10 px-5 text-[20px] ml-2.5 bg-[#2196F3] text-white border-none rounded cursor-pointer hover:bg-[#0b7dda]"
-              disabled={!statsData || !statsData.orders || statsData.orders.length === 0}
             >
               下載PDF
             </Button>
