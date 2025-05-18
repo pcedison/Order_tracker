@@ -33,8 +33,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     loadHistory, 
     generateStats,
     editHistoryOrder,
-    deleteHistoryOrder,
-    rawOrders
+    deleteHistoryOrder
   } = useOrders();
   
   // 新增函數：依照日期分組訂單

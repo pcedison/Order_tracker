@@ -13,6 +13,7 @@ interface CreateOrderParams {
 
 interface StatsData {
   stats: StatItem[];
+  orders?: Order[];  // 添加原始訂單數據，用於訂單統計頁面
   periodText: string;
   totalOrders: number;
   totalKilograms: number; // 新增總公斤數字段
@@ -225,6 +226,49 @@ export function useOrders() {
       }
       
       const data = await response.json();
+      
+      // 计算日期范围，以获取对应时段的订单数据
+      let startDate, endDate;
+      
+      if (month) {
+        // 特定月份: 上个月25日到当月24日
+        const yearNum = parseInt(year, 10);
+        const monthNum = parseInt(month, 10);
+        
+        // 计算上个月的年份和月份
+        let prevMonth = monthNum - 1;
+        let prevYear = yearNum;
+        
+        if (prevMonth === 0) {
+          prevMonth = 12;
+          prevYear -= 1;
+        }
+        
+        // 格式化日期
+        const paddedMonth = monthNum.toString().padStart(2, '0');
+        const paddedPrevMonth = prevMonth.toString().padStart(2, '0');
+        
+        startDate = `${prevYear}-${paddedPrevMonth}-25`;
+        endDate = `${year}-${paddedMonth}-24`;
+      } else {
+        // 整年: 前一年12月25日到当年12月24日
+        const prevYear = parseInt(year, 10) - 1;
+        startDate = `${prevYear}-12-25`;
+        endDate = `${year}-12-24`;
+      }
+      
+      // 获取该时间段的历史订单
+      try {
+        const historyResponse = await fetch(`/api/orders/history?startDate=${startDate}&endDate=${endDate}`);
+        if (historyResponse.ok) {
+          const historyData = await historyResponse.json();
+          // 将订单数据添加到统计数据中
+          data.orders = historyData;
+        }
+      } catch (historyError) {
+        console.error("Failed to fetch history orders for stats:", historyError);
+      }
+      
       setStatsData(data);
     } catch (error) {
       console.error("Generate stats error:", error);
