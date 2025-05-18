@@ -13,6 +13,7 @@ interface StatItem {
 
 interface OrderStats {
   stats: StatItem[];
+  orders?: Order[];  // 添加原始訂單數據，用於匯出功能
   periodText: string;
   totalOrders: number;
   totalKilograms: number; // 新增總公斤數字段
@@ -436,6 +437,7 @@ export class SupabaseStorage implements IStorage {
     
     return {
       stats: statsArray,
+      orders: completedOrders, // 添加原始訂單數據
       periodText,
       totalOrders: completedOrders.length,
       totalKilograms: parseFloat(totalKilograms.toFixed(2)) // 保留兩位小數

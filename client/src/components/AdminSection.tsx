@@ -104,8 +104,23 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       // 建立URL
       const url = `/api/orders/export-csv?year=${statsYear}${statsMonth ? `&month=${statsMonth}` : ''}`;
       
-      // 使用瀏覽器的方式直接下載文件
-      window.location.href = url;
+      // 創建一個動態的a標籤來下載CSV
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // 設置檔案名稱
+      const fileName = statsMonth 
+        ? `達遠塑膠_銷售清單_${statsYear}_${statsMonth}月.csv` 
+        : `達遠塑膠_銷售清單_${statsYear}.csv`;
+      
+      link.download = fileName;
+      
+      // 添加到文檔中並觸發點擊
+      document.body.appendChild(link);
+      link.click();
+      
+      // 清理DOM
+      document.body.removeChild(link);
       
       toast({
         title: "銷售報表下載中",
