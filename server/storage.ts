@@ -369,7 +369,7 @@ export class SupabaseStorage implements IStorage {
     let periodText: string;
     
     if (month) {
-      // 特定月份: 使用從上個月26號到當月25號的範圍
+      // 特定月份: 使用從上個月25號到當月24號的範圍
       const yearNum = parseInt(year, 10);
       const monthNum = parseInt(month, 10);
       
@@ -387,16 +387,16 @@ export class SupabaseStorage implements IStorage {
       const paddedMonth = monthNum.toString().padStart(2, '0');
       const paddedPrevMonth = prevMonth.toString().padStart(2, '0');
       
-      // 上個月26號至當月25號
-      startDate = `${prevYear}-${paddedPrevMonth}-26`;
-      endDate = `${year}-${paddedMonth}-25`;
+      // 上個月25號至當月24號
+      startDate = `${prevYear}-${paddedPrevMonth}-25`;
+      endDate = `${year}-${paddedMonth}-24`;
       
       periodText = `${year}年${monthNum}月`;
     } else {
-      // 整年: 前一年12月26號至當年12月25號
+      // 整年: 前一年12月25號至當年12月24號
       const prevYear = parseInt(year, 10) - 1;
-      startDate = `${prevYear}-12-26`;
-      endDate = `${year}-12-25`;
+      startDate = `${prevYear}-12-25`;
+      endDate = `${year}-12-24`;
       periodText = `${year}年全年`;
     }
     
