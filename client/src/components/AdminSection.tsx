@@ -68,12 +68,25 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     }
     
     try {
-      const doc = new jsPDF();
+      // 創建一個支持中文字體的PDF
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
       
-      // 設置標題
-      const title = `達遠塑膠 ${statsMonth ? statsMonth : ""} 月銷售清單`;
+      // 使用內置字體，通過使用英文和數字替代顯示
+      // 實際使用時需要引入中文字體或使用ASCII碼替代的方式
+      
+      // 設置標題（使用英文代替中文）
+      const titleMonth = statsMonth ? statsMonth : "";
+      const title = `Dayuan Plastic ${titleMonth} Month Sales List`;
       doc.setFontSize(28);
       doc.text(title, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+      
+      // 添加中文標題說明（使用英文代替）
+      doc.setFontSize(10);
+      doc.text("(PDF format does not support Chinese characters)", doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
       
       // 按日期分組的訂單數據
       const groupedOrders = groupByDate(statsData.orders);
@@ -85,7 +98,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       Object.entries(groupedOrders).forEach(([date, orders], index) => {
         // 添加日期行
         tableData.push([
-          { content: `日期: ${date}`, colSpan: 4, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
+          { content: `Date: ${date}`, colSpan: 4, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
         ]);
         
         // 添加該日期的訂單
@@ -103,15 +116,15 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       
       // 添加總計行
       tableData.push([
-        { content: '', colSpan: 3, styles: { fontStyle: 'bold' } },
+        { content: 'Total', colSpan: 3, styles: { fontStyle: 'bold' } },
         { content: totalQuantity.toFixed(2), styles: { fontStyle: 'bold' } }
       ]);
       
       // 生成表格
       autoTable(doc, {
-        head: [['日期', '產品編號', '產品顏色', '銷售公斤數']],
+        head: [['Date', 'Product ID', 'Product Color', 'Quantity (kg)']],
         body: tableData,
-        startY: 30,
+        startY: 35,
         theme: 'grid',
         styles: { fontSize: 10, cellPadding: 3 },
         headStyles: { fillColor: [41, 128, 185], textColor: 255 },
@@ -123,8 +136,9 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
         }
       });
       
-      // 保存PDF
-      doc.save(`達遠塑膠_${statsData.periodText}_銷售清單.pdf`);
+      // 保存PDF，使用英文檔名
+      const fileName = `Dayuan_Plastic_${statsData.periodText.replace(/[^\x00-\x7F]/g, '_')}_Sales_List.pdf`;
+      doc.save(fileName);
       
       toast({
         title: "PDF生成成功",
@@ -674,13 +688,13 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
           activeTab === "order_stats" ? "block" : "hidden"
         }`}
       >
-        <div className="flex items-center gap-2.5 mb-2.5">
+        <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
           <label htmlFor="orderStatsYearSelect" className="text-lg">選擇年份：</label>
           <select 
             id="orderStatsYearSelect" 
             value={statsYear}
             onChange={(e) => setStatsYear(e.target.value)}
-            className="box-border text-[20px] h-10 leading-10 px-2.5 w-56 border border-[#ccc] rounded"
+            className="box-border text-[20px] h-10 leading-10 px-2.5 w-40 border border-[#ccc] rounded"
           >
             {/* Years 2025 ~ 2035 */}
             <option value="2025">2025</option>
@@ -701,7 +715,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             id="orderStatsMonthSelect"
             value={statsMonth}
             onChange={(e) => setStatsMonth(e.target.value)}
-            className="box-border text-[20px] h-10 leading-10 px-2.5 w-56 border border-[#ccc] rounded"
+            className="box-border text-[20px] h-10 leading-10 px-2.5 w-40 border border-[#ccc] rounded"
           >
             <option value="">全部月份</option>
             <option value="1">1月</option>
@@ -731,6 +745,10 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
           >
             下載PDF
           </Button>
+          
+          <div className="w-full mt-2 text-sm text-gray-500">
+            注意：PDF匯出功能目前不支持中文字體，將使用英文替代顯示
+          </div>
         </div>
         
         {isLoadingStats && (
@@ -747,29 +765,39 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
               <p className="text-center text-[20px] my-10">無訂單數據</p>
             ) : (
               <div>
-                {Object.entries(groupByDate(statsData.orders)).map(([date, orders]) => (
-                  <div key={date} className="mb-6 border-b pb-4">
-                    <h3 className="text-[22px] font-bold mb-2">日期: {date}</h3>
-                    <table className="w-full border-collapse text-lg">
-                      <thead>
-                        <tr className="bg-[#f2f2f2]">
-                          <th className="p-3 text-left border-b border-[#ddd]">產品編號</th>
-                          <th className="p-3 text-left border-b border-[#ddd]">產品顏色</th>
-                          <th className="p-3 text-left border-b border-[#ddd]">數量 (公斤)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {orders.map((order) => (
-                          <tr key={order.id} className="hover:bg-[#f5f5f5]">
-                            <td className="p-3 border-b border-[#ddd]">{order.product_code}</td>
-                            <td className="p-3 border-b border-[#ddd]">{order.product_name}</td>
-                            <td className="p-3 border-b border-[#ddd]">{Number(order.quantity).toFixed(2)}</td>
+                {Object.entries(groupByDate(statsData.orders)).map(([date, orders]) => {
+                  // 計算這一天的總數量
+                  const dailyTotal = orders.reduce((sum, order) => sum + Number(order.quantity), 0);
+                  
+                  return (
+                    <div key={date} className="mb-6 border-b pb-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-[22px] font-bold">日期: {date}</h3>
+                        <div className="text-lg font-medium">
+                          總數: <span className="font-bold">{dailyTotal.toFixed(2)}</span> 公斤
+                        </div>
+                      </div>
+                      <table className="w-full border-collapse text-lg">
+                        <thead>
+                          <tr className="bg-[#f2f2f2]">
+                            <th className="p-3 text-left border-b border-[#ddd]">產品編號</th>
+                            <th className="p-3 text-left border-b border-[#ddd]">產品顏色</th>
+                            <th className="p-3 text-left border-b border-[#ddd]">數量 (公斤)</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
+                        </thead>
+                        <tbody>
+                          {orders.map((order, idx) => (
+                            <tr key={`${order.id}-${idx}`} className="hover:bg-[#f5f5f5]">
+                              <td className="p-3 border-b border-[#ddd]">{order.product_code}</td>
+                              <td className="p-3 border-b border-[#ddd]">{order.product_name}</td>
+                              <td className="p-3 border-b border-[#ddd]">{Number(order.quantity).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })}
                 <div className="mt-4 text-right">
                   <p className="text-[20px]">
                     總訂單數: <span className="font-bold">{statsData.totalOrders}</span>
