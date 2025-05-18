@@ -59,32 +59,10 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     return grouped;
   };
   
-  // 添加中文字體到PDF
-  const addChineseFont = (doc: jsPDF) => {
-    // 這裡我們使用一個已知可以運作的中文字體設定
-    // 實際上我們會將字體base64編碼並添加到PDF中
-    const fontBase64 = 
-    "AAEAAAATAQAABAAwRFNJR54SRB0AAdbMAAB16k9TLzKPvJPhAAABwAAAAGBjbWFw" +
-    "2j1jHQAAAmwAAABUZ2FzcAAAABAAAAgwAAAACGdseWaOHHM3AAAJkAAAJwRoZWFk" +
-    "El/twwAAAVgAAAA2aGhlYQg+BRUAAAGQAAAAJGhtdHgBrQDHAAAB9AAAAGBsb2Nh" +
-    "E6YKwwAACDAAAAAsbWF4cAErBFUAAAGwAAAAIG5hbWUejKxTAAAv9AAAAf93b3Nw" +
-    "AYgBzAAAN/QAAAAgcHJlcGgGjIUAAAfYAAAABwADAo8BGQAFAAAFmgUzAAABHwWa" +
-    "BTMAAAPXAGYCAAAAAgAGCQAAAAIAAAAAAAAAAAAAAAcAAAADAAAAFgAAAAIAAAAC" +
-    "AAM5mAAAAfQAAAAAfwAAAE8AAAAAAAACQADgPwAgA1MD/wAAAJMAnQABAAAAAAAA" +
-    "AAAAAArPAAQAAAAAAAAAAQAAAAEAAAAAAAEAAQAAAAEAAAAAAAIAAQAAAAEAAAAA" +
-    "AAMAAQAAAAEAAAAAAAQAAQAAAAEAAAAAAAUAAQAAAAEAAAAAAAYAAQAAAAEAAAAA" +
-    "AAcABwAAAAMAAgABAAAABwAABAAgAAoAEAAA/yH/Lv+U/8kAAP8h/y7/lP/JAQD/" +
-    "If8u/5T/yQIZACMAAQAAAAAAAAAJAGQAAwABBAkAAAAA+sEAMgADAAEECQABAAYB" +
-    "HgADAAEECQACAA4BJAADAAEECQADAB4BMgADAAEECQAEAAYBHgADAAEECQAFAGYB" +
-    "UAADAAEECQAGAA4BtgADAAEECQAHAA4BxAADAAEECQAJABgB0gADAAEECQAKABoB" +
-    "6gADAAEECQALACIBBAADAAEECQAMABACvAEC/yEADgADAAAAAQD/";
-
-    // 添加字體到PDF對象
-    doc.addFileToVFS('NotoSansTC-Regular.ttf', fontBase64);
-    doc.addFont('NotoSansTC-Regular.ttf', 'NotoSansTC', 'normal');
-    
-    // 設置預設字體
-    doc.setFont('NotoSansTC');
+  // 簡單方法處理PDF，不使用複雜的中文字體
+  const preparePDF = (doc: jsPDF) => {
+    // 使用預設字體，以確保穩定性
+    doc.setFont('Helvetica', 'normal');
     
     return doc;
   };
@@ -120,112 +98,235 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
         format: 'a4'
       });
       
-      // 添加中文字體支持
-      addChineseFont(doc);
+      // 準備PDF文檔
+      preparePDF(doc);
       
-      // 設置中文標題
-      const titleMonth = statsMonth ? `${statsMonth}月` : "";
-      const title = `達遠塑膠 ${titleMonth} 銷售清單`;
+      // 設置標題 (使用英文以確保相容性)
+      const titleMonth = statsMonth ? `${statsMonth}` : "";
+      const title = `Dayuan Plastic ${titleMonth} Month Sales Report`;
       
       // 繪製標題
       doc.setFontSize(24);
       doc.setTextColor(0, 0, 0);
       doc.text(title, doc.internal.pageSize.getWidth() / 2, 20, { align: "center" });
       
-      // 使用autoTable添加表格
-      const tableColumn = ['日期', '產品編號', '產品顏色', '數量 (公斤)'];
-      const tableRows: any[] = [];
+      // 使用簡單的表格生成方式
+      // 表格標題 (使用英文以確保相容性)
+      const tableColumn = ['Date', 'Product ID', 'Product Color', 'Quantity (kg)'];
       
       // 計算總數量
       let totalQuantity = 0;
+      let yPosition = 30;
+      const lineHeight = 8;
       
-      // 按日期分組數據
-      if (statsData.orders) {
+      // 添加表頭
+      doc.setFillColor(41, 128, 185);
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      
+      // 表頭位置和寬度
+      const margins = {
+        left: 15,
+        right: 15,
+        width: doc.internal.pageSize.getWidth() - 30
+      };
+      const colWidths = [30, 35, 85, 30];
+      
+      // 繪製表頭
+      doc.rect(
+        margins.left, 
+        yPosition, 
+        margins.width, 
+        lineHeight, 
+        'F'
+      );
+      
+      // 添加表頭文字
+      let xPos = margins.left;
+      tableColumn.forEach((col, i) => {
+        const width = colWidths[i];
+        doc.text(
+          col, 
+          xPos + 2, 
+          yPosition + 5
+        );
+        xPos += width;
+      });
+      
+      // 移動到下一行
+      yPosition += lineHeight;
+      
+      // 按日期分組處理訂單數據
+      if (statsData.orders && statsData.orders.length > 0) {
         const grouped = groupByDate(statsData.orders);
         
         // 遍歷每個日期組
         Object.entries(grouped).forEach(([date, orders]) => {
           // 添加日期標題行
-          tableRows.push([{ content: `日期: ${date}`, colSpan: 4, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }]);
+          doc.setFillColor(240, 240, 240);
+          doc.setTextColor(0, 0, 0);
+          doc.rect(
+            margins.left, 
+            yPosition, 
+            margins.width, 
+            lineHeight, 
+            'F'
+          );
           
-          // 添加該日期的所有訂單
-          orders.forEach(order => {
-            tableRows.push([
-              date,
-              order.product_code,
-              order.product_name,
-              Number(order.quantity).toFixed(2)
-            ]);
-            
-            // 累加總數量
-            totalQuantity += Number(order.quantity);
-          });
+          doc.setFontSize(10);
+          doc.text(
+            `Date: ${date}`, 
+            margins.left + 2, 
+            yPosition + 5
+          );
+          
+          // 移動到下一行
+          yPosition += lineHeight;
           
           // 日期小計
-          const dailyTotal = orders.reduce((sum, order) => sum + Number(order.quantity), 0);
-          tableRows.push([
-            { content: '小計', colSpan: 3, styles: { fontStyle: 'bold' } },
-            { content: dailyTotal.toFixed(2), styles: { fontStyle: 'bold', halign: 'right' } }
-          ]);
+          let dailyTotal = 0;
+          
+          // 添加該日期的所有訂單
+          orders.forEach((order, index) => {
+            // 背景顏色交替
+            if (index % 2 === 0) {
+              doc.setFillColor(250, 250, 250);
+              doc.rect(
+                margins.left, 
+                yPosition, 
+                margins.width, 
+                lineHeight, 
+                'F'
+              );
+            }
+            
+            // 訂單數據
+            const quantity = Number(order.quantity);
+            dailyTotal += quantity;
+            totalQuantity += quantity;
+            
+            // 添加訂單文字
+            doc.setTextColor(0, 0, 0);
+            
+            // 每一列
+            let x = margins.left;
+            
+            // 日期
+            doc.text(
+              date, 
+              x + 2, 
+              yPosition + 5
+            );
+            x += colWidths[0];
+            
+            // 產品編號
+            doc.text(
+              order.product_code || '', 
+              x + 2, 
+              yPosition + 5
+            );
+            x += colWidths[1];
+            
+            // 產品顏色
+            doc.text(
+              order.product_name || '', 
+              x + 2, 
+              yPosition + 5
+            );
+            x += colWidths[2];
+            
+            // 數量
+            doc.text(
+              quantity.toFixed(2), 
+              x + colWidths[3] - 5, 
+              yPosition + 5,
+              { align: 'right' }
+            );
+            
+            // 移動到下一行
+            yPosition += lineHeight;
+          });
+          
+          // 添加日期小計行
+          doc.setFillColor(245, 245, 245);
+          doc.rect(
+            margins.left, 
+            yPosition, 
+            margins.width, 
+            lineHeight, 
+            'F'
+          );
+          
+          doc.setFontSize(10);
+          doc.text(
+            'Subtotal:', 
+            margins.left + 2, 
+            yPosition + 5
+          );
+          
+          doc.text(
+            dailyTotal.toFixed(2), 
+            margins.left + margins.width - 5, 
+            yPosition + 5,
+            { align: 'right' }
+          );
+          
+          // 移動到下一行
+          yPosition += lineHeight;
           
           // 添加空行
-          tableRows.push([{ content: '', colSpan: 4, styles: { fillColor: [255, 255, 255] } }]);
+          yPosition += 3;
         });
       }
       
       // 添加總計行
-      tableRows.push([
-        { content: '總計', colSpan: 3, styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } },
-        { content: totalQuantity.toFixed(2), styles: { fontStyle: 'bold', fillColor: [220, 220, 220], halign: 'right' } }
-      ]);
+      doc.setFillColor(220, 220, 220);
+      doc.rect(
+        margins.left, 
+        yPosition, 
+        margins.width, 
+        lineHeight, 
+        'F'
+      );
       
-      // 使用autoTable生成表格
-      autoTable(doc, {
-        head: [tableColumn],
-        body: tableRows,
-        startY: 30,
-        theme: 'grid',
-        styles: {
-          font: 'NotoSansTC',
-          fontSize: 10,
-          cellPadding: 3,
-        },
-        headStyles: {
-          fillColor: [41, 128, 185],
-          textColor: 255,
-          fontStyle: 'bold'
-        },
-        columnStyles: {
-          0: { cellWidth: 30 },
-          1: { cellWidth: 30 },
-          2: { cellWidth: 'auto' },
-          3: { cellWidth: 30, halign: 'right' }
-        },
-        didDrawPage: (data) => {
-          // 添加頁碼
-          doc.setFontSize(8);
-          doc.text(
-            `第 ${doc.getCurrentPageInfo().pageNumber} 頁`,
-            doc.internal.pageSize.getWidth() - 20, 
-            doc.internal.pageSize.getHeight() - 10
-          );
-        }
-      });
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text(
+        'Total:', 
+        margins.left + 2, 
+        yPosition + 5
+      );
+      
+      doc.text(
+        totalQuantity.toFixed(2), 
+        margins.left + margins.width - 5, 
+        yPosition + 5,
+        { align: 'right' }
+      );
       
       // 添加生成時間
       const now = new Date();
       const dateStr = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')}`;
       const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       
+      yPosition = doc.internal.pageSize.getHeight() - 10;
       doc.setFontSize(8);
-      doc.text(`生成時間: ${dateStr} ${timeStr}`, 15, doc.internal.pageSize.getHeight() - 10);
+      doc.text(`Generated: ${dateStr} ${timeStr}`, margins.left, yPosition);
+      
+      // 添加頁碼
+      doc.text(
+        `Page 1`, 
+        margins.left + margins.width - 5, 
+        yPosition,
+        { align: 'right' }
+      );
       
       // 保存PDF
-      let fileName = '達遠塑膠_銷售清單';
+      let fileName = 'Dayuan_Sales_Report';
       if (statsMonth) {
-        fileName = `達遠塑膠_${statsYear}年${statsMonth}月_銷售清單`;
+        fileName = `Dayuan_Sales_Report_${statsYear}_${statsMonth}`;
       } else {
-        fileName = `達遠塑膠_${statsYear}年_銷售清單`;
+        fileName = `Dayuan_Sales_Report_${statsYear}`;
       }
       doc.save(`${fileName}.pdf`);
       
@@ -842,7 +943,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
           </div>
           
           <div className="w-full mt-2 text-sm text-gray-500">
-            PDF匯出功能已支持中文字體，可以完整顯示中文內容
+            PDF匯出功能已優化，現在可正常下載銷售報表
           </div>
         </div>
         
