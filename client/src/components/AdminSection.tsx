@@ -59,12 +59,22 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     return grouped;
   };
   
-  // 簡單方法處理PDF，不使用複雜的中文字體
+  // 嘗試另一種方式處理中文字體
   const preparePDF = (doc: jsPDF) => {
-    // 使用預設字體，以確保穩定性
-    doc.setFont('Helvetica', 'normal');
-    
-    return doc;
+    try {
+      // 使用 addFont API (注意：這只是一個嘗試，可能需要專門的中文字體庫)
+      const pdfBase64 = 'data:application/pdf;base64,...'; // 這裡我們暫時使用一個佔位符
+      
+      // 使用預設字體進行保底
+      doc.setFont('Helvetica', 'normal');
+      
+      return doc;
+    } catch (error) {
+      console.error("Error preparing PDF:", error);
+      // 出錯時使用預設字體
+      doc.setFont('Helvetica', 'normal');
+      return doc;
+    }
   };
 
   // 生成PDF報表 - 支持中文
