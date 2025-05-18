@@ -766,62 +766,69 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
         }`}
       >
         <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
-          <label htmlFor="orderStatsYearSelect" className="text-lg">選擇年份：</label>
-          <select 
-            id="orderStatsYearSelect" 
-            value={statsYear}
-            onChange={(e) => setStatsYear(e.target.value)}
-            className="box-border text-[20px] h-10 leading-10 px-2.5 w-40 border border-[#ccc] rounded"
-          >
-            {/* Years 2025 ~ 2035 */}
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
-            <option value="2027">2027</option>
-            <option value="2028">2028</option>
-            <option value="2029">2029</option>
-            <option value="2030">2030</option>
-            <option value="2031">2031</option>
-            <option value="2032">2032</option>
-            <option value="2033">2033</option>
-            <option value="2034">2034</option>
-            <option value="2035">2035</option>
-          </select>
+          <div className="flex items-center mr-2">
+            <label htmlFor="orderStatsYearSelect" className="text-lg mr-2">選擇年份：</label>
+            <select 
+              id="orderStatsYearSelect" 
+              value={statsYear}
+              onChange={(e) => setStatsYear(e.target.value)}
+              className="box-border text-[20px] h-10 leading-10 px-2.5 w-40 border border-[#ccc] rounded"
+            >
+              {/* Years 2025 ~ 2035 */}
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+              <option value="2027">2027</option>
+              <option value="2028">2028</option>
+              <option value="2029">2029</option>
+              <option value="2030">2030</option>
+              <option value="2031">2031</option>
+              <option value="2032">2032</option>
+              <option value="2033">2033</option>
+              <option value="2034">2034</option>
+              <option value="2035">2035</option>
+            </select>
+          </div>
           
-          <label htmlFor="orderStatsMonthSelect" className="text-lg">選擇月份：</label>
-          <select 
-            id="orderStatsMonthSelect"
-            value={statsMonth}
-            onChange={(e) => setStatsMonth(e.target.value)}
-            className="box-border text-[20px] h-10 leading-10 px-2.5 w-40 border border-[#ccc] rounded"
-          >
-            <option value="">全部月份</option>
-            <option value="1">1月</option>
-            <option value="2">2月</option>
-            <option value="3">3月</option>
-            <option value="4">4月</option>
-            <option value="5">5月</option>
-            <option value="6">6月</option>
-            <option value="7">7月</option>
-            <option value="8">8月</option>
-            <option value="9">9月</option>
-            <option value="10">10月</option>
-            <option value="11">11月</option>
-            <option value="12">12月</option>
-          </select>
+          <div className="flex items-center mr-2">
+            <label htmlFor="orderStatsMonthSelect" className="text-lg mr-2">選擇月份：</label>
+            <select 
+              id="orderStatsMonthSelect"
+              value={statsMonth}
+              onChange={(e) => setStatsMonth(e.target.value)}
+              className="box-border text-[20px] h-10 leading-10 px-2.5 w-40 border border-[#ccc] rounded"
+            >
+              <option value="">全部月份</option>
+              <option value="1">1月</option>
+              <option value="2">2月</option>
+              <option value="3">3月</option>
+              <option value="4">4月</option>
+              <option value="5">5月</option>
+              <option value="6">6月</option>
+              <option value="7">7月</option>
+              <option value="8">8月</option>
+              <option value="9">9月</option>
+              <option value="10">10月</option>
+              <option value="11">11月</option>
+              <option value="12">12月</option>
+            </select>
+          </div>
           
-          <Button
-            onClick={handleGenerateStats}
-            className="box-border h-10 px-5 text-[20px] ml-2.5 bg-[#4CAF50] text-white border-none rounded cursor-pointer hover:bg-[#45a049]"
-          >
-            生成統計
-          </Button>
-          
-          <Button
-            onClick={generateOrderStatsPDF}
-            className="box-border h-10 px-5 text-[20px] ml-2.5 bg-[#2196F3] text-white border-none rounded cursor-pointer hover:bg-[#0b7dda]"
-          >
-            下載PDF
-          </Button>
+          <div className="flex items-center">
+            <Button
+              onClick={handleGenerateStats}
+              className="box-border h-10 px-5 text-[20px] bg-[#4CAF50] text-white border-none rounded cursor-pointer hover:bg-[#45a049]"
+            >
+              生成統計
+            </Button>
+            
+            <Button
+              onClick={generateOrderStatsPDF}
+              className="box-border h-10 px-5 text-[20px] ml-2.5 bg-[#2196F3] text-white border-none rounded cursor-pointer hover:bg-[#0b7dda]"
+              disabled={!statsData || !statsData.orders || statsData.orders.length === 0}
+            >
+              下載PDF
+            </Button>
+          </div>
           
           <div className="w-full mt-2 text-sm text-gray-500">
             PDF匯出功能已支持中文字體，可以完整顯示中文內容
