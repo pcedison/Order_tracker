@@ -196,7 +196,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       // 標題樣式
       const titleStyle = {
         font: { size: 16, bold: true },
-        alignment: { horizontal: 'center' }
+        alignment: { horizontal: 'center' as const }
       };
       
       // 添加標題
@@ -219,7 +219,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       
       // 設置表頭樣式
       worksheet.getRow(2).font = { bold: true };
-      worksheet.getRow(2).alignment = { horizontal: 'center' };
+      worksheet.getRow(2).alignment = { horizontal: 'center' as const };
       
       // 根據日期對訂單進行排序
       const sortedOrders = [...statsData.orders].sort((a, b) => {
