@@ -11,16 +11,16 @@ export class PriceSpreadsheetService {
   private pricesCache: ProductPrice[] = [];
   private lastFetchTime: number = 0;
   private cacheDuration: number = 1000 * 60 * 5; // 5 分鐘緩存
-  private RANGE = '產品價格!A2:B300'; // 價格表範圍，可根據實際情況調整
+  private RANGE = '產品!A2:H300'; // 使用實際產品表範圍
 
   constructor() {
     // 從環境變數獲取 API key 和 spreadsheet ID
-    this.apiKey = process.env.PRICE_SPREADSHEET_API_KEY || '';
-    this.spreadsheetId = process.env.PRICE_SPREADSHEET_ID || '';
+    this.apiKey = process.env.PRICE_SPREADSHEET_API_KEY || 'AIzaSyAnztgYJgF15NjENuXITpPxyR8pLHFVkQ0';
+    this.spreadsheetId = process.env.PRICE_SPREADSHEET_ID || '13N3pRr3ElH2EoP6ZIUNW_Cod5o4FiG7upNnc2CD-zVI';
     
-    if (!this.apiKey || !this.spreadsheetId) {
-      console.warn('價格表 API key 或 ID 未在環境變數中提供');
-    }
+    console.log('價格表服務初始化，使用API Key和Spreadsheet ID:', 
+                this.apiKey ? '已設置API Key' : '未設置API Key', 
+                this.spreadsheetId ? '已設置Spreadsheet ID' : '未設置Spreadsheet ID');
   }
 
   // 根據需要刷新價格緩存
@@ -48,13 +48,20 @@ export class PriceSpreadsheetService {
       const data = await response.json();
       const rows = data.values || [];
       
-      // 處理價格數據
+      // 處理價格數據 - 根據實際電子表格結構調整
       const prices: ProductPrice[] = rows
-        .filter((row: any[]) => row.length >= 2 && row[0] && row[1])
-        .map((row: any[]) => ({
-          code: row[0].toString().trim(),
-          price: parseFloat(row[1]) || 0
-        }));
+        .filter((row: any[]) => row.length >= 2 && row[0])
+        .map((row: any[]) => {
+          // 在這裡處理您的電子表格行結構
+          // 假設第1列(索引0)是產品編號，第5列(索引4)是價格
+          const code = row[0]?.toString().trim() || '';
+          const priceValue = row[4] ? parseFloat(row[4].toString().replace(/,/g, '')) : 0;
+          
+          return {
+            code: code,
+            price: isNaN(priceValue) ? 0 : priceValue
+          };
+        });
       
       this.pricesCache = prices;
       this.lastFetchTime = now;
