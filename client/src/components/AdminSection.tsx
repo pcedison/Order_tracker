@@ -326,6 +326,13 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
         return;
       }
       
+      // 在查詢前顯示加載中的狀態
+      toast({
+        title: "正在載入資料",
+        description: "正在查詢指定日期範圍的訂單數據...",
+      });
+      
+      // 執行歷史訂單查詢
       loadHistory(startDate, endDate);
     }
   };
@@ -506,7 +513,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             </div>
           ) : (
             <div>
-              {historyOrders.length === 0 ? (
+              {!historyOrders || historyOrders.length === 0 ? (
                 <div className="text-center p-4 bg-[#f8f9fa] rounded">
                   所選時間範圍內沒有訂單記錄
                 </div>
@@ -818,7 +825,6 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                       <th className="border border-gray-300 p-2 text-left">產品名稱</th>
                       <th className="border border-gray-300 p-2 text-right">訂單數量</th>
                       <th className="border border-gray-300 p-2 text-right">總公斤數</th>
-                      <th className="border border-gray-300 p-2 text-right">佔比</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -828,58 +834,15 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                         <td className="border border-gray-300 p-2">{item.name}</td>
                         <td className="border border-gray-300 p-2 text-right">{item.orderCount}</td>
                         <td className="border border-gray-300 p-2 text-right">{item.totalQuantity.toFixed(2)}</td>
-                        <td className="border border-gray-300 p-2 text-right">
-                          {statsData.totalKilograms ? 
-                            (item.totalQuantity / statsData.totalKilograms * 100).toFixed(2) : "0.00"}%
-                        </td>
                       </tr>
                     ))}
                     <tr className="bg-gray-200 font-bold">
                       <td className="border border-gray-300 p-2" colSpan={2}>總計</td>
                       <td className="border border-gray-300 p-2 text-right">{statsData.totalOrders}</td>
                       <td className="border border-gray-300 p-2 text-right">{statsData.totalKilograms.toFixed(2)}</td>
-                      <td className="border border-gray-300 p-2 text-right">100.00%</td>
                     </tr>
                   </tbody>
                 </table>
-                
-                {/* 依日期分組的訂單明細 */}
-                <div className="mt-8">
-                  <h3 className="text-lg font-semibold mb-3">每日訂單明細</h3>
-                  
-                  {Object.entries(groupByDate(statsData.orders)).map(([date, orders]) => {
-                    // 計算當天總量
-                    const dailyTotal = orders.reduce((sum, order) => sum + Number(order.quantity), 0);
-                    
-                    return (
-                      <div key={date} className="mb-6">
-                        <h4 className="flex justify-between border-b-2 border-gray-400 pb-1 mb-2">
-                          <span className="font-medium text-gray-700">{date}</span>
-                          <span className="font-semibold">{dailyTotal.toFixed(2)} kg</span>
-                        </h4>
-                        
-                        <table className="w-full border-collapse">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="p-2 text-left border-b">產品編號</th>
-                              <th className="p-2 text-left border-b">產品名稱</th>
-                              <th className="p-2 text-right border-b">數量(公斤)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {orders.map((order, index) => (
-                              <tr key={index} className="hover:bg-gray-50">
-                                <td className="p-2 border-b">{order.product_code}</td>
-                                <td className="p-2 border-b">{order.product_name}</td>
-                                <td className="p-2 text-right border-b">{Number(order.quantity).toFixed(2)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
             )}
           </div>
