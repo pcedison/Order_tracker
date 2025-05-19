@@ -41,6 +41,11 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
   const groupByDate = (orders: Order[]) => {
     const grouped: {[date: string]: Order[]} = {};
     
+    // 確保 orders 存在且是數組
+    if (!orders || !Array.isArray(orders)) {
+      return grouped;
+    }
+    
     // 依照日期排序
     const sortedOrders = [...orders].sort((a, b) => {
       return new Date(a.delivery_date).getTime() - new Date(b.delivery_date).getTime();
