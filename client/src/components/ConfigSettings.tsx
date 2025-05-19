@@ -209,7 +209,7 @@ export default function ConfigSettings() {
                   label="Spreadsheet API Key"
                   configKey="SPREADSHEET_API_KEY"
                   placeholder="your-spreadsheet-api-key"
-                  value={spreadsheetApiKey}
+                  value={spreadsheetApiKey ? "******" : ""}
                   onChange={setSpreadsheetApiKey}
                   onSave={() => updateConfig("SPREADSHEET_API_KEY", spreadsheetApiKey)}
                   disabled={isUpdating}
@@ -218,7 +218,7 @@ export default function ConfigSettings() {
                   label="Spreadsheet ID"
                   configKey="SPREADSHEET_ID"
                   placeholder="your-spreadsheet-id"
-                  value={spreadsheetId}
+                  value={spreadsheetId ? "********" : ""}
                   onChange={setSpreadsheetId}
                   onSave={() => updateConfig("SPREADSHEET_ID", spreadsheetId)}
                   disabled={isUpdating}
