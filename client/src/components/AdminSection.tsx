@@ -513,17 +513,19 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             </div>
           ) : (
             <div>
-              {!historyOrders || historyOrders.length === 0 ? (
+              {!historyOrders || Object.keys(historyOrders).length === 0 ? (
                 <div className="text-center p-4 bg-[#f8f9fa] rounded">
                   所選時間範圍內沒有訂單記錄
                 </div>
               ) : (
                 <div>
                   <div className="mb-4 text-[#333] text-lg">
-                    共找到 <span className="font-bold">{historyOrders.length}</span> 筆訂單記錄
+                    共找到 <span className="font-bold">
+                      {Object.values(historyOrders).reduce((sum, orders) => sum + orders.length, 0)}
+                    </span> 筆訂單記錄
                   </div>
                   
-                  {Object.entries(groupByDate(historyOrders)).map(([date, orders]) => (
+                  {Object.entries(historyOrders).map(([date, orders]) => (
                     <div key={date} className="mb-8">
                       <h3 className="mb-2 text-xl font-semibold text-[#2196F3]">{date}</h3>
                       <div className="overflow-x-auto">
