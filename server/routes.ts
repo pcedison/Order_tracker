@@ -588,28 +588,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Key and value are required" });
       }
       
-      // 特殊處理價格表相關配置
-      if (key === 'PRICE_SPREADSHEET_API_KEY' || key === 'PRICE_SPREADSHEET_ID') {
-        // 直接更新環境變數，不透過資料庫
-        process.env[key] = value;
-        console.log(`Config ${key} updated directly in environment.`);
-        return res.json({ success: true });
-      }
-      
-      // 其他配置項透過資料庫儲存
       try {
+        // 所有配置項透過資料庫儲存
         await storage.setConfig(key, value);
         
-        // 同時更新環境變數
+        // 同時更新環境變數，使其立即生效
         if (key === 'SUPABASE_URL' || key === 'SUPABASE_KEY' || 
-            key === 'SPREADSHEET_API_KEY' || key === 'SPREADSHEET_ID') {
+            key === 'SPREADSHEET_API_KEY' || key === 'SPREADSHEET_ID' ||
+            key === 'PRICE_SPREADSHEET_API_KEY' || key === 'PRICE_SPREADSHEET_ID') {
           process.env[key] = value;
         }
         
         return res.json({ success: true });
-      } catch (dbError) {
-        console.error(`Database error updating config for ${key}:`, dbError);
-        throw dbError;
+      } catch (error) {
+        console.error(`Error updating config for ${key}:`, error);
+        throw error;
       }
     } catch (error) {
       console.error("Error updating config:", error);
