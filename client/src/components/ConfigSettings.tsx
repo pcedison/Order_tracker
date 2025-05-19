@@ -229,7 +229,7 @@ export default function ConfigSettings() {
                   label="價格表 API Key"
                   configKey="PRICE_SPREADSHEET_API_KEY"
                   placeholder="your-price-spreadsheet-api-key"
-                  value={priceSpreadsheetApiKey || "AIzaSyAnztgYJgF15NjENuXITpPxyR8pLHFVkQ0"}
+                  value={priceSpreadsheetApiKey ? "********" : "********"}
                   onChange={setPriceSpreadsheetApiKey}
                   onSave={() => updateConfig("PRICE_SPREADSHEET_API_KEY", priceSpreadsheetApiKey || "AIzaSyAnztgYJgF15NjENuXITpPxyR8pLHFVkQ0")}
                   disabled={isUpdating}
@@ -238,7 +238,7 @@ export default function ConfigSettings() {
                   label="價格表 Spreadsheet ID"
                   configKey="PRICE_SPREADSHEET_ID"
                   placeholder="your-price-spreadsheet-id"
-                  value={priceSpreadsheetId || "13N3pRr3ElH2EoP6ZIUNW_Cod5o4FiG7upNnc2CD-zVI"}
+                  value={priceSpreadsheetId ? "********" : "********"}
                   onChange={setPriceSpreadsheetId}
                   onSave={() => updateConfig("PRICE_SPREADSHEET_ID", priceSpreadsheetId || "13N3pRr3ElH2EoP6ZIUNW_Cod5o4FiG7upNnc2CD-zVI")}
                   disabled={isUpdating}
