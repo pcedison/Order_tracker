@@ -101,11 +101,26 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       let tableContent = '';
       let currentDate = '';
       let dailyTotal = 0;
+      let dailyAmount = 0;
+      let grandTotal = 0;
+      let grandAmount = 0;
+      
+      // 價格查詢映射 - 從統計數據中獲取單價
+      const priceMap = {};
+      if (statsData && statsData.stats) {
+        statsData.stats.forEach(item => {
+          priceMap[item.code] = {
+            unitPrice: item.unitPrice || 0
+          };
+        });
+      }
       
       // 處理訂單數據並產生表格HTML
       sortedOrders.forEach((order, index) => {
         const date = order.delivery_date.split('T')[0];
         const quantity = Number(order.quantity);
+        const unitPrice = priceMap[order.product_code]?.unitPrice || 0;
+        const totalPrice = quantity * unitPrice;
         
         // 如果日期變化，加入前一天的小計
         if (date !== currentDate && currentDate !== '') {
@@ -115,14 +130,20 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
               <td></td>
               <td></td>
               <td class="text-right">${dailyTotal.toFixed(2)}</td>
+              <td></td>
+              <td class="text-right">${dailyAmount.toLocaleString()}</td>
             </tr>
-            <tr><td colspan="4" style="height: 10px; border: none;"></td></tr>
+            <tr><td colspan="6" style="height: 10px; border: none;"></td></tr>
           `;
           dailyTotal = 0;
+          dailyAmount = 0;
         }
         
         currentDate = date;
         dailyTotal += quantity;
+        dailyAmount += totalPrice;
+        grandTotal += quantity;
+        grandAmount += totalPrice;
         
         // 添加訂單行
         tableContent += `
@@ -131,6 +152,8 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             <td>${order.product_code || ''}</td>
             <td>${order.product_name || ''}</td>
             <td class="text-right">${quantity.toFixed(2)}</td>
+            <td class="text-right">${unitPrice.toLocaleString()}</td>
+            <td class="text-right">${totalPrice.toLocaleString()}</td>
           </tr>
         `;
       });
@@ -143,9 +166,21 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             <td></td>
             <td></td>
             <td class="text-right">${dailyTotal.toFixed(2)}</td>
+            <td></td>
+            <td class="text-right">${dailyAmount.toLocaleString()}</td>
           </tr>
         `;
       }
+      
+      // 添加總計行
+      tableContent += `
+        <tr class="total-row">
+          <td colspan="3">總計</td>
+          <td class="text-right">${grandTotal.toFixed(2)}</td>
+          <td></td>
+          <td class="text-right">${grandAmount.toLocaleString()}</td>
+        </tr>
+      `;
       
       // 生成完整的HTML文件
       const htmlContent = `
