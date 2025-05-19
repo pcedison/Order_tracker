@@ -2,6 +2,7 @@ import { type Order, type InsertOrder } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { supabase } from "./supabase";
 import { AuthService } from "./services/auth";
+import { priceSpreadsheetService } from "./services/priceSpreadsheet";
 
 // Define types for statistics
 interface StatItem {
@@ -9,6 +10,8 @@ interface StatItem {
   name: string;
   totalQuantity: number;
   orderCount: number;
+  unitPrice?: number;      // 單價
+  totalPrice?: number;     // 總價 (單價 * 數量)
 }
 
 interface OrderStats {
@@ -17,6 +20,7 @@ interface OrderStats {
   periodText: string;
   totalOrders: number;
   totalKilograms: number; // 新增總公斤數字段
+  totalAmount: number;    // 訂單總金額
 }
 
 export interface IStorage {
@@ -602,6 +606,8 @@ export class SupabaseStorage implements IStorage {
       SUPABASE_KEY: getEnvSecure('SUPABASE_KEY'),
       SPREADSHEET_API_KEY: getEnvSecure('SPREADSHEET_API_KEY'),
       SPREADSHEET_ID: getEnvSecure('SPREADSHEET_ID'),
+      PRICE_SPREADSHEET_API_KEY: getEnvSecure('PRICE_SPREADSHEET_API_KEY'),
+      PRICE_SPREADSHEET_ID: getEnvSecure('PRICE_SPREADSHEET_ID'),
       ADMIN_PASSWORD: getEnvSecure('ADMIN_PASSWORD')
     };
   }
