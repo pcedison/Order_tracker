@@ -484,7 +484,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                 id="startDate"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="box-border text-[20px] h-10 leading-10 px-2.5 w-40 border border-[#ccc] rounded"
+                className="box-border text-[20px] h-10 leading-10 px-2.5 w-52 border border-[#ccc] rounded"
               />
             </div>
             
@@ -495,7 +495,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                 id="endDate"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="box-border text-[20px] h-10 leading-10 px-2.5 w-40 border border-[#ccc] rounded"
+                className="box-border text-[20px] h-10 leading-10 px-2.5 w-52 border border-[#ccc] rounded"
               />
             </div>
             
