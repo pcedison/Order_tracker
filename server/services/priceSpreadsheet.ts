@@ -13,7 +13,7 @@ export class PriceSpreadsheetService {
   private pricesCache: ProductPrice[] = [];
   private lastFetchTime: number = 0;
   private cacheDuration: number = 1000 * 60 * 5; // 5 分鐘緩存
-  private RANGE = '產品價格!A2:D300'; // 使用您新增的產品價格分頁
+  private RANGE = '達遠!A2:D300'; // 使用達遠分頁進行價格查詢
 
   constructor() {
     // 初始化時先從環境變數獲取值，後續刷新緩存時會從配置中獲取最新的值
