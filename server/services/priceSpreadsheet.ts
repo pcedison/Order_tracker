@@ -166,21 +166,10 @@ export class PriceSpreadsheetService {
         }
       }
       
-      // 特殊處理某些已知的產品編號格式問題
-      // 為特定產品指定硬編碼的預設價格
-      const defaultPrices: Record<string, number> = {
-        'P8066': 75,  // 根據您提供的實際價格
-        'P10433': 120, // 根據您提供的實際價格
-        'P2363': 120, // 藍色
-        'GR2211': 115, // 深灰
-        'P815': 110, // 黃色
-        'PS306': 105 // 綠色
-      };
-      
-      if (price === undefined && code in defaultPrices) {
-        price = defaultPrices[code];
-        console.log(`使用預設價格 ${code}: ${price}`);
-      }
+      // 不再使用預設價格，完全以試算表上的價格為準
+      /* 
+      移除了默認價格的設定，確保所有價格都直接從Google Spreadsheet獲取
+      */
       
       if (price !== undefined) {
         result[code] = price;
