@@ -521,7 +521,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                 <div>
                   <div className="mb-4 text-[#333] text-lg">
                     共找到 <span className="font-bold">
-                      {Object.values(historyOrders).reduce((sum, orders) => sum + orders.length, 0)}
+                      {Object.values(historyOrders).reduce((sum, orders) => sum + (Array.isArray(orders) ? orders.length : 0), 0)}
                     </span> 筆訂單記錄
                   </div>
                   
