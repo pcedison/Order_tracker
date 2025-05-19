@@ -122,10 +122,11 @@ export class SupabaseStorage implements IStorage {
   async getOrdersByDateRange(startDate: string, endDate: string, status?: "temporary" | "completed"): Promise<Order[]> {
     if (status === "completed") {
       // 获取已完成的历史订单（从 orders 和 order_items 表中）
+      // 使用大於 (>) 而非大於等於 (>=) 來確保只包含 26 日後的訂單
       const { data: orderData, error: orderError } = await supabase
         .from(this.ordersTable)
         .select('id, order_date, created_at')
-        .gte('order_date', startDate)
+        .gt('order_date', startDate)
         .lte('order_date', endDate)
         .order('created_at', { ascending: false });
       
