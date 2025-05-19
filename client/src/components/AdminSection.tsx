@@ -432,21 +432,9 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     }
   };
 
-  // 產生PDF報表並下載
+  // 簡化版PDF報表生成
   const generateOrderStatsPDF = () => {
-    if (!statsData) {
-      // 如果還沒有生成統計數據，則自動調用生成功能
-      handleGenerateStats();
-      
-      // 顯示一個消息通知用戶稍後再試
-      toast({
-        title: "正在生成數據",
-        description: "請等待數據生成完成後再試",
-      });
-      return;
-    }
-    
-    if (!statsData.orders || statsData.orders.length === 0) {
+    if (!statsData || !statsData.orders || statsData.orders.length === 0) {
       toast({
         title: "無法生成PDF",
         description: "所選時間段內沒有訂單數據",
@@ -456,187 +444,105 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     }
     
     try {
-      // 創建一個PDF文檔
+      // 創建PDF文檔
       const doc = new jsPDF({
-        orientation: 'portrait', 
+        orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
       });
       
-      // 準備PDF文檔基本設置
-      preparePDF(doc);
+      // 使用基本英文字體
+      doc.setFont('helvetica', 'normal');
       
-      // 報表時間範圍和標題 (使用autoTable解決中文顯示問題)
+      // 設置標題
+      doc.setFontSize(18);
+      doc.setTextColor(0, 51, 102);
+      doc.text("達遠塑膠銷售報表", doc.internal.pageSize.getWidth() / 2, 15, { align: "center" });
+      
+      // 報表期間
       const reportPeriod = statsData.periodText || `${statsYear}年${statsMonth ? statsMonth + '月' : '全年'}`;
       
-      // 建立表格數據
-      let tableData = [];
-      let totalQuantity = 0;
-      
-      // 按日期分組處理訂單數據
-      if (statsData.orders && statsData.orders.length > 0) {
-        const grouped = groupByDate(statsData.orders);
-        
-        // 遍歷每個日期組
-        Object.entries(grouped).forEach(([date, orders]) => {
-          // 添加日期標題行
-          tableData.push([
-            { 
-              content: `日期: ${date}`, 
-              colSpan: 4, 
-              styles: { 
-                fillColor: [240, 240, 240], 
-                textColor: [0, 0, 0],
-                // fontStyle: 'bold', // 注释掉有类型问题的属性
-                halign: 'left' as 'left'
-              } 
-            }
-          ]);
-          
-          // 日期小計
-          let dailyTotal = 0;
-          
-          // 添加該日期的所有訂單
-          orders.forEach((order, index) => {
-            const quantity = Number(order.quantity);
-            dailyTotal += quantity;
-            totalQuantity += quantity;
-            
-            // 添加訂單行
-            tableData.push([
-              date,
-              order.product_code || '',
-              order.product_name || '',
-              { 
-                content: quantity.toFixed(2), 
-                styles: { halign: 'right' } 
-              }
-            ]);
-          });
-          
-          // 添加日期小計行
-          tableData.push([
-            { 
-              content: '小計:', 
-              colSpan: 3, 
-              styles: { 
-                fillColor: [245, 245, 245], 
-                fontStyle: 'bold',
-                halign: 'left'
-              } 
-            },
-            { 
-              content: dailyTotal.toFixed(2), 
-              styles: { 
-                fillColor: [245, 245, 245], 
-                halign: 'right',
-                fontStyle: 'bold'
-              } 
-            }
-          ]);
-          
-          // 添加空行作為分隔
-          tableData.push([{ content: '', colSpan: 4, styles: { minCellHeight: 3 } }]);
-        });
-      }
-      
-      // 添加總計行
-      tableData.push([
-        { 
-          content: '總計:', 
-          colSpan: 3, 
-          styles: { 
-            fillColor: [220, 220, 220], 
-            fontStyle: 'bold',
-            halign: 'left' 
-          } 
-        },
-        { 
-          content: totalQuantity.toFixed(2), 
-          styles: { 
-            fillColor: [220, 220, 220], 
-            halign: 'right',
-            fontStyle: 'bold' 
-          } 
-        }
-      ]);
-      
-      // 設置表頭和標題
-      const tableColumn = ['日期', '產品編號', '產品顏色', '數量(公斤)'];
-      
-      // 在PDF頂部添加報表標題
-      doc.setFillColor(41, 128, 185);
-      doc.rect(0, 15, doc.internal.pageSize.getWidth(), 15, 'F');
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(16);
-      doc.text("達遠塑膠銷售報表", doc.internal.pageSize.getWidth() / 2, 23, { align: "center" });
-      
-      // 添加報表信息
-      doc.setTextColor(70, 70, 70);
+      // 添加報表資訊
       doc.setFontSize(10);
-      doc.text(`報表期間: ${reportPeriod}`, 15, 36);
-      doc.text(`訂單總數: ${statsData.totalOrders} 筆`, 15, 42);
-      doc.text(`總公斤數: ${totalQuantity.toFixed(2)} 公斤`, 15, 48);
+      doc.setTextColor(60, 60, 60);
+      doc.text(`報表期間: ${reportPeriod}`, 15, 25);
+      doc.text(`訂單總數: ${statsData.totalOrders} 筆`, 15, 30);
+      doc.text(`總公斤數: ${statsData.totalKilograms.toFixed(2)} kg`, 15, 35);
       
-      // 使用autoTable生成表格
-      autoTable(doc, {
-        startY: 55,
-        head: [tableColumn],
-        body: statsData.orders.map(order => {
-          const date = order.delivery_date.split('T')[0];
-          const quantity = Number(order.quantity);
-          return [
-            date,
-            order.product_code,
-            order.product_name,
-            quantity.toFixed(2)
-          ];
-        }),
-        theme: 'grid',
-        headStyles: {
-          fillColor: [41, 128, 185],
-          textColor: [255, 255, 255]
-        },
-        columnStyles: {
-          0: { cellWidth: 30 },
-          1: { cellWidth: 30 },
-          2: { cellWidth: 80 },
-          3: { cellWidth: 25, halign: 'right' }
-        },
-        margin: { left: 15, right: 15 },
-        didDrawPage: function(data) {
-          // 頁腳
-          doc.setFontSize(8);
-          doc.setTextColor(150, 150, 150);
-          doc.text(`第 1 頁`, doc.internal.pageSize.getWidth() - 20, doc.internal.pageSize.getHeight() - 10);
-          
-          // 生成時間
-          const now = new Date();
-          const dateStr = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')}`;
-          const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-          doc.text(`生成時間: ${dateStr} ${timeStr}`, 15, doc.internal.pageSize.getHeight() - 10);
-        }
+      // 列印時間
+      const now = new Date();
+      const printDate = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')}`;
+      doc.text(`列印日期: ${printDate}`, 15, 40);
+      
+      // 使用簡單表格
+      const headers = ['日期', '產品編號', '產品顏色', '數量(kg)'];
+      
+      // 準備數據 - 按日期排序
+      const sortedOrders = [...statsData.orders].sort((a, b) => {
+        return new Date(a.delivery_date).getTime() - new Date(b.delivery_date).getTime();
       });
       
-      // 保存PDF
-      let fileName = '達遠塑膠_銷售報表';
-      if (statsMonth) {
-        fileName = `達遠塑膠_銷售報表_${statsYear}年${statsMonth}月`;
-      } else {
-        fileName = `達遠塑膠_銷售報表_${statsYear}年`;
-      }
-      doc.save(`${fileName}.pdf`);
+      // 轉換為表格數據格式
+      const tableData = sortedOrders.map(order => {
+        const date = order.delivery_date.split('T')[0];
+        return [date, order.product_code, order.product_name, Number(order.quantity).toFixed(2)];
+      });
+      
+      // 使用autoTable插件
+      autoTable(doc, {
+        startY: 45,
+        head: [headers],
+        body: tableData,
+        theme: 'striped',
+        styles: {
+          fontSize: 9,
+          cellPadding: 2,
+        },
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: [255, 255, 255],
+          fontSize: 10
+        },
+        columnStyles: {
+          0: { cellWidth: 25 }, // 日期
+          1: { cellWidth: 30 }, // 產品編號
+          2: { cellWidth: 'auto' }, // 產品顏色
+          3: { cellWidth: 25, halign: 'right' } // 數量
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245]
+        },
+        margin: { top: 45, left: 15, right: 15, bottom: 15 },
+      });
+      
+      // 添加總計行
+      const finalY = (doc as any).lastAutoTable.finalY || 50;
+      doc.setFillColor(230, 230, 230);
+      doc.rect(15, finalY, doc.internal.pageSize.getWidth() - 30, 7, 'F');
+      
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+      doc.text("總計", 20, finalY + 5);
+      
+      const totalQuantity = statsData.totalKilograms || sortedOrders.reduce((sum, order) => sum + Number(order.quantity), 0);
+      doc.text(`${totalQuantity.toFixed(2)} kg`, doc.internal.pageSize.getWidth() - 20, finalY + 5, { align: 'right' });
+      
+      // 生成並下載PDF
+      let fileName = statsMonth 
+        ? `達遠塑膠_銷售報表_${statsYear}年${statsMonth}月.pdf` 
+        : `達遠塑膠_銷售報表_${statsYear}年.pdf`;
+      
+      doc.save(fileName);
       
       toast({
-        title: "PDF生成成功",
-        description: "銷售清單已下載",
+        title: "PDF報表已下載",
+        description: "銷售報表已成功生成",
       });
     } catch (error) {
       console.error("PDF生成錯誤:", error);
       toast({
         title: "PDF生成失敗",
-        description: "請稍後再試",
+        description: error instanceof Error ? error.message : "未知錯誤",
         variant: "destructive",
       });
     }
