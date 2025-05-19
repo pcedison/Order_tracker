@@ -675,11 +675,15 @@ export class SupabaseStorage implements IStorage {
       const hashedNewPassword = this.authService.hashPassword(newPassword);
       console.log('新密碼已哈希處理');
       
-      // 3. 更新環境變量 - 這是關鍵，因為 AuthService 使用環境變量進行密碼驗證
+      // 3. 更新環境變量 - 為了持久化設置
       process.env.ADMIN_PASSWORD = hashedNewPassword;
       console.log('環境變量 ADMIN_PASSWORD 已更新');
       
-      // 4. 嘗試更新配置表中的密碼（不影響主要流程）
+      // 4. 更新靜態會話密碼 - 關鍵步驟，確保本次會話中密碼更改立即生效
+      AuthService.updateSessionPassword(hashedNewPassword);
+      console.log('會話密碼已更新');
+      
+      // 5. 嘗試更新配置表中的密碼（用於長期儲存）
       try {
         // 直接通過 Supabase 更新，繞過 setConfig 方法
         const { error } = await supabase
@@ -692,19 +696,17 @@ export class SupabaseStorage implements IStorage {
           });
           
         if (error) {
-          console.warn('無法更新數據庫中的密碼配置，但環境變量已更新:', error.message);
-          // 不中斷流程，因為環境變量已更新
+          console.warn('無法更新數據庫中的密碼配置，但密碼已在會話和環境變量中更新:', error.message);
         } else {
           console.log('數據庫中的密碼配置已更新');
         }
       } catch (configError) {
-        console.warn('更新數據庫密碼配置時發生錯誤，但環境變量已更新:', configError);
-        // 不中斷流程，因為環境變量已更新
+        console.warn('更新數據庫密碼配置時發生錯誤，但密碼已在會話和環境變量中更新:', configError);
       }
       
-      // 5. 重新初始化 AuthService，使其使用新的密碼
+      // 6. 重新初始化 AuthService 實例，使新密碼立即生效
       this.authService = new AuthService();
-      console.log('AuthService 已重新初始化');
+      console.log('AuthService 實例已重新初始化');
       
       return true;
     } catch (error) {
