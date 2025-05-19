@@ -392,16 +392,16 @@ export class SupabaseStorage implements IStorage {
       const paddedMonth = monthNum.toString().padStart(2, '0');
       const paddedPrevMonth = prevMonth.toString().padStart(2, '0');
       
-      // 上個月25號至當月24號
-      startDate = `${prevYear}-${paddedPrevMonth}-25`;
-      endDate = `${year}-${paddedMonth}-24`;
+      // 上個月26號至當月25號
+      startDate = `${prevYear}-${paddedPrevMonth}-26`;
+      endDate = `${year}-${paddedMonth}-25`;
       
       periodText = `${year}年${monthNum}月`;
     } else {
-      // 整年: 前一年12月25號至當年12月24號
+      // 整年: 前一年12月26號至當年12月25號
       const prevYear = parseInt(year, 10) - 1;
-      startDate = `${prevYear}-12-25`;
-      endDate = `${year}-12-24`;
+      startDate = `${prevYear}-12-26`;
+      endDate = `${year}-12-25`;
       periodText = `${year}年全年`;
     }
     
