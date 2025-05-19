@@ -11,7 +11,7 @@ export class PriceSpreadsheetService {
   private pricesCache: ProductPrice[] = [];
   private lastFetchTime: number = 0;
   private cacheDuration: number = 1000 * 60 * 5; // 5 分鐘緩存
-  private RANGE = 'Sheet1!A2:D300'; // 使用實際產品表範圍
+  private RANGE = '價格表!A2:D300'; // 使用實際產品表範圍名稱
 
   constructor() {
     // 從環境變數獲取 API key 和 spreadsheet ID
