@@ -661,7 +661,7 @@ export class SupabaseStorage implements IStorage {
     try {
       console.log('開始更新管理員密碼流程');
       
-      // 1. 驗證當前密碼是否正確 - 直接使用 AuthService 的驗證方法
+      // 第1步: 驗證當前密碼是否正確
       const isValidPassword = await this.authService.verifyPassword(currentPassword);
       
       if (!isValidPassword) {
@@ -671,21 +671,17 @@ export class SupabaseStorage implements IStorage {
       
       console.log('當前密碼驗證通過');
       
-      // 2. 對新密碼進行哈希處理
+      // 第2步: 對新密碼進行哈希處理
       const hashedNewPassword = this.authService.hashPassword(newPassword);
       console.log('新密碼已哈希處理');
       
-      // 3. 更新環境變量 - 為了持久化設置
-      process.env.ADMIN_PASSWORD = hashedNewPassword;
-      console.log('環境變量 ADMIN_PASSWORD 已更新');
+      // 第3步: 直接更新 AuthService 中的密碼 (內存級別強制更新)
+      this.authService.updatePassword(hashedNewPassword);
+      console.log('AuthService 中的密碼已成功更新');
       
-      // 4. 更新靜態會話密碼 - 關鍵步驟，確保本次會話中密碼更改立即生效
-      AuthService.updateSessionPassword(hashedNewPassword);
-      console.log('會話密碼已更新');
-      
-      // 5. 嘗試更新配置表中的密碼（用於長期儲存）
+      // 第4步: 將新密碼保存到數據庫中 (持久化存儲)
       try {
-        // 直接通過 Supabase 更新，繞過 setConfig 方法
+        // 使用 upsert 操作確保配置項存在
         const { error } = await supabase
           .from(this.configsTable)
           .upsert({ 
@@ -696,21 +692,19 @@ export class SupabaseStorage implements IStorage {
           });
           
         if (error) {
-          console.warn('無法更新數據庫中的密碼配置，但密碼已在會話和環境變量中更新:', error.message);
+          console.warn('數據庫更新失敗，但內存中的密碼已更新:', error.message);
+          // 不中斷流程，內存中的密碼已經更新是最關鍵的
         } else {
-          console.log('數據庫中的密碼配置已更新');
+          console.log('數據庫中的密碼已成功更新');
         }
-      } catch (configError) {
-        console.warn('更新數據庫密碼配置時發生錯誤，但密碼已在會話和環境變量中更新:', configError);
+      } catch (dbError) {
+        console.warn('數據庫操作異常，但內存中的密碼已更新:', dbError);
+        // 不中斷流程，內存中的密碼已經更新是最關鍵的
       }
-      
-      // 6. 重新初始化 AuthService 實例，使新密碼立即生效
-      this.authService = new AuthService();
-      console.log('AuthService 實例已重新初始化');
       
       return true;
     } catch (error) {
-      console.error('更新管理員密碼時發生錯誤:', error);
+      console.error('更新管理員密碼過程中發生錯誤:', error);
       return false;
     }
   }

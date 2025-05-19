@@ -2,24 +2,30 @@ import { createHash } from 'crypto';
 
 export class AuthService {
   private adminPassword: string;
-  // 添加一個靜態變量，用於存儲當前會話中的密碼
-  private static sessionPassword: string = '';
+  private static instance: AuthService | null = null;
+  // 使用靜態變量儲存密碼，確保整個應用使用相同的密碼
+  private static currentPassword: string = '';
 
   constructor() {
-    // 首先檢查是否有會話密碼設置
-    if (AuthService.sessionPassword) {
-      console.log('使用會話中的密碼');
-      this.adminPassword = AuthService.sessionPassword;
-    } else {
-      // 否則使用環境變量中的密碼
-      console.log('從環境變量獲取密碼');
-      this.adminPassword = process.env.ADMIN_PASSWORD || '';
-      // 將環境變量中的密碼同步到會話密碼
-      AuthService.sessionPassword = this.adminPassword;
+    if (AuthService.instance) {
+      // 如果已經有實例，直接返回該實例的密碼
+      this.adminPassword = AuthService.currentPassword;
+      return;
     }
     
+    // 首次初始化時從數據庫讀取密碼
+    this.adminPassword = process.env.ADMIN_PASSWORD || '';
+    
+    // 存儲密碼到靜態變量
+    AuthService.currentPassword = this.adminPassword;
+    
+    // 設置單例實例
+    AuthService.instance = this;
+    
+    console.log('已初始化管理員密碼服務');
+    
     if (!this.adminPassword) {
-      console.warn('管理員密碼未在環境變量中設置');
+      console.warn('警告: 管理員密碼未設置');
     }
   }
 
@@ -30,25 +36,44 @@ export class AuthService {
 
   // 驗證密碼
   async verifyPassword(password: string): Promise<boolean> {
-    if (!this.adminPassword) {
+    // 始終從靜態變量獲取最新密碼
+    const currentAdminPassword = AuthService.currentPassword;
+    
+    if (!currentAdminPassword) {
       throw new Error('管理員密碼未配置');
     }
     
     // 支持舊系統的明文密碼以及新系統的哈希密碼
-    // 檢查當前存儲的密碼是否是哈希值（假設哈希值長度為64個字符）
-    if (this.adminPassword.length === 64 && /^[0-9a-f]+$/.test(this.adminPassword)) {
-      // 存儲的是哈希密碼，對輸入的密碼進行哈希再比較
+    if (currentAdminPassword.length === 64 && /^[0-9a-f]+$/.test(currentAdminPassword)) {
+      // 哈希模式
+      console.log('使用哈希模式驗證密碼');
       const hashedPassword = this.hashPassword(password);
-      return hashedPassword === this.adminPassword;
+      return hashedPassword === currentAdminPassword;
     } else {
-      // 存儲的是明文密碼，直接比較
-      return password === this.adminPassword;
+      // 明文模式
+      console.log('使用明文模式驗證密碼');
+      return password === currentAdminPassword;
     }
   }
   
-  // 更新會話中的密碼 (無需重啟伺服器)
-  public static updateSessionPassword(newHashedPassword: string): void {
-    console.log('更新會話密碼');
-    AuthService.sessionPassword = newHashedPassword;
+  // 更新密碼 (更新靜態變量和環境變量)
+  public updatePassword(newHashedPassword: string): void {
+    console.log('正在更新管理員密碼');
+    
+    // 更新靜態密碼變量
+    AuthService.currentPassword = newHashedPassword;
+    
+    // 更新當前實例的密碼
+    this.adminPassword = newHashedPassword;
+    
+    // 更新環境變量 (記憶體)
+    process.env.ADMIN_PASSWORD = newHashedPassword;
+    
+    console.log('管理員密碼已更新');
+  }
+  
+  // 獲取當前密碼
+  public getCurrentPassword(): string {
+    return AuthService.currentPassword;
   }
 }
