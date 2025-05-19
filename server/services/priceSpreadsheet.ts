@@ -13,7 +13,7 @@ export class PriceSpreadsheetService {
   private pricesCache: ProductPrice[] = [];
   private lastFetchTime: number = 0;
   private cacheDuration: number = 1000 * 60 * 5; // 5 分鐘緩存
-  private RANGE = '達遠!A2:D300'; // 使用達遠分頁進行價格查詢
+  private RANGE = '達遠!A2:D400'; // 使用達遠分頁進行價格查詢，增加範圍至D400
 
   constructor() {
     // 初始化時先從環境變數獲取值，後續刷新緩存時會從配置中獲取最新的值
@@ -119,21 +119,52 @@ export class PriceSpreadsheetService {
     // 檢視獲取到的價格數據
     console.log(`找到 ${prices.length} 個產品價格記錄`);
     
-    // 建立編號到價格的映射
-    const priceMap = new Map(prices.map(p => [p.code.toLowerCase(), p.price]));
+    // 建立產品編號到價格的映射（以原始格式和小寫格式都存儲）
+    const priceMap = new Map();
+    for (const p of prices) {
+      // 原始編號
+      priceMap.set(p.code, p.price);
+      
+      // 小寫編號
+      priceMap.set(p.code.toLowerCase(), p.price);
+      
+      // 無連字符版本
+      priceMap.set(p.code.replace(/-/g, ''), p.price);
+      priceMap.set(p.code.toLowerCase().replace(/-/g, ''), p.price);
+      
+      // 無括號版本
+      priceMap.set(p.code.replace(/[\(\)]/g, ''), p.price);
+      priceMap.set(p.code.toLowerCase().replace(/[\(\)]/g, ''), p.price);
+      
+      // 組合版本 (無連字符且無括號)
+      priceMap.set(p.code.replace(/[-\(\)]/g, ''), p.price);
+      priceMap.set(p.code.toLowerCase().replace(/[-\(\)]/g, ''), p.price);
+    }
     
     // 為每個請求的產品編號查找價格
     for (const code of productCodes) {
       // 嘗試多種匹配方式
-      const originalCode = code;
-      const lowerCode = code.toLowerCase();
-      const codeWithoutHyphen = code.replace(/-/g, '');
-      const codeWithoutParentheses = code.replace(/[\(\)]/g, '');
+      const variations = [
+        code,                                  // 原始編號
+        code.toLowerCase(),                    // 小寫
+        code.replace(/-/g, ''),                // 移除連字符
+        code.toLowerCase().replace(/-/g, ''),  // 小寫且移除連字符
+        code.replace(/[\(\)]/g, ''),           // 移除括號
+        code.toLowerCase().replace(/[\(\)]/g, ''), // 小寫且移除括號
+        code.replace(/[-\(\)]/g, ''),          // 移除連字符和括號
+        code.toLowerCase().replace(/[-\(\)]/g, '') // 小寫且移除連字符和括號
+      ];
       
-      // 依序嘗試不同的格式匹配
-      let price = priceMap.get(lowerCode);
-      if (price === undefined) price = priceMap.get(codeWithoutHyphen.toLowerCase());
-      if (price === undefined) price = priceMap.get(codeWithoutParentheses.toLowerCase());
+      // 嘗試所有變體
+      let price;
+      let matchedVariation;
+      for (const variant of variations) {
+        if (priceMap.has(variant)) {
+          price = priceMap.get(variant);
+          matchedVariation = variant;
+          break;
+        }
+      }
       
       // 特殊處理某些已知的產品編號格式問題
       // 為特定產品指定硬編碼的預設價格
@@ -150,30 +181,38 @@ export class PriceSpreadsheetService {
         console.log(`使用預設價格 ${code}: ${price}`);
       }
       
-      result[code] = price !== undefined ? price : 0;
-      
-      // 記錄查詢結果，幫助調試
       if (price !== undefined) {
-        console.log(`產品 ${code} 的價格: ${price}`);
+        result[code] = price;
+        if (matchedVariation !== code) {
+          console.log(`產品 ${code} 通過變體 ${matchedVariation} 匹配到價格: ${price}`);
+        } else {
+          console.log(`產品 ${code} 的價格: ${price}`);
+        }
       } else {
         // 嘗試尋找近似的產品編號
         console.log(`找不到產品 ${code} 的價格，嘗試尋找近似產品編號...`);
         
-        // 列出所有包含相似部分的產品編號
-        const similarCodes = Array.from(priceMap.keys())
-          .filter(k => k.includes(code.toLowerCase().substring(0, 3)));
+        // 列出所有以相同前綴開頭的產品編號
+        const codePrefix = code.toLowerCase().substring(0, Math.min(4, code.length));
+        const priceKeys = Array.from(prices.map(p => p.code));
+        
+        const similarCodes = priceKeys.filter(k => 
+          k.toLowerCase().startsWith(codePrefix) || 
+          k.toLowerCase().includes(codePrefix)
+        );
         
         if (similarCodes.length > 0) {
-          console.log(`發現相似產品編號: ${similarCodes.join(', ')}`);
-          // 如果找到相似的，使用第一個
-          if (!result[code]) {
-            const similar = similarCodes[0];
-            const similarPrice = priceMap.get(similar);
-            result[code] = similarPrice || 0;
+          console.log(`【注意】發現與 ${code} 相似的產品編號: ${similarCodes.join(', ')}`);
+          // 使用第一個相似的產品編號
+          const similar = similarCodes[0];
+          const similarProduct = prices.find(p => p.code === similar);
+          if (similarProduct) {
+            result[code] = similarProduct.price;
             console.log(`使用相似產品 ${similar} 的價格: ${result[code]}`);
           }
         } else {
           console.log(`沒有找到與 ${code} 相似的產品編號`);
+          result[code] = 0; // 找不到價格時設為 0
         }
       }
     }
