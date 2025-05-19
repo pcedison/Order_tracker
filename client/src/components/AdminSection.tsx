@@ -106,7 +106,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       let grandAmount = 0;
       
       // 價格查詢映射 - 從統計數據中獲取單價
-      const priceMap = {};
+      const priceMap: {[key: string]: {unitPrice: number}} = {};
       if (statsData && statsData.stats) {
         statsData.stats.forEach(item => {
           priceMap[item.code] = {
@@ -119,7 +119,8 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       sortedOrders.forEach((order, index) => {
         const date = order.delivery_date.split('T')[0];
         const quantity = Number(order.quantity);
-        const unitPrice = priceMap[order.product_code]?.unitPrice || 0;
+        const productCode = order.product_code || '';
+        const unitPrice = productCode && priceMap[productCode] ? priceMap[productCode].unitPrice : 0;
         const totalPrice = quantity * unitPrice;
         
         // 如果日期變化，加入前一天的小計
@@ -275,15 +276,18 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             <p><strong>報表期間:</strong> ${reportPeriod}</p>
             <p><strong>訂單總數:</strong> ${statsData.totalOrders} 筆</p>
             <p><strong>總公斤數:</strong> ${totalQuantity.toFixed(2)} kg</p>
+            <p><strong>總金額:</strong> ${grandAmount.toLocaleString()} 元</p>
           </div>
           
           <table>
             <thead>
               <tr>
-                <th style="width: 20%">日期</th>
-                <th style="width: 20%">產品編號</th>
-                <th style="width: 40%">產品顏色</th>
-                <th style="width: 20%; text-align: right">數量(公斤)</th>
+                <th style="width: 15%">日期</th>
+                <th style="width: 15%">產品編號</th>
+                <th style="width: 30%">產品顏色</th>
+                <th style="width: 15%; text-align: right">數量(公斤)</th>
+                <th style="width: 12%; text-align: right">單價(元)</th>
+                <th style="width: 13%; text-align: right">總價(元)</th>
               </tr>
             </thead>
             <tbody>
