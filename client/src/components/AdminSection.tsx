@@ -476,7 +476,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             activeTab === "history" ? "block" : "hidden"
           }`}
         >
-          <div className="flex flex-wrap items-center gap-2.5 mb-5">
+          <div className="flex flex-wrap items-center gap-3 mb-5">
             <div className="flex items-center">
               <label htmlFor="startDate" className="text-lg mr-2">開始日期：</label>
               <Input 
@@ -488,7 +488,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
               />
             </div>
             
-            <div className="flex items-center">
+            <div className="flex items-center mr-3">
               <label htmlFor="endDate" className="text-lg mr-2">結束日期：</label>
               <Input 
                 type="date" 
@@ -501,7 +501,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             
             <Button
               onClick={handleDateChange}
-              className="box-border text-[20px] h-10 px-5 bg-[#2196F3] text-white border-none rounded cursor-pointer hover:bg-[#0b7dda] ml-5"
+              className="box-border text-[20px] h-10 px-5 bg-[#2196F3] text-white border-none rounded cursor-pointer hover:bg-[#0b7dda]"
             >
               查詢訂單
             </Button>
@@ -532,7 +532,6 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                         <table className="min-w-full bg-white border border-[#ddd]">
                           <thead>
                             <tr className="bg-[#f2f2f2]">
-                              <th className="p-2 text-left border-b border-[#ddd]">訂單ID</th>
                               <th className="p-2 text-left border-b border-[#ddd]">產品編號</th>
                               <th className="p-2 text-left border-b border-[#ddd]">產品名稱</th>
                               <th className="p-2 text-left border-b border-[#ddd]">數量(公斤)</th>
@@ -543,7 +542,6 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                           <tbody>
                             {orders.map((order) => (
                               <tr key={`${order.id}-${order.product_code}`} className="hover:bg-[#f5f5f5]">
-                                <td className="p-2 border-b border-[#ddd]">{order.id}</td>
                                 <td className="p-2 border-b border-[#ddd]">{order.product_code}</td>
                                 <td className="p-2 border-b border-[#ddd]">{order.product_name}</td>
                                 <td className="p-2 border-b border-[#ddd]">{order.quantity}</td>
