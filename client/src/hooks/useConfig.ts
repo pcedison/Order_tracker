@@ -7,6 +7,8 @@ interface ConfigState {
   SUPABASE_KEY: string;
   SPREADSHEET_API_KEY: string;
   SPREADSHEET_ID: string;
+  PRICE_SPREADSHEET_API_KEY: string;
+  PRICE_SPREADSHEET_ID: string;
 }
 
 export function useConfig() {

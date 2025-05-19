@@ -72,6 +72,8 @@ export default function ConfigSettings() {
   const [supabaseKey, setSupabaseKey] = useState("");
   const [spreadsheetApiKey, setSpreadsheetApiKey] = useState("");
   const [spreadsheetId, setSpreadsheetId] = useState("");
+  const [priceSpreadsheetApiKey, setPriceSpreadsheetApiKey] = useState("");
+  const [priceSpreadsheetId, setPriceSpreadsheetId] = useState("");
   
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -84,6 +86,8 @@ export default function ConfigSettings() {
       if (configs.SUPABASE_KEY) setSupabaseKey(configs.SUPABASE_KEY);
       if (configs.SPREADSHEET_API_KEY) setSpreadsheetApiKey(configs.SPREADSHEET_API_KEY);
       if (configs.SPREADSHEET_ID) setSpreadsheetId(configs.SPREADSHEET_ID);
+      if (configs.PRICE_SPREADSHEET_API_KEY) setPriceSpreadsheetApiKey(configs.PRICE_SPREADSHEET_API_KEY);
+      if (configs.PRICE_SPREADSHEET_ID) setPriceSpreadsheetId(configs.PRICE_SPREADSHEET_ID);
     }
   }, [configs]);
   
@@ -200,7 +204,7 @@ export default function ConfigSettings() {
                   disabled={isUpdating}
                 />
                 
-                <h3 className="text-xl font-bold mt-6 mb-3">Google Spreadsheet 設定</h3>
+                <h3 className="text-xl font-bold mt-6 mb-3">Google Spreadsheet 產品編號表設定</h3>
                 <ConfigField
                   label="Spreadsheet API Key"
                   configKey="SPREADSHEET_API_KEY"
@@ -217,6 +221,26 @@ export default function ConfigSettings() {
                   value={spreadsheetId}
                   onChange={setSpreadsheetId}
                   onSave={() => updateConfig("SPREADSHEET_ID", spreadsheetId)}
+                  disabled={isUpdating}
+                />
+                
+                <h3 className="text-xl font-bold mt-6 mb-3">Google Spreadsheet 產品價格表設定</h3>
+                <ConfigField
+                  label="價格表 API Key"
+                  configKey="PRICE_SPREADSHEET_API_KEY"
+                  placeholder="your-price-spreadsheet-api-key"
+                  value={priceSpreadsheetApiKey}
+                  onChange={setPriceSpreadsheetApiKey}
+                  onSave={() => updateConfig("PRICE_SPREADSHEET_API_KEY", priceSpreadsheetApiKey)}
+                  disabled={isUpdating}
+                />
+                <ConfigField
+                  label="價格表 Spreadsheet ID"
+                  configKey="PRICE_SPREADSHEET_ID"
+                  placeholder="your-price-spreadsheet-id"
+                  value={priceSpreadsheetId}
+                  onChange={setPriceSpreadsheetId}
+                  onSave={() => updateConfig("PRICE_SPREADSHEET_ID", priceSpreadsheetId)}
                   disabled={isUpdating}
                 />
               </>
