@@ -71,14 +71,14 @@ export class PriceSpreadsheetService {
         console.log(`Row ${i}: ${JSON.stringify(rows[i])}`);
       }
       
-      // 處理價格數據 - 根據實際電子表格結構調整
+      // 處理價格數據 - 根據達遠分頁的結構調整
       const prices: ProductPrice[] = rows
-        .filter((row: any[]) => row.length >= 4 && row[1]) // 確保有編號(B欄)和價格(D欄)
+        .filter((row: any[]) => row.length >= 2 && row[0]) // 確保有編號(A欄)和價格資訊
         .map((row: any[]) => {
-          // 根據您提供的信息，B欄是編號(索引1)，D欄是價格(索引3)
-          const code = row[1]?.toString().trim() || '';
+          // 根據達遠分頁格式，A欄是產品編號(索引0)，C欄是價格(索引2)
+          const code = row[0]?.toString().trim() || '';
           // 處理可能的數字格式（如貨幣符號、逗號等）
-          let priceStr = row[3]?.toString() || '0';
+          let priceStr = row[2]?.toString() || '0';
           priceStr = priceStr.replace(/[^\d.-]/g, ''); // 僅保留數字、小數點和負號
           const priceValue = parseFloat(priceStr);
           
@@ -169,7 +169,8 @@ export class PriceSpreadsheetService {
       // 特殊處理某些已知的產品編號格式問題
       // 為特定產品指定硬編碼的預設價格
       const defaultPrices: Record<string, number> = {
-        'P8066': 125, // 白色
+        'P8066': 75,  // 根據您提供的實際價格
+        'P10433': 120, // 根據您提供的實際價格
         'P2363': 120, // 藍色
         'GR2211': 115, // 深灰
         'P815': 110, // 黃色
