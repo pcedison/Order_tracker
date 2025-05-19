@@ -810,6 +810,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             <h2 className="text-xl font-bold mb-3 text-[#333]">
               {statsData.periodText || `${statsYear}年${statsMonth ? statsMonth + '月' : '全年'}`} 訂單統計
               {statsData.totalKilograms ? ` (總計 ${statsData.totalKilograms.toFixed(2)} kg)` : ''}
+              {statsData.totalAmount ? ` (總金額 ${statsData.totalAmount.toLocaleString()} 元)` : ''}
             </h2>
             
             {!statsData.orders || statsData.orders.length === 0 ? (
@@ -825,6 +826,8 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                       <th className="border border-gray-300 p-2 text-left">產品名稱</th>
                       <th className="border border-gray-300 p-2 text-right">訂單數量</th>
                       <th className="border border-gray-300 p-2 text-right">總公斤數</th>
+                      <th className="border border-gray-300 p-2 text-right">單價</th>
+                      <th className="border border-gray-300 p-2 text-right">總價</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -834,12 +837,15 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                         <td className="border border-gray-300 p-2">{item.name}</td>
                         <td className="border border-gray-300 p-2 text-right">{item.orderCount}</td>
                         <td className="border border-gray-300 p-2 text-right">{item.totalQuantity.toFixed(2)}</td>
+                        <td className="border border-gray-300 p-2 text-right">{item.unitPrice ? item.unitPrice.toLocaleString() : '0'}</td>
+                        <td className="border border-gray-300 p-2 text-right">{item.totalPrice ? item.totalPrice.toLocaleString() : '0'}</td>
                       </tr>
                     ))}
                     <tr className="bg-gray-200 font-bold">
-                      <td className="border border-gray-300 p-2" colSpan={2}>總計</td>
-                      <td className="border border-gray-300 p-2 text-right">{statsData.totalOrders}</td>
+                      <td className="border border-gray-300 p-2" colSpan={3}>總計</td>
                       <td className="border border-gray-300 p-2 text-right">{statsData.totalKilograms.toFixed(2)}</td>
+                      <td className="border border-gray-300 p-2 text-right">-</td>
+                      <td className="border border-gray-300 p-2 text-right">{statsData.totalAmount ? statsData.totalAmount.toLocaleString() : '0'}</td>
                     </tr>
                   </tbody>
                 </table>

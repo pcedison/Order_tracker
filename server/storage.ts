@@ -418,7 +418,9 @@ export class SupabaseStorage implements IStorage {
           code: order.product_code,
           name: order.product_name,
           totalQuantity: 0,
-          orderCount: 0
+          orderCount: 0,
+          unitPrice: 0,
+          totalPrice: 0
         };
       }
       
@@ -431,6 +433,22 @@ export class SupabaseStorage implements IStorage {
       productStats[order.product_code].orderCount += 1;
     });
     
+    try {
+      // 獲取所有產品的價格
+      const productCodes = Object.keys(productStats);
+      const productPrices = await priceSpreadsheetService.getPricesByCodes(productCodes);
+      
+      // 更新統計數據，添加價格信息
+      for (const code of productCodes) {
+        const unitPrice = productPrices[code] || 0;
+        productStats[code].unitPrice = unitPrice;
+        productStats[code].totalPrice = unitPrice * productStats[code].totalQuantity;
+      }
+    } catch (error) {
+      console.error('獲取產品價格失敗:', error);
+      // 如果價格查詢失敗，我們仍然繼續執行，僅記錄錯誤
+    }
+    
     // Convert to array and sort by total quantity (descending)
     const statsArray = Object.values(productStats).sort((a, b) => 
       b.totalQuantity - a.totalQuantity
@@ -439,12 +457,16 @@ export class SupabaseStorage implements IStorage {
     // 計算所有訂單的總公斤數
     const totalKilograms = statsArray.reduce((sum, item) => sum + item.totalQuantity, 0);
     
+    // 計算所有訂單的總金額
+    const totalAmount = statsArray.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+    
     return {
       stats: statsArray,
       orders: completedOrders, // 添加原始訂單數據
       periodText,
       totalOrders: completedOrders.length,
-      totalKilograms: parseFloat(totalKilograms.toFixed(2)) // 保留兩位小數
+      totalKilograms: parseFloat(totalKilograms.toFixed(2)), // 保留兩位小數
+      totalAmount: parseFloat(totalAmount.toFixed(2)) // 保留兩位小數
     };
   }
   
