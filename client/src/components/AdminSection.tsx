@@ -6,8 +6,6 @@ import { useOrders } from "@/hooks/useOrders";
 import { Order } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ConfigSettings from "./ConfigSettings";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 import * as ExcelJS from "exceljs";
 // 引入中文字體支持
 import "@fontsource/noto-sans-tc/400.css";
@@ -60,34 +58,232 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     return grouped;
   };
   
-  // 準備PDF文檔並添加基本設置
-  const preparePDF = (doc: jsPDF) => {
+  // 使用瀏覽器列印功能生成報表
+  const printOrderStats = () => {
+    if (!statsData || !statsData.orders || statsData.orders.length === 0) {
+      toast({
+        title: "無法生成報表",
+        description: "所選時間段內沒有訂單數據",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
-      // 使用預設字體
-      doc.setFont('helvetica', 'normal');
+      // 創建一個新的窗口來顯示列印內容
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
       
-      // 添加頁眉信息
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      doc.text('達遠塑膠訂單報表', 15, 10);
+      if (!printWindow) {
+        toast({
+          title: "無法開啟列印窗口",
+          description: "請確保允許彈出窗口",
+          variant: "destructive",
+        });
+        return;
+      }
       
-      // 頁碼
-      doc.text('第 1 頁', doc.internal.pageSize.getWidth() - 15, 10, { align: 'right' });
+      // 報表期間
+      const reportPeriod = statsData.periodText || `${statsYear}年${statsMonth ? statsMonth + '月' : '全年'}`;
       
-      // 產生時間 (英文格式確保兼容性)
-      const now = new Date();
-      const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      doc.text(`Generated: ${formattedDate}`, doc.internal.pageSize.getWidth() - 15, doc.internal.pageSize.getHeight() - 10, { align: 'right' });
+      // 根據日期對訂單進行排序
+      const sortedOrders = [...statsData.orders].sort((a, b) => {
+        return new Date(a.delivery_date).getTime() - new Date(b.delivery_date).getTime();
+      });
       
-      return doc;
+      // 計算總計
+      const totalQuantity = statsData.totalKilograms || sortedOrders.reduce((sum, order) => sum + Number(order.quantity), 0);
+      
+      // 生成報表內容的HTML
+      let tableContent = '';
+      let currentDate = '';
+      let dailyTotal = 0;
+      
+      // 處理訂單數據並產生表格HTML
+      sortedOrders.forEach((order, index) => {
+        const date = order.delivery_date.split('T')[0];
+        const quantity = Number(order.quantity);
+        
+        // 如果日期變化，加入前一天的小計
+        if (date !== currentDate && currentDate !== '') {
+          tableContent += `
+            <tr class="subtotal-row">
+              <td>${currentDate} 小計</td>
+              <td></td>
+              <td></td>
+              <td class="text-right">${dailyTotal.toFixed(2)}</td>
+            </tr>
+            <tr><td colspan="4" style="height: 10px; border: none;"></td></tr>
+          `;
+          dailyTotal = 0;
+        }
+        
+        currentDate = date;
+        dailyTotal += quantity;
+        
+        // 添加訂單行
+        tableContent += `
+          <tr>
+            <td>${date}</td>
+            <td>${order.product_code || ''}</td>
+            <td>${order.product_name || ''}</td>
+            <td class="text-right">${quantity.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+      
+      // 添加最後一天的小計
+      if (currentDate !== '') {
+        tableContent += `
+          <tr class="subtotal-row">
+            <td>${currentDate} 小計</td>
+            <td></td>
+            <td></td>
+            <td class="text-right">${dailyTotal.toFixed(2)}</td>
+          </tr>
+        `;
+      }
+      
+      // 生成完整的HTML文件
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html lang="zh-TW">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>達遠塑膠銷售報表</title>
+          <style>
+            body {
+              font-family: "Noto Sans TC", Arial, "Microsoft JhengHei", sans-serif;
+              margin: 20px;
+              color: #333;
+            }
+            h1 {
+              text-align: center;
+              color: #003366;
+              margin-bottom: 10px;
+            }
+            .report-info {
+              margin-bottom: 20px;
+            }
+            .report-info p {
+              margin: 5px 0;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 20px;
+            }
+            th {
+              background-color: #2980b9;
+              color: white;
+              padding: 8px;
+              text-align: left;
+            }
+            td {
+              padding: 8px;
+              border-bottom: 1px solid #ddd;
+            }
+            tr:nth-child(even) {
+              background-color: #f2f2f2;
+            }
+            .text-right {
+              text-align: right;
+            }
+            .subtotal-row {
+              background-color: #e8e8e8;
+              font-weight: bold;
+            }
+            .total-row {
+              background-color: #d6d6d6;
+              font-weight: bold;
+              font-size: 1.1em;
+              padding: 8px;
+              margin-top: 10px;
+            }
+            .print-date {
+              text-align: right;
+              margin-top: 20px;
+              font-size: 0.8em;
+              color: #666;
+            }
+            .print-button {
+              padding: 10px;
+              background: #4caf50;
+              color: white; 
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+              float: right;
+              margin-bottom: 20px;
+            }
+            @media print {
+              .print-button {
+                display: none;
+              }
+              body {
+                margin: 0;
+                padding: 15px;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <button onclick="window.print();" class="print-button">列印</button>
+          
+          <h1>達遠塑膠銷售報表</h1>
+          
+          <div class="report-info">
+            <p><strong>報表期間:</strong> ${reportPeriod}</p>
+            <p><strong>訂單總數:</strong> ${statsData.totalOrders} 筆</p>
+            <p><strong>總公斤數:</strong> ${totalQuantity.toFixed(2)} kg</p>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 20%">日期</th>
+                <th style="width: 20%">產品編號</th>
+                <th style="width: 40%">產品顏色</th>
+                <th style="width: 20%; text-align: right">數量(公斤)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableContent}
+            </tbody>
+          </table>
+          
+          <div class="total-row">
+            <p><strong>總計:</strong> ${totalQuantity.toFixed(2)} kg</p>
+          </div>
+          
+          <div class="print-date">
+            列印日期: ${new Date().toLocaleDateString('zh-TW')}
+          </div>
+        </body>
+        </html>
+      `;
+      
+      // 寫入HTML並顯示
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+      // 顯示成功訊息
+      toast({
+        title: "報表已生成",
+        description: "請使用瀏覽器的列印功能保存為PDF",
+      });
     } catch (error) {
-      console.error("Error preparing PDF:", error);
-      return doc;
+      console.error("Print generation error:", error);
+      toast({
+        title: "報表生成失敗",
+        description: error instanceof Error ? error.message : "未知錯誤",
+        variant: "destructive",
+      });
     }
   };
   
-  // 直接在前端生成CSV功能 - 完全支持中文
-  const downloadOrderStatsCSV = () => {
+  // 已刪除CSV下載功能，改用列印功能替代
+  const unusedFunction = () => {
     if (!statsData) {
       // 如果還沒有生成統計數據，則自動調用生成功能
       handleGenerateStats();
@@ -432,120 +628,9 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     }
   };
 
-  // 簡化版PDF報表生成
-  const generateOrderStatsPDF = () => {
-    if (!statsData || !statsData.orders || statsData.orders.length === 0) {
-      toast({
-        title: "無法生成PDF",
-        description: "所選時間段內沒有訂單數據",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    try {
-      // 創建PDF文檔
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      // 使用基本英文字體
-      doc.setFont('helvetica', 'normal');
-      
-      // 設置標題
-      doc.setFontSize(18);
-      doc.setTextColor(0, 51, 102);
-      doc.text("達遠塑膠銷售報表", doc.internal.pageSize.getWidth() / 2, 15, { align: "center" });
-      
-      // 報表期間
-      const reportPeriod = statsData.periodText || `${statsYear}年${statsMonth ? statsMonth + '月' : '全年'}`;
-      
-      // 添加報表資訊
-      doc.setFontSize(10);
-      doc.setTextColor(60, 60, 60);
-      doc.text(`報表期間: ${reportPeriod}`, 15, 25);
-      doc.text(`訂單總數: ${statsData.totalOrders} 筆`, 15, 30);
-      doc.text(`總公斤數: ${statsData.totalKilograms.toFixed(2)} kg`, 15, 35);
-      
-      // 列印時間
-      const now = new Date();
-      const printDate = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')}`;
-      doc.text(`列印日期: ${printDate}`, 15, 40);
-      
-      // 使用簡單表格
-      const headers = ['日期', '產品編號', '產品顏色', '數量(kg)'];
-      
-      // 準備數據 - 按日期排序
-      const sortedOrders = [...statsData.orders].sort((a, b) => {
-        return new Date(a.delivery_date).getTime() - new Date(b.delivery_date).getTime();
-      });
-      
-      // 轉換為表格數據格式
-      const tableData = sortedOrders.map(order => {
-        const date = order.delivery_date.split('T')[0];
-        return [date, order.product_code, order.product_name, Number(order.quantity).toFixed(2)];
-      });
-      
-      // 使用autoTable插件
-      autoTable(doc, {
-        startY: 45,
-        head: [headers],
-        body: tableData,
-        theme: 'striped',
-        styles: {
-          fontSize: 9,
-          cellPadding: 2,
-        },
-        headStyles: {
-          fillColor: [41, 128, 185],
-          textColor: [255, 255, 255],
-          fontSize: 10
-        },
-        columnStyles: {
-          0: { cellWidth: 25 }, // 日期
-          1: { cellWidth: 30 }, // 產品編號
-          2: { cellWidth: 'auto' }, // 產品顏色
-          3: { cellWidth: 25, halign: 'right' } // 數量
-        },
-        alternateRowStyles: {
-          fillColor: [245, 245, 245]
-        },
-        margin: { top: 45, left: 15, right: 15, bottom: 15 },
-      });
-      
-      // 添加總計行
-      const finalY = (doc as any).lastAutoTable.finalY || 50;
-      doc.setFillColor(230, 230, 230);
-      doc.rect(15, finalY, doc.internal.pageSize.getWidth() - 30, 7, 'F');
-      
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(10);
-      doc.text("總計", 20, finalY + 5);
-      
-      const totalQuantity = statsData.totalKilograms || sortedOrders.reduce((sum, order) => sum + Number(order.quantity), 0);
-      doc.text(`${totalQuantity.toFixed(2)} kg`, doc.internal.pageSize.getWidth() - 20, finalY + 5, { align: 'right' });
-      
-      // 生成並下載PDF
-      let fileName = statsMonth 
-        ? `達遠塑膠_銷售報表_${statsYear}年${statsMonth}月.pdf` 
-        : `達遠塑膠_銷售報表_${statsYear}年.pdf`;
-      
-      doc.save(fileName);
-      
-      toast({
-        title: "PDF報表已下載",
-        description: "銷售報表已成功生成",
-      });
-    } catch (error) {
-      console.error("PDF生成錯誤:", error);
-      toast({
-        title: "PDF生成失敗",
-        description: error instanceof Error ? error.message : "未知錯誤",
-        variant: "destructive",
-      });
-    }
+  // 已刪除PDF下載功能，改用列印功能替代
+  const unusedFunction2 = () => {
+    // 留空
   };
 
   // 使用当前日期作为默认日期范围，只在第一次显示时设置
@@ -1139,17 +1224,10 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
             </Button>
             
             <Button
-              onClick={generateOrderStatsPDF}
+              onClick={printOrderStats}
               className="box-border h-10 px-5 text-[20px] bg-[#2196F3] text-white border-none rounded cursor-pointer hover:bg-[#0b7dda]"
             >
-              下載PDF
-            </Button>
-            
-            <Button
-              onClick={downloadOrderStatsCSV}
-              className="box-border h-10 px-5 text-[20px] bg-[#FF9800] text-white border-none rounded cursor-pointer hover:bg-[#e68a00]"
-            >
-              下載CSV
+              列印報表
             </Button>
             
             <Button
@@ -1161,7 +1239,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
           </div>
           
           <div className="w-full mt-2 text-sm text-gray-500">
-            已添加Excel與CSV匯出功能，完整支持中文字符顯示
+            請使用「列印報表」功能，可直接列印或另存為PDF（完整支援中文）
           </div>
         </div>
         
