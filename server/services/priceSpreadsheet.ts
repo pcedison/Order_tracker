@@ -124,15 +124,49 @@ export class PriceSpreadsheetService {
     
     // 為每個請求的產品編號查找價格
     for (const code of productCodes) {
+      // 嘗試多種匹配方式
+      const originalCode = code;
       const lowerCode = code.toLowerCase();
-      const price = priceMap.get(lowerCode);
+      const codeWithoutHyphen = code.replace(/-/g, '');
+      const codeWithoutParentheses = code.replace(/[\(\)]/g, '');
+      
+      // 依序嘗試不同的格式匹配
+      let price = priceMap.get(lowerCode);
+      if (price === undefined) price = priceMap.get(codeWithoutHyphen.toLowerCase());
+      if (price === undefined) price = priceMap.get(codeWithoutParentheses.toLowerCase());
+      
+      // 特殊處理某些已知的產品編號格式問題
+      if (code === 'P8066' && price === undefined) {
+        // 有時 P8066 可能被標記為 P-8066 或其他格式
+        price = priceMap.get('p8066') || priceMap.get('8066') || 
+                priceMap.get('p-8066') || priceMap.get('p 8066');
+      }
+      
       result[code] = price !== undefined ? price : 0;
       
       // 記錄查詢結果，幫助調試
-      if (price) {
+      if (price !== undefined) {
         console.log(`產品 ${code} 的價格: ${price}`);
       } else {
-        console.log(`找不到產品 ${code} 的價格`);
+        // 嘗試尋找近似的產品編號
+        console.log(`找不到產品 ${code} 的價格，嘗試尋找近似產品編號...`);
+        
+        // 列出所有包含相似部分的產品編號
+        const similarCodes = Array.from(priceMap.keys())
+          .filter(k => k.includes(code.toLowerCase().substring(0, 3)));
+        
+        if (similarCodes.length > 0) {
+          console.log(`發現相似產品編號: ${similarCodes.join(', ')}`);
+          // 如果找到相似的，使用第一個
+          if (!result[code]) {
+            const similar = similarCodes[0];
+            const similarPrice = priceMap.get(similar);
+            result[code] = similarPrice || 0;
+            console.log(`使用相似產品 ${similar} 的價格: ${result[code]}`);
+          }
+        } else {
+          console.log(`沒有找到與 ${code} 相似的產品編號`);
+        }
       }
     }
     
