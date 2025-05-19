@@ -543,6 +543,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // 添加管理員密碼更新端點
+  app.post("/api/admin/password", async (req, res) => {
+    try {
+      // 檢查是否有管理員權限
+      if (!req.session?.isAdmin) {
+        return res.status(403).json({ message: "未授權，請先登入管理員帳戶" });
+      }
+      
+      const { currentPassword, newPassword } = req.body;
+      
+      // 驗證請求參數
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "當前密碼和新密碼都是必填欄位" });
+      }
+      
+      if (newPassword.length < 4) {
+        return res.status(400).json({ message: "新密碼長度不能少於4個字符" });
+      }
+      
+      // 驗證當前密碼並更新密碼
+      const success = await storage.updateAdminPassword(currentPassword, newPassword);
+      
+      if (!success) {
+        return res.status(400).json({ message: "當前密碼不正確" });
+      }
+      
+      return res.json({ success: true, message: "管理員密碼已成功更新" });
+    } catch (error) {
+      console.error("Update admin password error:", error);
+      return res.status(500).json({ message: "密碼更新失敗，請稍後再試" });
+    }
+  });
+  
   // 配置相关 API
   // 获取所有配置信息 - 允许非管理员访问，但仅返回公共配置
   app.get("/api/configs", async (req, res) => {
