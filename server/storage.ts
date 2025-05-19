@@ -572,7 +572,14 @@ export class SupabaseStorage implements IStorage {
 
   async setConfig(key: string, value: string): Promise<void> {
     try {
-      // 检查配置是否已存在
+      // 為價格表配置項特殊處理
+      if (key === 'PRICE_SPREADSHEET_API_KEY' || key === 'PRICE_SPREADSHEET_ID') {
+        // 直接將這些配置設置到環境變數，不嘗試寫入資料庫
+        process.env[key] = value;
+        return; // 提前結束，不進行資料庫操作
+      }
+      
+      // 檢查配置是否已存在
       const { data: existingConfig } = await supabase
         .from(this.configsTable)
         .select('id')
@@ -580,7 +587,7 @@ export class SupabaseStorage implements IStorage {
         .maybeSingle();
       
       if (existingConfig) {
-        // 更新现有配置
+        // 更新現有配置
         const { error } = await supabase
           .from(this.configsTable)
           .update({ value })
@@ -591,7 +598,7 @@ export class SupabaseStorage implements IStorage {
           throw error;
         }
       } else {
-        // 创建新配置
+        // 創建新配置
         const { error } = await supabase
           .from(this.configsTable)
           .insert({ key, value });
@@ -632,6 +639,14 @@ export class SupabaseStorage implements IStorage {
       PRICE_SPREADSHEET_ID: getEnvSecure('PRICE_SPREADSHEET_ID'),
       ADMIN_PASSWORD: getEnvSecure('ADMIN_PASSWORD')
     };
+  }
+  
+  // 創建一個從環境變數中獲取配置項的方法
+  public getConfigFromEnv(key: string): string {
+    if (!process.env[key]) {
+      return '';
+    }
+    return process.env[key] || '';
   }
 
   async updateAdminPassword(currentPassword: string, newPassword: string): Promise<boolean> {

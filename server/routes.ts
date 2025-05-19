@@ -588,16 +588,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Key and value are required" });
       }
       
-      await storage.setConfig(key, value);
-      
-      // 对于环境变量，也实时更新（这通常只在开发环境中有效）
-      if (key === 'SUPABASE_URL' || key === 'SUPABASE_KEY' || 
-          key === 'SPREADSHEET_API_KEY' || key === 'SPREADSHEET_ID' ||
-          key === 'PRICE_SPREADSHEET_API_KEY' || key === 'PRICE_SPREADSHEET_ID') {
+      // 特殊處理價格表相關配置
+      if (key === 'PRICE_SPREADSHEET_API_KEY' || key === 'PRICE_SPREADSHEET_ID') {
+        // 直接更新環境變數，不透過資料庫
         process.env[key] = value;
+        console.log(`Config ${key} updated directly in environment.`);
+        return res.json({ success: true });
       }
       
-      return res.json({ success: true });
+      // 其他配置項透過資料庫儲存
+      try {
+        await storage.setConfig(key, value);
+        
+        // 同時更新環境變數
+        if (key === 'SUPABASE_URL' || key === 'SUPABASE_KEY' || 
+            key === 'SPREADSHEET_API_KEY' || key === 'SPREADSHEET_ID') {
+          process.env[key] = value;
+        }
+        
+        return res.json({ success: true });
+      } catch (dbError) {
+        console.error(`Database error updating config for ${key}:`, dbError);
+        throw dbError;
+      }
     } catch (error) {
       console.error("Error updating config:", error);
       return res.status(500).json({ message: "Failed to update configuration" });
