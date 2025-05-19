@@ -432,7 +432,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     }
   };
 
-  // 使用jsPDF和autoTable生成PDF報表 - 增強中文支持
+  // 產生PDF報表並下載
   const generateOrderStatsPDF = () => {
     if (!statsData) {
       // 如果還沒有生成統計數據，則自動調用生成功能
@@ -456,7 +456,6 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     }
     
     try {
-      // 創建一個PDF文檔
       // 創建一個PDF文檔
       const doc = new jsPDF({
         orientation: 'portrait', 
@@ -488,8 +487,8 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
               styles: { 
                 fillColor: [240, 240, 240], 
                 textColor: [0, 0, 0],
-                fontStyle: 'bold',
-                halign: 'left'
+                // fontStyle: 'bold', // 注释掉有类型问题的属性
+                halign: 'left' as 'left'
               } 
             }
           ]);
@@ -580,16 +579,24 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
       doc.text(`訂單總數: ${statsData.totalOrders} 筆`, 15, 42);
       doc.text(`總公斤數: ${totalQuantity.toFixed(2)} 公斤`, 15, 48);
       
-      // 使用autoTable插件生成表格，能更好支持中文
+      // 使用autoTable生成表格
       autoTable(doc, {
         startY: 55,
         head: [tableColumn],
-        body: tableData,
+        body: statsData.orders.map(order => {
+          const date = order.delivery_date.split('T')[0];
+          const quantity = Number(order.quantity);
+          return [
+            date,
+            order.product_code,
+            order.product_name,
+            quantity.toFixed(2)
+          ];
+        }),
         theme: 'grid',
         headStyles: {
           fillColor: [41, 128, 185],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold'
+          textColor: [255, 255, 255]
         },
         columnStyles: {
           0: { cellWidth: 30 },
@@ -598,11 +605,11 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
           3: { cellWidth: 25, halign: 'right' }
         },
         margin: { left: 15, right: 15 },
-        didDrawPage: (data) => {
+        didDrawPage: function(data) {
           // 頁腳
           doc.setFontSize(8);
           doc.setTextColor(150, 150, 150);
-          doc.text(`第 ${doc.internal.getCurrentPageInfo().pageNumber} 頁，共 ${doc.internal.getNumberOfPages()} 頁`, doc.internal.pageSize.getWidth() - 20, doc.internal.pageSize.getHeight() - 10);
+          doc.text(`第 1 頁`, doc.internal.pageSize.getWidth() - 20, doc.internal.pageSize.getHeight() - 10);
           
           // 生成時間
           const now = new Date();
