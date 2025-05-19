@@ -65,13 +65,22 @@ export class PriceSpreadsheetService {
       const data = await response.json();
       const rows = data.values || [];
       
+      // 輸出前10行數據用於調試
+      console.log('價格表數據樣本:');
+      for (let i = 0; i < Math.min(rows.length, 10); i++) {
+        console.log(`Row ${i}: ${JSON.stringify(rows[i])}`);
+      }
+      
       // 處理價格數據 - 根據實際電子表格結構調整
       const prices: ProductPrice[] = rows
         .filter((row: any[]) => row.length >= 4 && row[1]) // 確保有編號(B欄)和價格(D欄)
         .map((row: any[]) => {
           // 根據您提供的信息，B欄是編號(索引1)，D欄是價格(索引3)
           const code = row[1]?.toString().trim() || '';
-          const priceValue = row[3] ? parseFloat(row[3].toString().replace(/,/g, '')) : 0;
+          // 處理可能的數字格式（如貨幣符號、逗號等）
+          let priceStr = row[3]?.toString() || '0';
+          priceStr = priceStr.replace(/[^\d.-]/g, ''); // 僅保留數字、小數點和負號
+          const priceValue = parseFloat(priceStr);
           
           return {
             code: code,
@@ -107,12 +116,24 @@ export class PriceSpreadsheetService {
     const prices = await this.refreshCache();
     const result: Record<string, number> = {};
     
+    // 檢視獲取到的價格數據
+    console.log(`找到 ${prices.length} 個產品價格記錄`);
+    
     // 建立編號到價格的映射
     const priceMap = new Map(prices.map(p => [p.code.toLowerCase(), p.price]));
     
     // 為每個請求的產品編號查找價格
     for (const code of productCodes) {
-      result[code] = priceMap.get(code.toLowerCase()) || 0;
+      const lowerCode = code.toLowerCase();
+      const price = priceMap.get(lowerCode);
+      result[code] = price !== undefined ? price : 0;
+      
+      // 記錄查詢結果，幫助調試
+      if (price) {
+        console.log(`產品 ${code} 的價格: ${price}`);
+      } else {
+        console.log(`找不到產品 ${code} 的價格`);
+      }
     }
     
     return result;
