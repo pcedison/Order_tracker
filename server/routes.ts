@@ -592,7 +592,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 对于环境变量，也实时更新（这通常只在开发环境中有效）
       if (key === 'SUPABASE_URL' || key === 'SUPABASE_KEY' || 
-          key === 'SPREADSHEET_API_KEY' || key === 'SPREADSHEET_ID') {
+          key === 'SPREADSHEET_API_KEY' || key === 'SPREADSHEET_ID' ||
+          key === 'PRICE_SPREADSHEET_API_KEY' || key === 'PRICE_SPREADSHEET_ID') {
         process.env[key] = value;
       }
       
