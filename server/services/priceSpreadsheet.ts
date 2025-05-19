@@ -1,3 +1,5 @@
+import { supabase } from "../supabase";
+
 // 產品價格表查詢服務
 interface ProductPrice {
   code: string;      // 產品編號
@@ -14,13 +16,25 @@ export class PriceSpreadsheetService {
   private RANGE = '價格表!A2:D300'; // 使用實際產品表範圍名稱
 
   constructor() {
-    // 從環境變數獲取 API key 和 spreadsheet ID
+    // 初始化時先從環境變數獲取值，後續刷新緩存時會從配置中獲取最新的值
     this.apiKey = process.env.PRICE_SPREADSHEET_API_KEY || '';
     this.spreadsheetId = process.env.PRICE_SPREADSHEET_ID || '';
+  }
+  
+  // 從配置中取得最新的 API key 和 ID
+  async getConfigValues() {
+    // 指定我們要從配置中獲取的值
+    const apiKey = process.env.PRICE_SPREADSHEET_API_KEY;
+    const spreadsheetId = process.env.PRICE_SPREADSHEET_ID;
     
-    if (!this.apiKey || !this.spreadsheetId) {
-      console.warn('價格表 API key 或 ID 未在環境變數中提供');
+    // 硬編碼測試值（您提供的值）
+    if (!apiKey || !spreadsheetId) {
+      this.apiKey = "AIzaSyAnztgYJgF15NjENuXITpPxyR8pLHFVkQ0";
+      this.spreadsheetId = "13N3pRr3ElH2EoP6ZIUNW_Cod5o4FiG7upNnc2CD-zVI";
+      console.log("使用硬編碼的價格表配置");
     }
+    
+    return { apiKey: this.apiKey, spreadsheetId: this.spreadsheetId };
   }
 
   // 根據需要刷新價格緩存
@@ -33,6 +47,9 @@ export class PriceSpreadsheetService {
     }
     
     try {
+      // 獲取最新的配置
+      await this.getConfigValues();
+      
       if (!this.apiKey || !this.spreadsheetId) {
         throw new Error('價格表 API key 或 ID 未提供');
       }
