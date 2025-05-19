@@ -229,20 +229,40 @@ export default function ConfigSettings() {
                   label="價格表 API Key"
                   configKey="PRICE_SPREADSHEET_API_KEY"
                   placeholder="your-price-spreadsheet-api-key"
-                  value={priceSpreadsheetApiKey}
+                  value={priceSpreadsheetApiKey || "AIzaSyAnztgYJgF15NjENuXITpPxyR8pLHFVkQ0"}
                   onChange={setPriceSpreadsheetApiKey}
-                  onSave={() => updateConfig("PRICE_SPREADSHEET_API_KEY", priceSpreadsheetApiKey)}
+                  onSave={() => updateConfig("PRICE_SPREADSHEET_API_KEY", priceSpreadsheetApiKey || "AIzaSyAnztgYJgF15NjENuXITpPxyR8pLHFVkQ0")}
                   disabled={isUpdating}
                 />
                 <ConfigField
                   label="價格表 Spreadsheet ID"
                   configKey="PRICE_SPREADSHEET_ID"
                   placeholder="your-price-spreadsheet-id"
-                  value={priceSpreadsheetId}
+                  value={priceSpreadsheetId || "13N3pRr3ElH2EoP6ZIUNW_Cod5o4FiG7upNnc2CD-zVI"}
                   onChange={setPriceSpreadsheetId}
-                  onSave={() => updateConfig("PRICE_SPREADSHEET_ID", priceSpreadsheetId)}
+                  onSave={() => updateConfig("PRICE_SPREADSHEET_ID", priceSpreadsheetId || "13N3pRr3ElH2EoP6ZIUNW_Cod5o4FiG7upNnc2CD-zVI")}
                   disabled={isUpdating}
                 />
+                <div className="mt-4">
+                  <Button
+                    className="px-4 py-2 text-lg bg-[#4CAF50] text-white border-none rounded cursor-pointer hover:bg-[#45a049]"
+                    onClick={() => {
+                      // 同時保存兩個配置
+                      updateConfig("PRICE_SPREADSHEET_API_KEY", "AIzaSyAnztgYJgF15NjENuXITpPxyR8pLHFVkQ0");
+                      setTimeout(() => {
+                        updateConfig("PRICE_SPREADSHEET_ID", "13N3pRr3ElH2EoP6ZIUNW_Cod5o4FiG7upNnc2CD-zVI");
+                        toast({
+                          title: "價格表設定已更新",
+                          description: "已使用預設值設定價格表",
+                          variant: "default",
+                        });
+                      }, 500);
+                    }}
+                    disabled={isUpdating}
+                  >
+                    使用預設值
+                  </Button>
+                </div>
               </>
             )}
           </CardContent>
