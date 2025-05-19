@@ -17,6 +17,7 @@ interface StatsData {
   periodText: string;
   totalOrders: number;
   totalKilograms: number; // 新增總公斤數字段
+  totalAmount?: number;   // 總金額
 }
 
 export function useOrders() {

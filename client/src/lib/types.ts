@@ -30,4 +30,6 @@ export interface StatItem {
   name: string;
   totalQuantity: number;
   orderCount: number;
+  unitPrice?: number;   // 產品單價
+  totalPrice?: number;  // 總價 (單價 * 數量)
 }
