@@ -122,11 +122,18 @@ export class SupabaseStorage implements IStorage {
   async getOrdersByDateRange(startDate: string, endDate: string, status?: "temporary" | "completed"): Promise<Order[]> {
     if (status === "completed") {
       // 获取已完成的历史订单（从 orders 和 order_items 表中）
-      // 使用大於 (>) 而非大於等於 (>=) 來確保只包含 26 日後的訂單
+      // 使用日期範圍查詢，這裡我們使用大於等於開始日期+1天的方式
+      // 因為我們想要從26日開始，而startDate是上個月25日
+      const startDateObj = new Date(startDate);
+      startDateObj.setDate(startDateObj.getDate() + 1); // 26日
+      const adjustedStartDate = startDateObj.toISOString().split('T')[0]; // 格式化為YYYY-MM-DD
+      
+      console.log(`調整後的開始日期: ${adjustedStartDate}, 結束日期: ${endDate}`);
+      
       const { data: orderData, error: orderError } = await supabase
         .from(this.ordersTable)
         .select('id, order_date, created_at')
-        .gt('order_date', startDate)
+        .gte('order_date', adjustedStartDate)
         .lte('order_date', endDate)
         .order('created_at', { ascending: false });
       
