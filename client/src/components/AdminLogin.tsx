@@ -20,7 +20,7 @@ export default function AdminLogin() {
     setIsLoginPanelOpen(false);
   };
 
-  // 完全重構的登入處理函數
+  // 全新登入函數，徹底修改實現方式確保可靠性
   const handleLogin = async () => {
     if (!password) {
       toast({
@@ -40,7 +40,7 @@ export default function AdminLogin() {
         description: "正在驗證密碼...",
       });
       
-      // 直接發送登入請求
+      // 發送登入請求
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -70,11 +70,12 @@ export default function AdminLogin() {
         console.log("登入成功!");
         handleCloseLoginPanel();
         
-        // 更新全局狀態
-        window.dispatchEvent(new CustomEvent('adminLoginSuccess'));
-        window.dispatchEvent(new CustomEvent('adminStatusChanged', { 
-          detail: { isAdmin: true } 
-        }));
+        // 標記強制檢查管理員狀態
+        sessionStorage.setItem('force_admin_check', 'true');
+        
+        // 登入成功時立即設置本地狀態為已登入
+        // 這樣用戶不用等待API檢查即可看到界面變化
+        login(password, true);
         
         // 顯示成功提示
         toast({
@@ -83,10 +84,11 @@ export default function AdminLogin() {
           duration: 3000
         });
         
-        // 強制重載頁面以確保狀態同步
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
+        // 不做頁面重載，改用事件通知機制
+        window.dispatchEvent(new CustomEvent('adminLoginSuccess'));
+        window.dispatchEvent(new CustomEvent('adminStatusChanged', { 
+          detail: { isAdmin: true } 
+        }));
       } else {
         console.error("登入失敗，伺服器拒絕認證");
         toast({

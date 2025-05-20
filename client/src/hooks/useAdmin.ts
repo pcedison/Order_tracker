@@ -142,32 +142,32 @@ export function useAdmin() {
     };
   }, [isAdmin, resetInactivityTimer]);
 
-  // 高度優化的管理員狀態檢查 - 採用進階節流與緩存機制
-  const checkAdminStatus = useCallback(async (showErrors = false) => {
-    // 強化節流控制 - 顯著提高間隔時間以減少伺服器負載
+  // 完全重構的管理員狀態檢查函數 - 簡化邏輯，提高可靠性
+  const checkAdminStatus = useCallback(async (forceCheck = false) => {
+    // 取得當前時間
     const now = Date.now();
     
-    // 如果非強制檢查（非用戶觸發），則採用更長的間隔
-    // 將默認間隔從1秒提高到5秒，大大減少API調用頻率
-    const minInterval = showErrors ? 1000 : 5000;
-    if (now - lastCheck < minInterval) {
-      return isAdmin;
-    }
-    
-    // 使用會話存儲來跟踪狀態檢查，即使在組件重新渲染後也能保持節流
+    // 從儲存中讀取上次檢查時間
     const lastGlobalCheck = parseInt(sessionStorage.getItem('admin_last_check') || '0', 10);
-    if (!showErrors && now - lastGlobalCheck < 3000) {
+    
+    // 如果不是強制檢查且時間間隔小於2秒，則跳過檢查
+    const MIN_CHECK_INTERVAL = 2000; // 2秒
+    if (!forceCheck && now - lastGlobalCheck < MIN_CHECK_INTERVAL) {
+      console.log("跳過管理員狀態檢查 (節流控制)");
       return isAdmin;
     }
     
+    // 更新檢查時間
     setLastCheck(now);
     sessionStorage.setItem('admin_last_check', now.toString());
+    console.log("執行管理員狀態檢查...");
     
     try {
-      // 使用AbortController防止請求懸掛，設置超時機制
+      // 設置請求超時
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超時
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       
+      // 發送請求
       const response = await fetch('/api/auth/status', {
         method: 'GET',
         signal: controller.signal,
@@ -185,18 +185,13 @@ export function useAdmin() {
       
       if (response.ok) {
         const data = await response.json();
+        console.log("管理員狀態檢查結果:", data);
         
-        // 只有在狀態實際發生變化時才更新並觸發重渲染
-        if (data.authenticated !== isAdmin) {
-          setIsAdmin(data.authenticated);
-          
-          // 觸發全局事件以便其他組件感知變化
-          if (data.authenticated !== isAdmin) {
-            window.dispatchEvent(new CustomEvent('adminStatusChanged', { 
-              detail: { isAdmin: data.authenticated } 
-            }));
-          }
-        }
+        // 無論是否變化都更新狀態並觸發事件
+        setIsAdmin(data.authenticated);
+        window.dispatchEvent(new CustomEvent('adminStatusChanged', { 
+          detail: { isAdmin: data.authenticated } 
+        }));
         
         // 設置剩餘時間
         if (data.authenticated && data.remainingTimeSeconds !== undefined) {
@@ -226,7 +221,7 @@ export function useAdmin() {
         
         return data.authenticated;
       } else {
-        if (isAdmin && showErrors) {
+        if (isAdmin && forceCheck) {
           toast({
             title: "管理員狀態檢查失敗",
             description: "您的管理員會話可能已過期，請重新登入",
