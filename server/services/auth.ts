@@ -200,18 +200,23 @@ export class AuthService {
         // 嘗試多種方式匹配:
         // 1. 明文匹配常規密碼
         const directMatch = (password === currentAdminPassword);
+        console.log(`明文匹配常規密碼: ${directMatch ? '是' : '否'}`);
         
         // 2. 明文匹配備份密碼
-        const backupMatch = backupPassword && (password === backupPassword);
+        const backupMatch = backupPassword !== undefined && backupPassword !== null ? (password === backupPassword) : false;
+        console.log(`明文匹配備份密碼: ${backupMatch ? '是' : '否'}`);
         
         // 3. 哈希匹配常規密碼
         const hashMatchesMain = (hashedInput === currentAdminPassword);
+        console.log(`哈希匹配常規密碼: ${hashMatchesMain ? '是' : '否'}`);
         
         // 4. 哈希匹配備份密碼
-        const hashMatchesBackup = backupPassword && (hashedInput === backupPassword);
+        const hashMatchesBackup = backupPassword !== undefined && backupPassword !== null ? (hashedInput === backupPassword) : false;
+        console.log(`哈希匹配備份密碼: ${hashMatchesBackup ? '是' : '否'}`);
         
+        // 綜合結果
         const success = directMatch || backupMatch || hashMatchesMain || hashMatchesBackup;
-        console.log(`密碼驗證結果: ${success ? '成功' : '失敗'}`);
+        console.log(`密碼驗證最終結果: ${success ? '成功' : '失敗'}`);
         
         return success;
       }

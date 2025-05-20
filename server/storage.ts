@@ -813,9 +813,24 @@ export class SupabaseStorage implements IStorage {
       
       console.log('當前密碼驗證通過');
       
-      // 第2步: 對新密碼進行哈希處理
-      const hashedNewPassword = this.authService.hashPassword(newPassword);
-      console.log('新密碼已哈希處理');
+      // 重要修改: 檢查系統當前使用的是明文密碼還是哈希密碼
+      const currentSystemPassword = this.authService.getCurrentPassword();
+      const isHashedMode = currentSystemPassword.length === 64 && /^[0-9a-f]+$/.test(currentSystemPassword);
+      
+      console.log(`系統目前使用的是 ${isHashedMode ? '哈希' : '明文'} 密碼模式`);
+      
+      // 第2步: 根據系統當前狀態決定如何保存新密碼
+      let newPasswordToSave = '';
+      
+      if (isHashedMode) {
+        // 如果當前是哈希模式，繼續使用哈希
+        newPasswordToSave = this.authService.hashPassword(newPassword);
+        console.log('系統使用哈希模式，新密碼已哈希處理');
+      } else {
+        // 如果當前是明文模式，保持明文以維持一致性
+        newPasswordToSave = newPassword;
+        console.log('系統使用明文模式，保持明文密碼');
+      }
       
       // 用時間戳標記此次密碼更新 - 便於驗證和追蹤
       const timestamp = Date.now();
@@ -830,7 +845,7 @@ export class SupabaseStorage implements IStorage {
           .from(this.configsTable)
           .upsert({ 
             key: 'ADMIN_PASSWORD', 
-            value: hashedNewPassword,
+            value: newPasswordToSave,
             updated_at: new Date().toISOString()
           });
         
@@ -846,7 +861,7 @@ export class SupabaseStorage implements IStorage {
           .from(this.configsTable)
           .upsert({ 
             key: `ADMIN_PASSWORD_BACKUP_${updateTag}`, 
-            value: hashedNewPassword,
+            value: newPasswordToSave,
             updated_at: new Date().toISOString()
           });
           
@@ -860,7 +875,7 @@ export class SupabaseStorage implements IStorage {
           .from(this.configsTable)
           .upsert({ 
             key: 'ADMIN_PASSWORD_BACKUP', 
-            value: hashedNewPassword,
+            value: newPasswordToSave,
             updated_at: new Date().toISOString()
           });
           
@@ -883,7 +898,7 @@ export class SupabaseStorage implements IStorage {
         
         // 檢查是否有任何記錄包含新密碼
         const hasNewPasswordRecord = allPasswordRecords?.some(record => 
-          record.value === hashedNewPassword
+          record.value === newPasswordToSave
         );
         
         if (hasNewPasswordRecord) {
@@ -898,17 +913,18 @@ export class SupabaseStorage implements IStorage {
       
       // 第5步: 無論數據庫操作是否成功，都更新內存中的密碼
       // 確保當前會話中可以使用新密碼，提高用戶體驗
-      this.authService.updatePassword(hashedNewPassword);
+      this.authService.updatePassword(newPasswordToSave);
       console.log('AuthService 中的密碼已更新');
       
-      // 更新環境變量
-      process.env.ADMIN_PASSWORD = hashedNewPassword;
+      // 更新環境變量 - 重要：保持明文/哈希一致性
+      process.env.ADMIN_PASSWORD = newPasswordToSave;
       console.log('主要環境變量中的密碼已更新');
       
       // 額外設置備份環境變量
-      process.env.ADMIN_PASSWORD_BACKUP = hashedNewPassword;
+      process.env.ADMIN_PASSWORD_BACKUP = newPasswordToSave;
       process.env.ADMIN_PASSWORD_UPDATED_AT = new Date().toISOString();
       process.env.ADMIN_PASSWORD_UPDATE_TAG = updateTag;
+      process.env.ADMIN_PASSWORD_MODE = isHashedMode ? 'hashed' : 'plaintext';
       
       if (databaseUpdateSuccess) {
         console.log('管理員密碼更新完全成功 (數據庫+內存)');
