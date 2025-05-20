@@ -20,7 +20,7 @@ export default function AdminLogin() {
     setIsLoginPanelOpen(false);
   };
 
-  // 完全重寫的登入功能，確保登入過程的可靠性
+  // 完全重寫的登入功能，優化流程確保可靠性
   const handleLogin = async () => {
     if (!password) {
       toast({
@@ -34,69 +34,33 @@ export default function AdminLogin() {
     try {
       console.log("嘗試登入...");
       
-      // 先確保登出任何現有會話
-      try {
-        // 無須等待完成，只是預防性清除
-        await fetch('/api/auth/logout', {
-          method: 'POST',
-          credentials: 'include',
-          cache: 'no-store'
-        });
-      } catch (e) {
-        // 忽略登出錯誤
-      }
-      
       // 顯示登入中提示
       toast({
         title: "登入中",
         description: "正在驗證密碼...",
       });
       
-      // 強制清除瀏覽器中的管理員會話cookie
-      document.cookie = 'admin.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-      
-      // 清除本地狀態緩存
-      sessionStorage.removeItem('admin_last_check');
-      sessionStorage.removeItem('force_admin_check');
-      
-      // 發送登入請求
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        },
-        body: JSON.stringify({ password }),
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("登入請求失敗:", response.status, errorText);
-        
-        toast({
-          title: "登入失敗",
-          description: "密碼錯誤或伺服器拒絕認證",
-          variant: "destructive",
-        });
-        return;
+      // 先執行登出，確保清除任何現有會話
+      try {
+        await logout(); // 使用現有的logout函數清除會話
+      } catch (e) {
+        console.warn("預處理登出時出錯，繼續登入流程:", e);
       }
       
-      const data = await response.json();
+      // 強制清除緩存和localStorage
+      sessionStorage.clear(); // 清除所有sessionStorage資料
+      localStorage.removeItem('admin_login_success');
+      localStorage.removeItem('admin_login_timestamp');
       
-      if (data.success) {
-        console.log("登入成功!");
+      // 直接使用useAdmin中的login函數，而非自己實現登入邏輯
+      const success = await login(password);
+      
+      if (success) {
+        console.log("管理員登入成功!");
         handleCloseLoginPanel();
         
         // 重置密碼輸入框
         setPassword("");
-        
-        // 設置localStorage標記，用於頁面重載後的管理員狀態確認
-        localStorage.setItem('admin_login_success', 'true');
-        localStorage.setItem('admin_login_timestamp', Date.now().toString());
         
         // 顯示成功提示
         toast({
@@ -105,15 +69,16 @@ export default function AdminLogin() {
           duration: 2000
         });
         
-        // 延遲後重載頁面以確保完全清除舊狀態
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
+        // 觸發全局事件
+        window.dispatchEvent(new CustomEvent('adminLoginSuccess'));
+        
+        // 不再手動重載頁面，避免狀態丟失
+        // 改為使用最新的狀態管理及事件機制自動更新UI
       } else {
         console.error("登入失敗，伺服器拒絕認證");
         toast({
           title: "登入失敗",
-          description: data.message || "認證失敗",
+          description: "密碼錯誤或伺服器拒絕認證",
           variant: "destructive",
         });
       }

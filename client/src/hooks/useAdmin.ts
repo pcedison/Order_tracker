@@ -261,15 +261,48 @@ export function useAdmin() {
     }
   }, [isAdmin, checkCount, lastCheck, toast, remainingTime]);
   
-  // 在钩子初始化时自动检查管理员状态，并监听会话过期事件
+  // 在鉤子初始化時自動檢查管理員狀態，強制重新驗證
   useEffect(() => {
-    // 初始化立即检查一次
-    checkAdminStatus();
+    const initializeAdminStatus = async () => {
+      console.log("初始化管理員狀態檢查...");
+      
+      // 先判斷localStorage中是否有登入標記
+      const loginSuccess = localStorage.getItem('admin_login_success');
+      const loginTimestamp = localStorage.getItem('admin_login_timestamp');
+      
+      // 如果有登入標記，檢查是否過期（10分鐘有效期）
+      if (loginSuccess === 'true' && loginTimestamp) {
+        const timestamp = parseInt(loginTimestamp, 10);
+        const now = Date.now();
+        const SESSION_EXPIRY = 10 * 60 * 1000; // 10分鐘
+        
+        if (now - timestamp < SESSION_EXPIRY) {
+          // 登入標記有效，強制驗證服務器狀態
+          console.log("發現有效的登入標記，立即驗證服務器狀態");
+          await checkAdminStatus(true);
+        } else {
+          // 登入標記已過期，清除
+          console.log("發現過期的登入標記，清除");
+          localStorage.removeItem('admin_login_success');
+          localStorage.removeItem('admin_login_timestamp');
+          setIsAdmin(false);
+        }
+      } else {
+        // 沒有登入標記，正常檢查一次
+        await checkAdminStatus(false);
+      }
+    };
     
-    // 添加会话过期的监听器
+    // 啟動初始化
+    initializeAdminStatus();
+    
+    // 添加會話過期的監聽器
     const handleSessionExpired = () => {
       console.log("Session expired event received");
       setIsAdmin(false);
+      localStorage.removeItem('admin_login_success');
+      localStorage.removeItem('admin_login_timestamp');
+      
       toast({
         title: "管理員會話已過期",
         description: "請重新登入以繼續操作",
@@ -277,11 +310,25 @@ export function useAdmin() {
       });
     };
     
-    // 添加管理员状态变更的监听器
+    // 添加管理員狀態變更的監聽器（更完善的處理）
     const handleAdminStatusChanged = (event: Event) => {
       const customEvent = event as CustomEvent<{isAdmin: boolean}>;
       console.log("Admin status changed:", customEvent.detail);
-      console.log("Admin status changed:", customEvent.detail.isAdmin);
+      
+      // 實際應用狀態變更，確保同步
+      if (customEvent.detail.isAdmin !== isAdmin) {
+        console.log(`管理員狀態從 ${isAdmin} 變更為 ${customEvent.detail.isAdmin}`);
+        setIsAdmin(customEvent.detail.isAdmin);
+        
+        // 更新本地存儲
+        if (customEvent.detail.isAdmin) {
+          localStorage.setItem('admin_login_success', 'true');
+          localStorage.setItem('admin_login_timestamp', Date.now().toString());
+        } else {
+          localStorage.removeItem('admin_login_success');
+          localStorage.removeItem('admin_login_timestamp');
+        }
+      }
     };
     
     // 設置事件監聽器
@@ -289,18 +336,18 @@ export function useAdmin() {
     window.addEventListener('sessionExpired', handleSessionExpired);
     window.addEventListener('adminStatusChanged', handleAdminStatusChanged);
     
-    // 定期检查管理员状态，确保长时间活动时状态保持一致
-    // 改为每3分钟检查一次，提高会话过期检测的频率
+    // 定期檢查管理員狀態，確保長時間活動時狀態保持一致
+    // 改為每2分鐘檢查一次，提高會話過期檢測的頻率
     const intervalId = setInterval(() => {
-      checkAdminStatus(true); // 显示错误提示
-    }, 3 * 60 * 1000); 
+      checkAdminStatus(true);
+    }, 2 * 60 * 1000); 
     
     return () => {
       window.removeEventListener('sessionExpired', handleSessionExpired);
       window.removeEventListener('adminStatusChanged', handleAdminStatusChanged);
       clearInterval(intervalId);
     };
-  }, [checkAdminStatus, toast]);
+  }, [checkAdminStatus, toast, isAdmin]);
 
   // 完全重構的密碼驗證功能
   const login = async (password: string): Promise<boolean> => {
