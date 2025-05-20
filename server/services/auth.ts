@@ -57,25 +57,44 @@ export class AuthService {
     return createHash('sha256').update(password).digest('hex');
   }
 
-  // 驗證密碼
+  // 改進的密碼驗證方法 - 增加了錯誤處理和性能優化
   async verifyPassword(password: string): Promise<boolean> {
-    // 始終從靜態變量獲取最新密碼
-    const currentAdminPassword = AuthService.currentPassword;
-    
-    if (!currentAdminPassword) {
-      throw new Error('管理員密碼未配置');
-    }
-    
-    // 支持舊系統的明文密碼以及新系統的哈希密碼
-    if (currentAdminPassword.length === 64 && /^[0-9a-f]+$/.test(currentAdminPassword)) {
-      // 哈希模式
-      console.log('使用哈希模式驗證密碼');
-      const hashedPassword = this.hashPassword(password);
-      return hashedPassword === currentAdminPassword;
-    } else {
-      // 明文模式
-      console.log('使用明文模式驗證密碼');
-      return password === currentAdminPassword;
+    try {
+      // 始終從靜態變量獲取最新密碼
+      const currentAdminPassword = AuthService.currentPassword;
+      
+      if (!currentAdminPassword) {
+        throw new Error('管理員密碼未配置');
+      }
+      
+      // 支持舊系統的明文密碼以及新系統的哈希密碼
+      if (currentAdminPassword.length === 64 && /^[0-9a-f]+$/.test(currentAdminPassword)) {
+        // 哈希模式 - 使用時間安全比較以防止計時攻擊
+        const hashedPassword = this.hashPassword(password);
+        
+        // 使用固定時間比較，防止計時攻擊
+        let result = true;
+        const a = Buffer.from(hashedPassword);
+        const b = Buffer.from(currentAdminPassword);
+        
+        if (a.length !== b.length) {
+          result = false;
+        }
+        
+        // 固定時間比較，無論成功或失敗都執行相同次數操作
+        let diff = 0;
+        for (let i = 0; i < Math.min(a.length, b.length); i++) {
+          diff |= (a[i] ^ b[i]);
+        }
+        
+        return result && diff === 0;
+      } else {
+        // 明文模式 - 注意：這僅作為過渡，應盡快升級到哈希模式
+        return password === currentAdminPassword;
+      }
+    } catch (error) {
+      console.error('密碼驗證過程中發生錯誤:', error);
+      return false; // 安全起見，錯誤時拒絕驗證
     }
   }
   
