@@ -163,14 +163,9 @@ export function useAdmin() {
     console.log("執行管理員狀態檢查...");
     
     try {
-      // 設置請求超時
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      // 發送請求
+      // 使用標準fetch請求而不使用AbortController，避免長時間執行後的警告
       const response = await fetch('/api/auth/status', {
         method: 'GET',
-        signal: controller.signal,
         credentials: 'include',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -180,8 +175,6 @@ export function useAdmin() {
         },
         cache: 'no-store'
       });
-      
-      clearTimeout(timeoutId);
       
       if (response.ok) {
         const data = await response.json();
@@ -241,16 +234,12 @@ export function useAdmin() {
         
         return false;
       }
-    } catch (error: unknown) {
-      // 區分不同類型的錯誤以進行合適處理
-      const isAbortError = error instanceof Error && error.name === 'AbortError';
+    } catch (error) {
+      // 網絡錯誤處理
+      console.error("Auth check error:", error);
       
-      if (!isAbortError) {
-        console.error("Auth check error:", error);
-      }
-      
-      // 只有在非超時錯誤且以前是管理員時才顯示錯誤
-      if (!isAbortError && isAdmin && forceCheck) {
+      // 只有在以前是管理員時才顯示錯誤
+      if (isAdmin && forceCheck) {
         toast({
           title: "管理員會話檢查失敗",
           description: "發生網絡錯誤，可能需要重新登入",
@@ -258,13 +247,11 @@ export function useAdmin() {
         });
       }
       
-      // 只有在非超時錯誤時才增加錯誤計數
-      if (!isAbortError) {
-        setCheckCount(prev => prev + 1);
-      }
+      // 增加錯誤計數
+      setCheckCount(prev => prev + 1);
       
-      // 如果連續多次檢查失敗，重置狀態（超時錯誤不計入）
-      if (!isAbortError && checkCount > 3) {
+      // 如果連續多次檢查失敗，重置狀態
+      if (checkCount > 3) {
         setIsAdmin(false);
         setRemainingTime(null);
       }
@@ -293,9 +280,12 @@ export function useAdmin() {
     // 添加管理员状态变更的监听器
     const handleAdminStatusChanged = (event: Event) => {
       const customEvent = event as CustomEvent<{isAdmin: boolean}>;
+      console.log("Admin status changed:", customEvent.detail);
       console.log("Admin status changed:", customEvent.detail.isAdmin);
     };
     
+    // 設置事件監聽器
+    console.log("Setting up event listeners (once)");
     window.addEventListener('sessionExpired', handleSessionExpired);
     window.addEventListener('adminStatusChanged', handleAdminStatusChanged);
     
@@ -315,7 +305,7 @@ export function useAdmin() {
   // 完全重構的密碼驗證功能
   const login = async (password: string): Promise<boolean> => {
     try {
-      console.log("開始管理員登錄...");
+      console.log("嘗試登入...");
       
       // 清除任何現有的會話cookie
       document.cookie = 'admin.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
@@ -337,16 +327,19 @@ export function useAdmin() {
       });
       
       if (!response.ok) {
-        const text = await response.text();
-        console.error("登錄請求失敗:", response.status, text);
+        const data = await response.json();
+        console.error("登入請求失敗:", response.status, data);
         return false;
       }
       
       const data = await response.json();
-      console.log("登錄響應:", data);
+      console.log("登入響應:", data);
       
       if (data.success) {
+        console.log("登入成功!");
+        console.log("開始管理員登錄...");
         console.log("登錄成功，已獲得會話ID:", data.sessionId);
+        
         // 立即更新狀態
         setIsAdmin(true);
         
@@ -413,7 +406,7 @@ export function useAdmin() {
   // 完全重新設計的登出功能
   const logout = async (): Promise<boolean> => {
     try {
-      console.log("開始登出管理員...");
+      console.log("準備登出管理員...");
       
       // 使用自定義請求，不使用 apiRequest，確保完全控制
       const response = await fetch('/api/auth/logout', {
@@ -449,23 +442,13 @@ export function useAdmin() {
       });
       window.dispatchEvent(adminStatusEvent);
       
-      // 確認會話已清除
-      setTimeout(async () => {
-        try {
-          const statusCheck = await fetch('/api/auth/status', {
-            method: 'GET',
-            credentials: 'include',
-            cache: 'no-store'
-          });
-          
-          if (statusCheck.ok) {
-            const statusData = await statusCheck.json();
-            console.log("登出後會話狀態:", statusData);
-          }
-        } catch (e) {
-          console.error("登出後狀態檢查失敗:", e);
-        }
-      }, 500);
+      console.log("登出操作成功完成");
+      
+      // 在重定向前確認會話已清除
+      setTimeout(() => {
+        console.log("正在重新載入頁面以確保狀態同步...");
+        window.location.reload();
+      }, 300);
       
       return true;
     } catch (error) {
