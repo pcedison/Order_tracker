@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useOrders } from "@/hooks/useOrders";
+import { useAdmin } from "@/hooks/useAdmin";
 import { Order } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ConfigSettings from "./ConfigSettings";
@@ -16,8 +17,11 @@ interface AdminSectionProps {
 }
 
 export default function AdminSection({ isVisible, showConfirmDialog }: AdminSectionProps) {
-  // 如果不可見，直接不渲染任何內容，避免安全問題
-  if (!isVisible) {
+  // 增強安全檢查，完全確保只有登入後才能訪問管理員區塊
+  const { isAdmin } = useAdmin();
+  
+  // 雙重安全檢查：必須同時滿足isVisible和isAdmin才能顯示
+  if (!isVisible || !isAdmin) {
     return null;
   }
   const [activeTab, setActiveTab] = useState<"history" | "product_popularity" | "order_stats" | "config">("history");

@@ -24,7 +24,7 @@ export default function HomePage() {
   const { toast } = useToast();
   const { isAdmin, checkAdminStatus } = useAdmin();
   
-  // 当 isAdmin 变化时更新面板可见性
+  // 確保isAdmin和adminPanelVisible保持一致 - 關鍵的安全保障
   useEffect(() => {
     if (isAdmin) {
       console.log("Admin detected, showing panel");
@@ -32,16 +32,17 @@ export default function HomePage() {
     } else {
       console.log("No admin detected, hiding panel");
       setAdminPanelVisible(false);
+      
+      // 額外安全措施：如果不是管理員，確保localStorage中的標記也被清除
+      localStorage.removeItem('admin_login_success');
+      localStorage.removeItem('admin_login_timestamp');
     }
   }, [isAdmin]);
   
-  // 用localStorage持久化管理員登錄狀態，提高可靠性
+  // 僅使用已驗證的伺服器狀態顯示管理員區塊，嚴格先檢查後顯示
   useEffect(() => {
-    // 如果本地存儲中有登入成功標記，立即設置管理員面版為可見
-    const adminLoginSuccess = localStorage.getItem('admin_login_success');
-    if (adminLoginSuccess === 'true') {
-      setAdminPanelVisible(true);
-    }
+    // 避免僅使用localStorage造成的安全問題
+    // 管理員狀態必須通過服務器端驗證並傳遞到isAdmin狀態才生效
   
     const handleAdminLoginSuccess = async () => {
       console.log("Admin login success event received");
@@ -79,7 +80,8 @@ export default function HomePage() {
         setAdminPanelVisible(true);
       } else {
         // 如果服務器返回未登入，但本地有登入標記，則嘗試再次驗證
-        if (adminLoginSuccess === 'true') {
+        const storedLoginState = localStorage.getItem('admin_login_success');
+        if (storedLoginState === 'true') {
           // 強制再次檢查
           setTimeout(() => {
             checkAdminStatus(true).then(secondCheck => {
