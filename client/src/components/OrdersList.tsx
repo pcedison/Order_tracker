@@ -245,7 +245,7 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
         <h2 className="text-[26px] inline-block">已成立的訂單</h2>
         <Button
           id="refreshOrdersBtn"
-          onClick={loadOrders}
+          onClick={() => loadOrders(true)}
           className="px-4 py-2.5 text-[22px] bg-[#607d8b] text-white border-none rounded cursor-pointer hover:bg-opacity-90"
         >
           刷新訂單
@@ -301,7 +301,9 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
                     <th className="border border-[#ddd] p-3 bg-[#f2f2f2] text-left">產品編號</th>
                     <th className="border border-[#ddd] p-3 bg-[#f2f2f2] text-left">產品名稱</th>
                     <th className="border border-[#ddd] p-3 bg-[#f2f2f2] text-left">數量 (公斤)</th>
-                    <th className="border border-[#ddd] p-3 bg-[#f2f2f2] text-left">操作</th>
+                    {(isAdmin || localAdminState) && (
+                      <th className="border border-[#ddd] p-3 bg-[#f2f2f2] text-left">操作</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -310,20 +312,22 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
                       <td className="border border-[#ddd] p-3">{order.product_code}</td>
                       <td className="border border-[#ddd] p-3">{order.product_name}</td>
                       <td className="border border-[#ddd] p-3">{order.quantity}</td>
-                      <td className="border border-[#ddd] p-3">
-                        <Button
-                          className="px-2.5 py-1 text-base bg-[#2196F3] text-white border-none rounded cursor-pointer hover:bg-[#0b7dda] mr-2"
-                          onClick={() => handleEditOrder(order)}
-                        >
-                          編輯
-                        </Button>
-                        <Button
-                          className="px-2.5 py-1 text-base bg-[#f44336] text-white border-none rounded cursor-pointer hover:bg-[#d32f2f]"
-                          onClick={() => handleDeleteOrder(order.id)}
-                        >
-                          刪除
-                        </Button>
-                      </td>
+                      {(isAdmin || localAdminState) && (
+                        <td className="border border-[#ddd] p-3">
+                          <Button
+                            className="px-2.5 py-1 text-base bg-[#2196F3] text-white border-none rounded cursor-pointer hover:bg-[#0b7dda] mr-2"
+                            onClick={() => handleEditOrder(order)}
+                          >
+                            編輯
+                          </Button>
+                          <Button
+                            className="px-2.5 py-1 text-base bg-[#f44336] text-white border-none rounded cursor-pointer hover:bg-[#d32f2f]"
+                            onClick={() => handleDeleteOrder(order.id)}
+                          >
+                            刪除
+                          </Button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
