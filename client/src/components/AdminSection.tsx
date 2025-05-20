@@ -592,16 +592,16 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
                                   {order.completed_at ? new Date(order.completed_at).toLocaleDateString('zh-TW') : '尚未完成'}
                                 </td>
                                 <td className="p-2 border-b border-[#ddd]">
-                                  <div className="flex justify-between w-[120px]">
+                                  <div className="flex w-[160px]">
                                     <Button
                                       onClick={() => handleEditHistoryOrder(order)}
-                                      className="text-xs py-1 px-2 bg-[#2196F3] text-white hover:bg-[#0b7dda] w-14"
+                                      className="text-xs py-1 px-3 bg-[#2196F3] text-white hover:bg-[#0b7dda] w-16 mr-2 rounded-md"
                                     >
                                       編輯
                                     </Button>
                                     <Button
                                       onClick={() => handleDeleteHistoryOrder(order)}
-                                      className="text-xs py-1 px-2 bg-[#f44336] text-white hover:bg-[#d32f2f] w-14"
+                                      className="text-xs py-1 px-3 bg-[#f44336] text-white hover:bg-[#d32f2f] w-16 rounded-md"
                                     >
                                       刪除
                                     </Button>
