@@ -342,9 +342,7 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
                     <th className="border border-[#ddd] p-3 bg-[#f2f2f2] text-left">產品編號</th>
                     <th className="border border-[#ddd] p-3 bg-[#f2f2f2] text-left">產品名稱</th>
                     <th className="border border-[#ddd] p-3 bg-[#f2f2f2] text-left">數量 (公斤)</th>
-                    {(isAdmin || localAdminState) && (
-                      <th className="border border-[#ddd] p-3 bg-[#f2f2f2] text-left">操作</th>
-                    )}
+                    <th className="border border-[#ddd] p-3 bg-[#f2f2f2] text-left">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -353,24 +351,22 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
                       <td className="border border-[#ddd] p-3">{order.product_code}</td>
                       <td className="border border-[#ddd] p-3">{order.product_name}</td>
                       <td className="border border-[#ddd] p-3">{order.quantity}</td>
-                      {(isAdmin || localAdminState) && (
-                        <td className="border border-[#ddd] p-3">
-                          <div className="flex w-[160px]">
-                            <Button
-                              onClick={() => handleEditOrder(order)}
-                              className="text-xs py-1 px-3 bg-[#2196F3] text-white hover:bg-[#0b7dda] w-16 mr-2 rounded-md h-10"
-                            >
-                              編輯
-                            </Button>
-                            <Button
-                              onClick={() => handleDeleteOrder(order.id)}
-                              className="text-xs py-1 px-3 bg-[#f44336] text-white hover:bg-[#d32f2f] w-16 rounded-md h-10"
-                            >
-                              刪除
-                            </Button>
-                          </div>
-                        </td>
-                      )}
+                      <td className="border border-[#ddd] p-3">
+                        <div className="flex w-[160px]">
+                          <Button
+                            onClick={() => handleEditOrder(order)}
+                            className="text-xs py-1 px-3 bg-[#2196F3] text-white hover:bg-[#0b7dda] w-16 mr-2 rounded-md h-10"
+                          >
+                            編輯
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteOrder(order.id)}
+                            className="text-xs py-1 px-3 bg-[#f44336] text-white hover:bg-[#d32f2f] w-16 rounded-md h-10"
+                          >
+                            刪除
+                          </Button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
