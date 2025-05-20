@@ -20,7 +20,7 @@ export default function AdminLogin() {
     setIsLoginPanelOpen(false);
   };
 
-  // 全新登入函數，徹底修改實現方式確保可靠性
+  // 完全重寫的登入功能，確保登入過程的可靠性
   const handleLogin = async () => {
     if (!password) {
       toast({
@@ -34,11 +34,30 @@ export default function AdminLogin() {
     try {
       console.log("嘗試登入...");
       
+      // 先確保登出任何現有會話
+      try {
+        // 無須等待完成，只是預防性清除
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+          cache: 'no-store'
+        });
+      } catch (e) {
+        // 忽略登出錯誤
+      }
+      
       // 顯示登入中提示
       toast({
         title: "登入中",
         description: "正在驗證密碼...",
       });
+      
+      // 強制清除瀏覽器中的管理員會話cookie
+      document.cookie = 'admin.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      
+      // 清除本地狀態緩存
+      sessionStorage.removeItem('admin_last_check');
+      sessionStorage.removeItem('force_admin_check');
       
       // 發送登入請求
       const response = await fetch('/api/auth/login', {
@@ -46,7 +65,9 @@ export default function AdminLogin() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         },
         body: JSON.stringify({ password }),
         credentials: 'include'
@@ -70,24 +91,11 @@ export default function AdminLogin() {
         console.log("登入成功!");
         handleCloseLoginPanel();
         
-        // 標記強制檢查管理員狀態
-        sessionStorage.setItem('force_admin_check', 'true');
+        // 重置密碼輸入框
+        setPassword("");
         
-        // 直接使用login方法進行登入
-        login(password);
-        
-        // 顯示成功提示
-        toast({
-          title: "登入成功",
-          description: "已切換至管理員模式",
-          duration: 3000
-        });
-        
-        // 不做頁面重載，改用事件通知機制
-        window.dispatchEvent(new CustomEvent('adminLoginSuccess'));
-        window.dispatchEvent(new CustomEvent('adminStatusChanged', { 
-          detail: { isAdmin: true } 
-        }));
+        // 直接重載頁面以確保完全清除舊狀態
+        window.location.reload();
       } else {
         console.error("登入失敗，伺服器拒絕認證");
         toast({

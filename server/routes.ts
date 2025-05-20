@@ -172,26 +172,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/auth/logout", (req, res) => {
+    // 確保清除會話數據，無論是否存在會話對象
     if (req.session) {
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Error destroying session:", err);
-          return res.status(500).json({ success: false, message: "Logout failed" });
-        }
-        
-        // 確保清除正確的cookie（使用與會話中間件相同的名稱）
-        res.clearCookie("admin.sid", {
-          path: '/',
-          httpOnly: true,
-          secure: false,
-          sameSite: 'lax'
+      // 先立即清除會話中的管理員標記，避免在destroy過程中仍然有效
+      req.session.isAdmin = false;
+      delete req.session.loginTime;
+      delete req.session.lastActivity;
+      
+      // 強制保存修改
+      req.session.save(() => {
+        // 然後完全銷毀會話
+        req.session.destroy((err) => {
+          if (err) {
+            console.error("Error destroying session:", err);
+            return res.status(500).json({ success: false, message: "Logout failed" });
+          }
+          
+          // 確保清除正確的cookie
+          res.clearCookie("admin.sid", {
+            path: '/',
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax'
+          });
+          
+          console.log("Session destroyed successfully, cookie cleared");
+          return res.json({ success: true });
         });
-        
-        console.log("Session destroyed successfully, cookie cleared");
-        return res.json({ success: true });
       });
     } else {
-      console.log("No session to destroy");
+      // 即使沒有會話也清除可能存在的cookie
+      res.clearCookie("admin.sid", {
+        path: '/',
+        httpOnly: true,
+        secure: false,
+        sameSite: 'lax'
+      });
+      
+      console.log("No session to destroy, cookie cleared");
       return res.json({ success: true });
     }
   });
