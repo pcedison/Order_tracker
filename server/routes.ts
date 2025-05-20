@@ -543,7 +543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // 修改後的管理員密碼更新端點
+  // 完全重寫的管理員密碼更新端點
   app.post("/api/admin/password", async (req, res) => {
     try {
       // 檢查是否有管理員權限
@@ -564,69 +564,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "新密碼長度不能少於4個字符" });
       }
       
-      // 直接使用 AuthService 驗證當前密碼
-      const authService = new AuthService();
-      const isPasswordValid = await authService.verifyPassword(currentPassword);
+      // 使用優化後的 Storage 實現進行密碼更新
+      // 這會處理密碼模式自動檢測 (哈希 vs 明文)，並確保所有儲存位置同步
+      console.log("使用 Storage 實例執行密碼更新");
+      const updateResult = await storage.updateAdminPassword(currentPassword, newPassword);
       
-      if (!isPasswordValid) {
-        console.error("管理員密碼更新失敗: 當前密碼不正確");
-        return res.status(400).json({ message: "當前密碼不正確" });
+      if (!updateResult) {
+        console.error("管理員密碼更新失敗: 可能是當前密碼不正確或數據庫操作失敗");
+        return res.status(400).json({ message: "當前密碼不正確或無法更新密碼" });
       }
       
-      console.log("當前密碼驗證通過，開始更新密碼");
+      // 強制更新會話，確保用戶可以立即使用新密碼
+      req.session.touch();
       
-      // 對新密碼進行哈希處理
-      const hashedNewPassword = authService.hashPassword(newPassword);
+      // 強制保存會話到數據庫
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error("保存會話失敗:", err);
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
       
-      try {
-        // 使用已經導入的 pool
-        // 檢查 configs 表是否存在
-        const tableResult = await pool.query(`
-          SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name = 'configs'
-          )
-        `);
-        
-        const tableExists = tableResult.rows[0].exists;
-        
-        if (!tableExists) {
-          // 如果表不存在，創建它
-          await pool.query(`
-            CREATE TABLE IF NOT EXISTS configs (
-              id SERIAL PRIMARY KEY,
-              key TEXT NOT NULL UNIQUE,
-              value TEXT NOT NULL
-            )
-          `);
-          console.log("成功創建 configs 表");
-        }
-        
-        // 使用 upsert 語句插入或更新密碼
-        await pool.query(`
-          INSERT INTO configs (key, value) 
-          VALUES ('ADMIN_PASSWORD', $1)
-          ON CONFLICT (key) 
-          DO UPDATE SET value = EXCLUDED.value
-        `, [hashedNewPassword]);
-        
-        console.log("成功將新密碼儲存到數據庫");
-        
-        // 直接重設內存中的密碼
-        process.env.ADMIN_PASSWORD = hashedNewPassword;
-        authService.updatePassword(hashedNewPassword);
-        
-        console.log("成功更新內存中的密碼和環境變量");
-      } catch (dbError) {
-        console.error("數據庫操作失敗:", dbError);
-        return res.status(500).json({ message: "數據庫操作失敗，請稍後再試" });
-      }
-      
-      console.log("管理員密碼已成功更新");
-      return res.json({ success: true, message: "管理員密碼已成功更新" });
+      console.log("管理員密碼更新成功，會話已更新");
+      return res.json({ success: true, message: "管理員密碼已成功更新，請使用新密碼重新登入" });
     } catch (error) {
-      console.error("Update admin password error:", error);
+      console.error("更新管理員密碼時發生錯誤:", error);
       return res.status(500).json({ message: "密碼更新失敗，請稍後再試" });
     }
   });
