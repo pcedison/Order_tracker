@@ -48,6 +48,46 @@ export class SupabaseStorage implements IStorage {
   private configsTable = 'configs'; // 配置表
   private authService = new AuthService(); // 用于密码验证和哈希
   
+  constructor() {
+    // 在初始化時從數據庫加載管理員密碼
+    this.initializeAdminPassword();
+  }
+  
+  // 從數據庫加載管理員密碼並設置到 AuthService
+  private async initializeAdminPassword() {
+    try {
+      console.log('開始從數據庫加載管理員密碼');
+      
+      // 使用直接的 SQL 查詢取代 Supabase 客戶端
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      
+      try {
+        // 使用 pool 直接執行 SQL 查詢
+        const result = await pool.query(
+          "SELECT value FROM configs WHERE key = 'ADMIN_PASSWORD'"
+        );
+        
+        if (result.rows.length > 0) {
+          const storedPassword = result.rows[0].value;
+          console.log('從數據庫成功讀取到密碼配置');
+          
+          // 更新 AuthService 中的密碼
+          await this.authService.initializePasswordFromDatabase(storedPassword);
+          console.log('成功將數據庫中的密碼加載到 AuthService');
+        } else {
+          console.log('數據庫中尚未設置密碼，使用環境變量中的默認密碼');
+        }
+      } catch (sqlError) {
+        console.error('SQL 查詢密碼失敗:', sqlError);
+      } finally {
+        // 釋放連接池
+        await pool.end();
+      }
+    } catch (error) {
+      console.error('初始化密碼過程中發生錯誤:', error);
+    }
+  }
+  
   async getOrders(status?: "temporary" | "completed"): Promise<Order[]> {
     if (status === "completed") {
       // 从订单项表中获取订单，带外键关联

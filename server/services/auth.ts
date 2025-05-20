@@ -5,6 +5,8 @@ export class AuthService {
   private static instance: AuthService | null = null;
   // 使用靜態變量儲存密碼，確保整個應用使用相同的密碼
   private static currentPassword: string = '';
+  // 此標記表示密碼已從數據庫完成載入
+  private static passwordInitialized: boolean = false;
 
   constructor() {
     if (AuthService.instance) {
@@ -13,7 +15,7 @@ export class AuthService {
       return;
     }
     
-    // 首次初始化時從數據庫讀取密碼
+    // 首次初始化時從環境變量讀取密碼(臨時)
     this.adminPassword = process.env.ADMIN_PASSWORD || '';
     
     // 存儲密碼到靜態變量
@@ -26,6 +28,27 @@ export class AuthService {
     
     if (!this.adminPassword) {
       console.warn('警告: 管理員密碼未設置');
+    }
+  }
+  
+  // 從數據庫初始化密碼
+  public async initializePasswordFromDatabase(password: string | null): Promise<void> {
+    if (AuthService.passwordInitialized) {
+      console.log('密碼已從數據庫初始化，跳過');
+      return;
+    }
+    
+    if (password) {
+      console.log('從數據庫載入密碼');
+      
+      // 更新靜態密碼和實例密碼
+      AuthService.currentPassword = password;
+      this.adminPassword = password;
+      
+      // 標記密碼已初始化
+      AuthService.passwordInitialized = true;
+    } else {
+      console.log('數據庫中無密碼，使用環境變量中的密碼');
     }
   }
 
