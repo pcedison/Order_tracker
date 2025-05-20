@@ -41,35 +41,62 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
     await loadOrders();
   }, [loadOrders]);
 
-  // 將 isAdmin 狀態同步到本地狀態，確保界面正確顯示
+  // isAdmin 狀態變化時僅更新本地狀態，不觸發其他操作
   useEffect(() => {
     setLocalAdminState(isAdmin);
   }, [isAdmin]);
 
+  // 獨立的初始化效果，只在組件首次渲染時執行一次
   useEffect(() => {
-    // 初始化时加载订单
-    loadOrders(true); // 強制首次加載最新數據
+    // 初始化時只加載一次訂單
+    const initializeComponent = async () => {
+      await loadOrders(true);
+      const status = await checkAdminStatus();
+      setLocalAdminState(status);
+    };
     
-    // 检查初始管理员状态
-    checkAdminStatus(true).then(adminStatus => {
-      setLocalAdminState(adminStatus);
-    });
+    initializeComponent();
+  }, []); // 空依賴陣列確保只執行一次
+  
+  // 事件監聽器設置，移除依賴項避免重複添加
+  useEffect(() => {
+    console.log('Setting up event listeners (once)');
     
     // 添加管理员登录成功事件监听器
     const handleAdminLogin = () => {
       console.log('Admin login success event received');
-      loadOrders(true); // 強制刷新
+      // 防止頻繁重複請求
+      const now = Date.now();
+      const lastRefresh = parseInt(sessionStorage.getItem('last_manual_refresh') || '0', 10);
+      
+      if (now - lastRefresh > 2000) {
+        sessionStorage.setItem('last_manual_refresh', now.toString());
+        loadOrders(true);
+      }
     };
     
-    // 添加订单创建成功事件监听器，创建订单后自动刷新订单列表
+    // 添加订单创建成功事件监听器
     const handleOrderCreated = () => {
       console.log('Order created event received');
-      loadOrders(true); // 強制刷新
+      // 防止頻繁重複請求
+      const now = Date.now();
+      const lastRefresh = parseInt(sessionStorage.getItem('last_order_refresh') || '0', 10);
+      
+      if (now - lastRefresh > 2000) {
+        sessionStorage.setItem('last_order_refresh', now.toString());
+        loadOrders(true);
+      }
     };
     
-    // 直接使用標準類型的事件處理器
+    // 創建一個不依賴於外部變量的事件處理器 (closure)
     const adminStatusHandler = (event: Event) => {
-      handleAdminStatusChanged(event);
+      const customEvent = event as CustomEvent;
+      console.log('Admin status changed (from event):', customEvent.detail);
+      
+      // 直接更新本地管理員狀態
+      if (customEvent.detail && typeof customEvent.detail.isAdmin !== 'undefined') {
+        setLocalAdminState(customEvent.detail.isAdmin);
+      }
     };
     
     window.addEventListener('adminLoginSuccess', handleAdminLogin);
@@ -82,7 +109,7 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
       window.removeEventListener('orderCreated', handleOrderCreated);
       window.removeEventListener('adminStatusChanged', adminStatusHandler);
     };
-  }, [loadOrders, handleAdminStatusChanged, checkAdminStatus]);
+  }, []);
 
   const handleDeleteOrder = (orderId: string) => {
     showConfirmDialog("確定要刪除此訂單嗎？", async () => {
@@ -256,7 +283,10 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
         <h2 className="text-[26px] inline-block">已成立的訂單</h2>
         <Button
           id="refreshOrdersBtn"
-          onClick={() => loadOrders(true)}
+          onClick={(e) => {
+            e.preventDefault();
+            loadOrders(true);
+          }}
           className="px-4 py-2.5 text-[22px] bg-[#607d8b] text-white border-none rounded cursor-pointer hover:bg-opacity-90"
         >
           刷新訂單
