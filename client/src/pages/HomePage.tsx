@@ -18,55 +18,46 @@ export default function HomePage() {
     onConfirm: () => {},
   });
   
-  // 使用單一狀態來源 - isAdmin 作為唯一權限依據
   const { toast } = useToast();
   const { isAdmin, checkAdminStatus } = useAdmin();
   
-  // 當管理員狀態變化時，同步更新localStorage
+  // 管理員狀態處理 - 同步更新localStorage
   useEffect(() => {
     if (isAdmin) {
       console.log("Admin detected, showing panel");
-      
-      // 管理員狀態為真時，更新本地存儲
       localStorage.setItem('admin_login_success', 'true');
       localStorage.setItem('admin_login_timestamp', Date.now().toString());
     } else {
       console.log("No admin detected, hiding panel");
-      
-      // 清除本地存儲中的管理員標記
       localStorage.removeItem('admin_login_success');
       localStorage.removeItem('admin_login_timestamp');
     }
   }, [isAdmin]);
   
-  // 監聽管理員相關事件，保持狀態同步
+  // 事件監聽設置
   useEffect(() => {
-    // 當登入成功時刷新管理員狀態
+    // 登入成功事件處理
     const handleAdminLoginSuccess = async () => {
       console.log("Admin login success event received");
-      // 強制檢查並更新管理員狀態
+      // 僅觸發狀態檢查，不直接設置UI狀態
       await checkAdminStatus(true);
     };
     
-    // 當管理員狀態改變時進行處理
+    // 狀態變更事件處理
     const handleAdminStatusChanged = (event: Event) => {
       const customEvent = event as CustomEvent<{isAdmin: boolean}>;
       console.log("Admin status changed:", customEvent.detail);
-      
-      // 事件處理不需額外設置狀態，由useAdmin hook處理
+      // 不需要操作，由useAdmin Hook自動處理
     };
     
     // 註冊事件監聽器
     window.addEventListener('adminLoginSuccess', handleAdminLoginSuccess);
     window.addEventListener('adminStatusChanged', handleAdminStatusChanged);
     
-    // 初始化時檢查一次服務器狀態
+    // 初始化檢查 - 從localStorage恢復狀態
     const checkInitialStatus = async () => {
-      // 檢查是否有本地存儲的管理員狀態
       const storedLoginSuccess = localStorage.getItem('admin_login_success');
-      
       if (storedLoginSuccess === 'true') {
-        // 如果本地有狀態，進行強制驗證
         await checkAdminStatus(true);
       }
     };
@@ -80,7 +71,7 @@ export default function HomePage() {
     };
   }, [checkAdminStatus]);
 
-  // 顯示確認對話框
+  // 對話框處理函數
   const showConfirmDialog = (message: string, onConfirm: () => void) => {
     setConfirmConfig({
       isOpen: true,
@@ -89,7 +80,6 @@ export default function HomePage() {
     });
   };
 
-  // 隱藏確認對話框
   const hideConfirmDialog = () => {
     setConfirmConfig({
       ...confirmConfig,
@@ -105,7 +95,7 @@ export default function HomePage() {
       
       <OrdersList showConfirmDialog={showConfirmDialog} />
       
-      {/* 直接使用isAdmin控制管理員區塊顯示，確保安全可靠 */}
+      {/* 直接使用isAdmin控制管理員區塊顯示 */}
       {isAdmin && <AdminSection isVisible={true} showConfirmDialog={showConfirmDialog} />}
       
       <AdminLogin />
