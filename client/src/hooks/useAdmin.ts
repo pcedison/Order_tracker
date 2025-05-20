@@ -246,9 +246,9 @@ export function useAdmin() {
         
         return false;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       // 區分不同類型的錯誤以進行合適處理
-      const isAbortError = error.name === 'AbortError';
+      const isAbortError = error instanceof Error && error.name === 'AbortError';
       
       if (!isAbortError) {
         console.error("Auth check error:", error);

@@ -30,38 +30,95 @@ export function useOrders() {
   
   const { toast } = useToast();
 
-  // Load current temporary orders
-  const loadOrders = useCallback(async () => {
+  // 優化後的訂單載入功能 - 加入節流、緩存和連接超時處理
+  const loadOrders = useCallback(async (forceRefresh = false) => {
+    // 如果已經在加載中，防止重複請求
+    if (isLoadingOrders && !forceRefresh) return;
+    
+    // 實現基於時間的緩存機制
+    const now = Date.now();
+    const lastFetchTime = parseInt(sessionStorage.getItem('orders_last_fetch') || '0', 10);
+    const cachedOrders = sessionStorage.getItem('orders_cache');
+    
+    // 如果非強制刷新，且有緩存，且距離上次請求不超過10秒，則使用緩存數據
+    if (!forceRefresh && cachedOrders && now - lastFetchTime < 10000) {
+      try {
+        const parsedOrders = JSON.parse(cachedOrders);
+        setOrders(parsedOrders);
+        return;
+      } catch (e) {
+        console.warn('訂單緩存解析失敗，執行新的請求');
+      }
+    }
+    
     setIsLoadingOrders(true);
+    
     try {
-      const response = await fetch('/api/orders?status=temporary');
+      // 使用AbortController實現請求超時控制
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒超時
+      
+      const response = await fetch('/api/orders?status=temporary', {
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache, no-store',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        throw new Error(`載入訂單失敗: ${response.status} ${response.statusText}`);
       }
       
-      const data = await response.json();
+      const data: Order[] = await response.json();
       
-      // Group orders by delivery date
+      // 按照交貨日期進行分組並添加排序
       const groupedOrders: GroupedOrders = {};
       data.forEach((order: Order) => {
-        if (!groupedOrders[order.delivery_date]) {
-          groupedOrders[order.delivery_date] = [];
+        // 確保日期格式一致性
+        const dateKey = order.delivery_date.split('T')[0];
+        if (!groupedOrders[dateKey]) {
+          groupedOrders[dateKey] = [];
         }
-        groupedOrders[order.delivery_date].push(order);
+        groupedOrders[dateKey].push(order);
       });
       
-      setOrders(groupedOrders);
-    } catch (error) {
-      console.error("Load orders error:", error);
-      toast({
-        title: "訂單載入失敗",
-        description: error instanceof Error ? error.message : "未知錯誤",
-        variant: "destructive",
+      // 對每個日期組內的訂單按產品代碼排序，提高一致性
+      Object.keys(groupedOrders).forEach(date => {
+        groupedOrders[date].sort((a, b) => a.product_code.localeCompare(b.product_code));
       });
+      
+      // 更新緩存
+      sessionStorage.setItem('orders_cache', JSON.stringify(groupedOrders));
+      sessionStorage.setItem('orders_last_fetch', now.toString());
+      
+      setOrders(groupedOrders);
+    } catch (error: unknown) {
+      // 區分不同類型的錯誤
+      const isAbortError = error instanceof Error && error.name === 'AbortError';
+      
+      if (isAbortError) {
+        console.warn('訂單請求超時，使用最後已知數據');
+        // 使用上次加載的數據，避免UI空白
+        return;
+      }
+      
+      console.error("訂單載入錯誤:", error);
+      
+      // 如果是強制刷新才顯示錯誤提示，避免後台自動刷新時彈出過多錯誤
+      if (forceRefresh) {
+        toast({
+          title: "載入訂單失敗",
+          description: error instanceof Error ? error.message : "網絡連接問題，請稍後重試",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoadingOrders(false);
     }
-  }, [toast]);
+  }, [toast, isLoadingOrders]);
 
   // Create a new order
   const createOrder = async (orderData: CreateOrderParams) => {
@@ -144,54 +201,103 @@ export function useOrders() {
     }
   };
 
-  // Load historical orders (completed orders)
-  const loadHistory = useCallback(async (startDate: string, endDate: string) => {
+  // 強化的歷史訂單載入功能 - 加入節流、緩存、超時和錯誤處理
+  const loadHistory = useCallback(async (startDate: string, endDate: string, forceRefresh = false) => {
     if (!startDate || !endDate) {
       return;
     }
     
-    // 如果已经在加载中，避免重复请求
-    if (isLoadingHistory) return;
+    // 如果已經在加載中且非強制刷新，避免重複請求
+    if (isLoadingHistory && !forceRefresh) return;
+    
+    // 實現基於日期範圍的緩存機制
+    const cacheKey = `history_orders_${startDate}_${endDate}`;
+    const now = Date.now();
+    const lastFetchTime = parseInt(sessionStorage.getItem(`${cacheKey}_time`) || '0', 10);
+    const cachedHistoryOrders = sessionStorage.getItem(cacheKey);
+    
+    // 如果非強制刷新，且有緩存，且距離上次請求不超過30秒，則使用緩存數據
+    if (!forceRefresh && cachedHistoryOrders && now - lastFetchTime < 30000) {
+      try {
+        const parsedOrders = JSON.parse(cachedHistoryOrders);
+        setHistoryOrders(parsedOrders);
+        return;
+      } catch (e) {
+        console.warn('歷史訂單緩存解析失敗，執行新的請求');
+      }
+    }
     
     setIsLoadingHistory(true);
+    
     try {
+      // 使用AbortController實現請求超時控制，歷史訂單可能數據量大，設置更長的超時
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超時
+      
       const response = await fetch(
-        `/api/orders/history?startDate=${startDate}&endDate=${endDate}`
+        `/api/orders/history?startDate=${startDate}&endDate=${endDate}`,
+        {
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache, no-store',
+            'Pragma': 'no-cache'
+          }
+        }
       );
       
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
-        // 检查是否是会话过期/未授权
+        // 檢查是否是會話過期/未授權
         if (response.status === 403) {
-          // 会话可能已过期，触发重新登录提示
+          // 會話可能已過期，觸發重新登錄提示
           toast({
             title: "會話已過期",
             description: "請重新登入以查看歷史訂單",
             variant: "destructive",
           });
-          // 触发会话过期事件
+          // 觸發會話過期事件
           window.dispatchEvent(new CustomEvent('sessionExpired'));
           return;
         }
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        throw new Error(`載入歷史訂單失敗: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
       
-      // Group orders by delivery date
+      // 按交貨日期分組並對數據進行預處理
       const groupedOrders: GroupedOrders = {};
       data.forEach((order: Order) => {
-        if (!groupedOrders[order.delivery_date]) {
-          groupedOrders[order.delivery_date] = [];
+        // 確保日期格式一致，無時區問題
+        const dateKey = order.delivery_date.split('T')[0];
+        if (!groupedOrders[dateKey]) {
+          groupedOrders[dateKey] = [];
         }
-        groupedOrders[order.delivery_date].push(order);
+        groupedOrders[dateKey].push(order);
       });
       
+      // 對每個日期內的訂單按產品代碼排序
+      Object.keys(groupedOrders).forEach(date => {
+        groupedOrders[date].sort((a, b) => a.product_code.localeCompare(b.product_code));
+      });
+      
+      // 更新緩存
+      sessionStorage.setItem(cacheKey, JSON.stringify(groupedOrders));
+      sessionStorage.setItem(`${cacheKey}_time`, now.toString());
+      
       setHistoryOrders(groupedOrders);
-    } catch (error) {
-      console.error("Load history error:", error);
+    } catch (error: unknown) {
+      const isAbortError = error instanceof Error && error.name === 'AbortError';
+      
+      if (isAbortError) {
+        console.warn('歷史訂單請求超時，嘗試使用最後已知數據');
+        return;
+      }
+      
+      console.error("歷史訂單載入錯誤:", error);
       toast({
         title: "歷史訂單載入失敗",
-        description: error instanceof Error ? error.message : "未知錯誤",
+        description: error instanceof Error ? error.message : "網絡連接問題，請稍後重試",
         variant: "destructive",
       });
     } finally {
