@@ -362,16 +362,10 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
                             編輯
                           </Button>
                           <Button
-                            className="px-2.5 py-1 text-base bg-[#f44336] text-white border-none rounded cursor-pointer hover:bg-[#d32f2f] mr-2"
+                            className="px-2.5 py-1 text-base bg-[#f44336] text-white border-none rounded cursor-pointer hover:bg-[#d32f2f]"
                             onClick={() => handleDeleteOrder(order.id)}
                           >
                             刪除
-                          </Button>
-                          <Button
-                            className="px-2.5 py-1 text-base bg-[#4CAF50] text-white border-none rounded cursor-pointer hover:bg-[#45a049]"
-                            onClick={() => handleCompleteOrder(order.id)}
-                          >
-                            完成
                           </Button>
                         </td>
                       )}
