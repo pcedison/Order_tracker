@@ -19,9 +19,7 @@ interface AdminSectionProps {
 export default function AdminSection({ isVisible, showConfirmDialog }: AdminSectionProps) {
   // 簡化安全檢查：只使用傳入的 isVisible 參數
   // 將 isAdmin 檢查移到父組件 HomePage 中處理，避免 Hook 規則違反
-  if (!isVisible) {
-    return null;
-  }
+  // 注意：只在一個地方進行可見性檢查，避免重複判斷
   const [activeTab, setActiveTab] = useState<"history" | "product_popularity" | "order_stats" | "config">("history");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -473,6 +471,7 @@ export default function AdminSection({ isVisible, showConfirmDialog }: AdminSect
     return `${year}-${month}-${day}`;
   };
   
+  // 檢查可見性，避免渲染
   if (!isVisible) return null;
   
   return (
