@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import { supabase } from "./supabase";
 import { AuthService } from "./services/auth";
 import { priceSpreadsheetService } from "./services/priceSpreadsheet";
+import { Pool } from "@neondatabase/serverless";
 
 // Define types for statistics
 interface StatItem {
@@ -58,31 +59,29 @@ export class SupabaseStorage implements IStorage {
     try {
       console.log('開始從數據庫加載管理員密碼');
       
-      // 使用直接的 SQL 查詢取代 Supabase 客戶端
-      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-      
+      // 使用 Supabase 客戶端做一次嘗試
       try {
-        // 使用 pool 直接執行 SQL 查詢
-        const result = await pool.query(
-          "SELECT value FROM configs WHERE key = 'ADMIN_PASSWORD'"
-        );
-        
-        if (result.rows.length > 0) {
-          const storedPassword = result.rows[0].value;
-          console.log('從數據庫成功讀取到密碼配置');
+        const { data, error } = await supabase
+          .from(this.configsTable)
+          .select('value')
+          .eq('key', 'ADMIN_PASSWORD')
+          .maybeSingle();
           
-          // 更新 AuthService 中的密碼
-          await this.authService.initializePasswordFromDatabase(storedPassword);
+        if (error) {
+          console.log('通過 Supabase 加載密碼失敗，將嘗試環境變量:', error.message);
+        } else if (data && data.value) {
+          console.log('通過 Supabase 成功讀取數據庫密碼');
+          await this.authService.initializePasswordFromDatabase(data.value);
           console.log('成功將數據庫中的密碼加載到 AuthService');
-        } else {
-          console.log('數據庫中尚未設置密碼，使用環境變量中的默認密碼');
+          return; // 成功加載，直接返回
         }
-      } catch (sqlError) {
-        console.error('SQL 查詢密碼失敗:', sqlError);
-      } finally {
-        // 釋放連接池
-        await pool.end();
+      } catch (supabaseError) {
+        console.log('Supabase 查詢出錯:', supabaseError);
       }
+      
+      // 如果 Supabase 查詢失敗，直接使用環境變量中的密碼
+      console.log('使用環境變量中的管理員密碼');
+      
     } catch (error) {
       console.error('初始化密碼過程中發生錯誤:', error);
     }
@@ -701,7 +700,7 @@ export class SupabaseStorage implements IStorage {
     try {
       console.log('開始更新管理員密碼流程');
       
-      // 第1步: 驗證當前密碼是否正確
+      // 第1步: 直接檢查密碼是否匹配
       const isValidPassword = await this.authService.verifyPassword(currentPassword);
       
       if (!isValidPassword) {
@@ -715,34 +714,71 @@ export class SupabaseStorage implements IStorage {
       const hashedNewPassword = this.authService.hashPassword(newPassword);
       console.log('新密碼已哈希處理');
       
-      // 第3步: 直接更新 AuthService 中的密碼 (內存級別強制更新)
-      this.authService.updatePassword(hashedNewPassword);
-      console.log('AuthService 中的密碼已成功更新');
-      
-      // 第4步: 將新密碼保存到數據庫中 (持久化存儲)
+      // 第3步: 將新密碼寫入數據庫 (持久化存儲)
+      let databaseUpdateSuccess = false;
       try {
-        // 使用 upsert 操作確保配置項存在
-        const { error } = await supabase
+        // 首先嘗試插入新記錄
+        const insertResult = await supabase
           .from(this.configsTable)
-          .upsert({ 
+          .insert({ 
             key: 'ADMIN_PASSWORD', 
             value: hashedNewPassword 
-          }, { 
-            onConflict: 'key' 
-          });
+          })
+          .select();
           
-        if (error) {
-          console.warn('數據庫更新失敗，但內存中的密碼已更新:', error.message);
-          // 不中斷流程，內存中的密碼已經更新是最關鍵的
+        if (insertResult.error && insertResult.error.code === '23505') {
+          // 如果出現唯一約束衝突，嘗試更新現有記錄
+          console.log('嘗試更新現有密碼記錄');
+          const updateResult = await supabase
+            .from(this.configsTable)
+            .update({ value: hashedNewPassword })
+            .eq('key', 'ADMIN_PASSWORD');
+            
+          if (updateResult.error) {
+            console.error('更新密碼記錄失敗:', updateResult.error);
+          } else {
+            console.log('成功更新密碼記錄');
+            databaseUpdateSuccess = true;
+          }
+        } else if (insertResult.error) {
+          console.error('插入密碼記錄失敗:', insertResult.error);
         } else {
-          console.log('數據庫中的密碼已成功更新');
+          console.log('成功插入密碼記錄');
+          databaseUpdateSuccess = true;
         }
+        
+        // 添加執行直接 SQL 查詢進行驗證
+        const { data } = await supabase
+          .from(this.configsTable)
+          .select('value')
+          .eq('key', 'ADMIN_PASSWORD')
+          .maybeSingle();
+          
+        if (data && data.value === hashedNewPassword) {
+          console.log('數據庫密碼驗證成功，記錄已正確更新');
+          databaseUpdateSuccess = true;
+        } else if (data) {
+          console.warn('數據庫密碼驗證不匹配，預期:', hashedNewPassword, '實際:', data.value);
+        }
+        
       } catch (dbError) {
-        console.warn('數據庫操作異常，但內存中的密碼已更新:', dbError);
-        // 不中斷流程，內存中的密碼已經更新是最關鍵的
+        console.error('數據庫操作異常:', dbError);
       }
       
-      return true;
+      // 第4步: 更新內存中的密碼 (只有當數據庫更新成功時)
+      if (databaseUpdateSuccess) {
+        this.authService.updatePassword(hashedNewPassword);
+        console.log('AuthService 中的密碼已成功更新');
+        
+        // 更新環境變量，確保本次會話中使用新密碼
+        process.env.ADMIN_PASSWORD = hashedNewPassword;
+        console.log('環境變量中的密碼已更新');
+        
+        return true;
+      } else {
+        console.error('數據庫更新失敗，密碼未更改');
+        return false;
+      }
     } catch (error) {
       console.error('更新管理員密碼過程中發生錯誤:', error);
       return false;
