@@ -17,42 +17,66 @@ export function useConfig() {
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
-  // 加载配置信息 - 不触发错误提示
+  // 改進配置載入功能，添加錯誤處理和重試機制
   const loadConfigs = async (showErrors = false) => {
-    // 如果已经在加载中，不重复加载
+    // 如果已經在載入中，避免重複請求
     if (isLoading) return;
     
     setIsLoading(true);
-    try {
-      // 添加缓存控制头部，避免使用缓存
-      const response = await fetch('/api/configs', {
-        cache: 'no-cache',
-        headers: {
-          'Pragma': 'no-cache',
-          'Cache-Control': 'no-cache'
-        }
-      });
-      
-      // 即使返回403，也不再触发会话过期，因为我们已经修改了服务器以允许非管理员用户访问
-      if (!response.ok && response.status !== 403) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      setConfigs(data);
-    } catch (error) {
-      console.error("Error loading configs:", error);
-      // 仅当用户请求显示错误时才显示错误提示
-      if (showErrors && error instanceof Error && error.message.includes('Error')) {
-        toast({
-          title: "載入配置失敗",
-          description: error.message,
-          variant: "destructive",
+    
+    // 重試機制
+    let retryCount = 0;
+    const maxRetries = 2;
+    
+    while (retryCount <= maxRetries) {
+      try {
+        // 添加緩存控制標頭，避免使用緩存
+        const response = await fetch('/api/configs', {
+          cache: 'no-cache',
+          headers: {
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+          },
+          // 增加超時處理
+          signal: AbortSignal.timeout(3000) // 3秒超時
         });
+        
+        // 檢查回應狀態
+        if (!response.ok && response.status !== 403) {
+          throw new Error(`伺服器回應錯誤: ${response.status}`);
+        }
+        
+        // 解析數據
+        const data = await response.json();
+        setConfigs(data);
+        
+        // 成功載入，跳出循環
+        break;
+      } catch (error) {
+        // 增加重試計數
+        retryCount++;
+        
+        // 記錄錯誤，但不顯示在UI上
+        if (retryCount > maxRetries) {
+          console.error("配置載入最終失敗:", error);
+          // 僅當使用者請求顯示錯誤時才顯示錯誤提示
+          if (showErrors) {
+            toast({
+              title: "載入配置失敗",
+              description: "請檢查網絡連接或稍後再試",
+              variant: "destructive",
+            });
+          }
+        } else {
+          console.log(`配置載入失敗，正在重試 (${retryCount}/${maxRetries})...`);
+          // 短暫延遲後重試
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
-    } finally {
-      setIsLoading(false);
     }
+    
+    // 完成載入
+    setIsLoading(false);
   };
 
   // 更新单个配置

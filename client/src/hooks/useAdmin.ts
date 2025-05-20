@@ -150,10 +150,12 @@ export function useAdmin() {
     // 從儲存中讀取上次檢查時間
     const lastGlobalCheck = parseInt(sessionStorage.getItem('admin_last_check') || '0', 10);
     
-    // 如果不是強制檢查且時間間隔小於2秒，則跳過檢查
-    const MIN_CHECK_INTERVAL = 2000; // 2秒
-    if (!forceCheck && now - lastGlobalCheck < MIN_CHECK_INTERVAL) {
-      console.log("跳過管理員狀態檢查 (節流控制)");
+    // 增加節流控制：非強制檢查時使用更長間隔，減少過多請求
+    const MIN_CHECK_INTERVAL = forceCheck ? 2000 : 30000; // 強制檢查2秒，普通檢查30秒
+    if (now - lastGlobalCheck < MIN_CHECK_INTERVAL) {
+      if (now - lastGlobalCheck < 10000) { // 僅在10秒內輸出日誌，避免過多日誌
+        console.log("跳過管理員狀態檢查 (節流控制)");
+      }
       return isAdmin;
     }
     
