@@ -361,8 +361,9 @@ export function useAdmin() {
       localStorage.removeItem('admin_login_success');
       localStorage.removeItem('admin_login_timestamp');
       
-      // 還是清除任何現有的會話cookie，確保從乾淨狀態開始
+      // 清除以下的會話數據，確保登入之前沒有過時的會話信息
       document.cookie = 'admin.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      sessionStorage.removeItem('admin_last_check');
       
       // 使用直接的fetch請求而非中間層，避免潛在的緩存問題
       const response = await fetch('/api/auth/login', {
