@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { supabase } from "./supabase";
 import { AuthService } from "./services/auth";
 import { priceSpreadsheetService } from "./services/priceSpreadsheet";
-import { Pool } from "@neondatabase/serverless";
+import { pool } from "./db";
 
 // Define types for statistics
 interface StatItem {
