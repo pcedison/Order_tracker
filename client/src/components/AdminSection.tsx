@@ -17,11 +17,9 @@ interface AdminSectionProps {
 }
 
 export default function AdminSection({ isVisible, showConfirmDialog }: AdminSectionProps) {
-  // 增強安全檢查，完全確保只有登入後才能訪問管理員區塊
-  const { isAdmin } = useAdmin();
-  
-  // 雙重安全檢查：必須同時滿足isVisible和isAdmin才能顯示
-  if (!isVisible || !isAdmin) {
+  // 簡化安全檢查：只使用傳入的 isVisible 參數
+  // 將 isAdmin 檢查移到父組件 HomePage 中處理，避免 Hook 規則違反
+  if (!isVisible) {
     return null;
   }
   const [activeTab, setActiveTab] = useState<"history" | "product_popularity" | "order_stats" | "config">("history");

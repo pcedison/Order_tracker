@@ -18,90 +18,69 @@ export default function HomePage() {
     onConfirm: () => {},
   });
   
-  // 管理员状态跟踪
-  const [adminPanelVisible, setAdminPanelVisible] = useState(false);
-  
+  // 使用單一狀態來源 - isAdmin 作為唯一權限依據
   const { toast } = useToast();
   const { isAdmin, checkAdminStatus } = useAdmin();
   
-  // 確保isAdmin和adminPanelVisible保持一致 - 關鍵的安全保障
+  // 當管理員狀態變化時，同步更新localStorage
   useEffect(() => {
     if (isAdmin) {
       console.log("Admin detected, showing panel");
-      setAdminPanelVisible(true);
+      
+      // 管理員狀態為真時，更新本地存儲
+      localStorage.setItem('admin_login_success', 'true');
+      localStorage.setItem('admin_login_timestamp', Date.now().toString());
     } else {
       console.log("No admin detected, hiding panel");
-      setAdminPanelVisible(false);
       
-      // 額外安全措施：如果不是管理員，確保localStorage中的標記也被清除
+      // 清除本地存儲中的管理員標記
       localStorage.removeItem('admin_login_success');
       localStorage.removeItem('admin_login_timestamp');
     }
   }, [isAdmin]);
   
-  // 僅使用已驗證的伺服器狀態顯示管理員區塊，嚴格先檢查後顯示
+  // 監聽管理員相關事件，保持狀態同步
   useEffect(() => {
-    // 避免僅使用localStorage造成的安全問題
-    // 管理員狀態必須通過服務器端驗證並傳遞到isAdmin狀態才生效
-  
+    // 當登入成功時刷新管理員狀態
     const handleAdminLoginSuccess = async () => {
       console.log("Admin login success event received");
-      // 立即檢查並更新管理員狀態，確保管理員面板顯示
-      const status = await checkAdminStatus();
-      if (status) {
-        // 保存到本地存儲
-        localStorage.setItem('admin_login_success', 'true'); 
-        setAdminPanelVisible(true);
-      }
+      // 強制檢查並更新管理員狀態
+      await checkAdminStatus(true);
     };
     
+    // 當管理員狀態改變時進行處理
     const handleAdminStatusChanged = (event: Event) => {
       const customEvent = event as CustomEvent<{isAdmin: boolean}>;
       console.log("Admin status changed:", customEvent.detail);
-      if (customEvent.detail.isAdmin) {
-        // 保存到本地存儲
-        localStorage.setItem('admin_login_success', 'true');
-        setAdminPanelVisible(true);
-      } else {
-        // 清除本地存儲
-        localStorage.removeItem('admin_login_success');
-        setAdminPanelVisible(false);
-      }
+      
+      // 事件處理不需額外設置狀態，由useAdmin hook處理
     };
     
+    // 註冊事件監聽器
     window.addEventListener('adminLoginSuccess', handleAdminLoginSuccess);
     window.addEventListener('adminStatusChanged', handleAdminStatusChanged);
     
     // 初始化時檢查一次服務器狀態
-    checkAdminStatus().then(status => {
-      if (status) {
-        // 保存到本地存儲
-        localStorage.setItem('admin_login_success', 'true');
-        setAdminPanelVisible(true);
-      } else {
-        // 如果服務器返回未登入，但本地有登入標記，則嘗試再次驗證
-        const storedLoginState = localStorage.getItem('admin_login_success');
-        if (storedLoginState === 'true') {
-          // 強制再次檢查
-          setTimeout(() => {
-            checkAdminStatus(true).then(secondCheck => {
-              if (!secondCheck) {
-                // 如果再次確認未登入，清除本地標記
-                localStorage.removeItem('admin_login_success');
-                setAdminPanelVisible(false);
-              }
-            });
-          }, 500);
-        }
+    const checkInitialStatus = async () => {
+      // 檢查是否有本地存儲的管理員狀態
+      const storedLoginSuccess = localStorage.getItem('admin_login_success');
+      
+      if (storedLoginSuccess === 'true') {
+        // 如果本地有狀態，進行強制驗證
+        await checkAdminStatus(true);
       }
-    });
+    };
     
+    checkInitialStatus();
+    
+    // 清理事件監聽器
     return () => {
       window.removeEventListener('adminLoginSuccess', handleAdminLoginSuccess);
       window.removeEventListener('adminStatusChanged', handleAdminStatusChanged);
     };
   }, [checkAdminStatus]);
 
+  // 顯示確認對話框
   const showConfirmDialog = (message: string, onConfirm: () => void) => {
     setConfirmConfig({
       isOpen: true,
@@ -110,6 +89,7 @@ export default function HomePage() {
     });
   };
 
+  // 隱藏確認對話框
   const hideConfirmDialog = () => {
     setConfirmConfig({
       ...confirmConfig,
@@ -125,8 +105,8 @@ export default function HomePage() {
       
       <OrdersList showConfirmDialog={showConfirmDialog} />
       
-      {/* 直接使用adminPanelVisible控制管理員區塊顯示，更加明確可靠 */}
-      {adminPanelVisible && <AdminSection isVisible={true} showConfirmDialog={showConfirmDialog} />}
+      {/* 直接使用isAdmin控制管理員區塊顯示，確保安全可靠 */}
+      {isAdmin && <AdminSection isVisible={true} showConfirmDialog={showConfirmDialog} />}
       
       <AdminLogin />
       
