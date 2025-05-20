@@ -307,6 +307,9 @@ export function useAdmin() {
     try {
       console.log("嘗試登入...");
       
+      // 首先登出任何現有會話，確保其它會話不會影響新的登入嘗試
+      await logout();
+      
       // 清除任何現有的會話cookie
       document.cookie = 'admin.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
       
@@ -327,8 +330,10 @@ export function useAdmin() {
       });
       
       if (!response.ok) {
-        const data = await response.json();
-        console.error("登入請求失敗:", response.status, data);
+        const errorData = await response.json().catch(() => ({ message: "響應解析失敗" }));
+        console.error("登入請求失敗:", response.status, errorData);
+        // 確保本地狀態同步
+        setIsAdmin(false);
         return false;
       }
       
@@ -340,10 +345,7 @@ export function useAdmin() {
         console.log("開始管理員登錄...");
         console.log("登錄成功，已獲得會話ID:", data.sessionId);
         
-        // 立即更新狀態
-        setIsAdmin(true);
-        
-        // 驗證會話是否成功設置
+        // 驗證會話是否成功設置，確保本地狀態與服務器一致
         const verifySession = async (): Promise<boolean> => {
           // 等待服務器處理會話
           await new Promise(resolve => setTimeout(resolve, 700));
@@ -369,10 +371,19 @@ export function useAdmin() {
             const statusData = await statusRes.json();
             console.log("第一次會話驗證結果:", statusData);
             
-            // 確認會話已驗證
-            return statusData.authenticated === true;
+            // 確認會話已驗證，這是決定本地狀態的唯一標準
+            if (statusData.authenticated === true) {
+              // 立即更新狀態
+              setIsAdmin(true);
+              return true;
+            } else {
+              // 確保狀態同步
+              setIsAdmin(false);
+              return false;
+            }
           } catch (error) {
             console.error("會話驗證過程中出錯:", error);
+            setIsAdmin(false);
             return false;
           }
         };
@@ -382,23 +393,27 @@ export function useAdmin() {
         
         if (verified) {
           console.log("會話驗證成功，管理員身份已確認");
+          
+          // 更新應用程式狀態
+          window.dispatchEvent(new CustomEvent('adminLoginSuccess'));
+          window.dispatchEvent(new CustomEvent('adminStatusChanged', { 
+            detail: { isAdmin: true } 
+          }));
+          
+          return true;
         } else {
-          console.warn("會話驗證失敗，但仍將嘗試繼續");
+          console.warn("會話驗證失敗，無法繼續使用管理員功能");
+          setIsAdmin(false);
+          return false;
         }
-        
-        // 更新應用程式狀態
-        window.dispatchEvent(new CustomEvent('adminLoginSuccess'));
-        window.dispatchEvent(new CustomEvent('adminStatusChanged', { 
-          detail: { isAdmin: true } 
-        }));
-        
-        return true;
       } else {
         console.error("服務器拒絕登錄請求:", data.message || "未提供原因");
+        setIsAdmin(false);
         return false;
       }
     } catch (error) {
       console.error("登錄過程發生錯誤:", error);
+      setIsAdmin(false);
       return false;
     }
   };
