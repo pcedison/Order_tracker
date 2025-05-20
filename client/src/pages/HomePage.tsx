@@ -35,13 +35,21 @@ export default function HomePage() {
     }
   }, [isAdmin]);
   
-  // 监听管理员登录成功事件和状态变更事件
+  // 用localStorage持久化管理員登錄狀態，提高可靠性
   useEffect(() => {
+    // 如果本地存儲中有登入成功標記，立即設置管理員面版為可見
+    const adminLoginSuccess = localStorage.getItem('admin_login_success');
+    if (adminLoginSuccess === 'true') {
+      setAdminPanelVisible(true);
+    }
+  
     const handleAdminLoginSuccess = async () => {
       console.log("Admin login success event received");
-      // 立即检查并更新管理员状态，确保管理员面板显示
+      // 立即檢查並更新管理員狀態，確保管理員面板顯示
       const status = await checkAdminStatus();
       if (status) {
+        // 保存到本地存儲
+        localStorage.setItem('admin_login_success', 'true'); 
         setAdminPanelVisible(true);
       }
     };
@@ -50,8 +58,12 @@ export default function HomePage() {
       const customEvent = event as CustomEvent<{isAdmin: boolean}>;
       console.log("Admin status changed:", customEvent.detail);
       if (customEvent.detail.isAdmin) {
+        // 保存到本地存儲
+        localStorage.setItem('admin_login_success', 'true');
         setAdminPanelVisible(true);
       } else {
+        // 清除本地存儲
+        localStorage.removeItem('admin_login_success');
         setAdminPanelVisible(false);
       }
     };
@@ -59,10 +71,26 @@ export default function HomePage() {
     window.addEventListener('adminLoginSuccess', handleAdminLoginSuccess);
     window.addEventListener('adminStatusChanged', handleAdminStatusChanged);
     
-    // 初始化时检查一次
+    // 初始化時檢查一次服務器狀態
     checkAdminStatus().then(status => {
       if (status) {
+        // 保存到本地存儲
+        localStorage.setItem('admin_login_success', 'true');
         setAdminPanelVisible(true);
+      } else {
+        // 如果服務器返回未登入，但本地有登入標記，則嘗試再次驗證
+        if (adminLoginSuccess === 'true') {
+          // 強制再次檢查
+          setTimeout(() => {
+            checkAdminStatus(true).then(secondCheck => {
+              if (!secondCheck) {
+                // 如果再次確認未登入，清除本地標記
+                localStorage.removeItem('admin_login_success');
+                setAdminPanelVisible(false);
+              }
+            });
+          }, 500);
+        }
       }
     });
     
@@ -95,8 +123,8 @@ export default function HomePage() {
       
       <OrdersList showConfirmDialog={showConfirmDialog} />
       
-      {/* 只使用isAdmin狀態控制管理員區塊顯示 */}
-      {isAdmin && <AdminSection isVisible={true} showConfirmDialog={showConfirmDialog} />}
+      {/* 直接使用adminPanelVisible控制管理員區塊顯示，更加明確可靠 */}
+      {adminPanelVisible && <AdminSection isVisible={true} showConfirmDialog={showConfirmDialog} />}
       
       <AdminLogin />
       

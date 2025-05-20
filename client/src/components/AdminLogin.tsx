@@ -94,8 +94,21 @@ export default function AdminLogin() {
         // 重置密碼輸入框
         setPassword("");
         
-        // 直接重載頁面以確保完全清除舊狀態
-        window.location.reload();
+        // 設置localStorage標記，用於頁面重載後的管理員狀態確認
+        localStorage.setItem('admin_login_success', 'true');
+        localStorage.setItem('admin_login_timestamp', Date.now().toString());
+        
+        // 顯示成功提示
+        toast({
+          title: "登入成功",
+          description: "已切換至管理員模式",
+          duration: 2000
+        });
+        
+        // 延遲後重載頁面以確保完全清除舊狀態
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       } else {
         console.error("登入失敗，伺服器拒絕認證");
         toast({
