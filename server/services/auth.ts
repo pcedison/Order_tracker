@@ -15,11 +15,15 @@ export class AuthService {
       return;
     }
     
-    // 首次初始化時從環境變量讀取密碼(臨時)
-    this.adminPassword = process.env.ADMIN_PASSWORD || '';
+    // 首次初始化時從環境變量讀取密碼，確保每次重新部署都能獲取正確的初始密碼
+    const envPassword = process.env.ADMIN_PASSWORD || '';
+    this.adminPassword = envPassword;
     
-    // 存儲密碼到靜態變量
-    AuthService.currentPassword = this.adminPassword;
+    // 存儲密碼到靜態變量，確保其他地方能夠訪問到正確的密碼
+    AuthService.currentPassword = envPassword;
+    
+    // 標記為已初始化，確保在數據庫為空時也能使用環境變量密碼
+    AuthService.passwordInitialized = !!envPassword;
     
     // 設置單例實例
     AuthService.instance = this;
