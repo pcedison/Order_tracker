@@ -16,6 +16,10 @@ interface AdminSectionProps {
 }
 
 export default function AdminSection({ isVisible, showConfirmDialog }: AdminSectionProps) {
+  // 如果不可見，直接不渲染任何內容，避免安全問題
+  if (!isVisible) {
+    return null;
+  }
   const [activeTab, setActiveTab] = useState<"history" | "product_popularity" | "order_stats" | "config">("history");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
