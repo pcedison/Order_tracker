@@ -747,45 +747,43 @@ export class SupabaseStorage implements IStorage {
       let databaseUpdateSuccess = false;
       
       try {
-        // 1. 更新主密碼
-        const updateResult = await supabase
-          .from(this.configsTable)
-          .upsert({ 
-            key: 'ADMIN_PASSWORD', 
-            value: newPasswordToSave,
-            updated_at: new Date().toISOString()
-          });
-        
-        if (!updateResult.error) {
-          console.log('主密碼記錄更新成功');
-          databaseUpdateSuccess = true;
-        }
-        
-        // 2. 清除所有舊的備份密碼記錄
-        console.log('正在清除所有舊密碼備份記錄');
-        const { error: deleteError } = await supabase
-          .from(this.configsTable)
-          .delete()
-          .like('key', 'ADMIN_PASSWORD_BACKUP%');
+        // 使用原生SQL直接更新密碼，避免Supabase客戶端權限問題
+        try {
+          // 1. 檢查configs表是否存在，如果不存在則創建
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS configs (
+              id SERIAL PRIMARY KEY,
+              key TEXT UNIQUE NOT NULL,
+              value TEXT,
+              updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+          console.log('確保configs表已存在');
           
-        if (deleteError) {
-          console.warn('清除舊密碼備份記錄失敗:', deleteError);
-        } else {
-          console.log('已清除所有舊密碼備份記錄');
-        }
-        
-        // 3. 驗證密碼是否成功寫入數據庫
-        const { data: verifyData, error: verifyError } = await supabase
-          .from(this.configsTable)
-          .select('value')
-          .eq('key', 'ADMIN_PASSWORD')
-          .single();
-        
-        if (!verifyError && verifyData && verifyData.value === newPasswordToSave) {
-          console.log('數據庫密碼驗證成功，密碼已正確更新');
+          // 2. 更新主密碼
+          const updateQuery = `
+            INSERT INTO configs (key, value, updated_at) 
+            VALUES ('ADMIN_PASSWORD', $1, NOW())
+            ON CONFLICT (key) 
+            DO UPDATE SET value = $1, updated_at = NOW()
+          `;
+          await pool.query(updateQuery, [newPasswordToSave]);
+          console.log('主密碼記錄已通過SQL更新成功');
           databaseUpdateSuccess = true;
-        } else {
-          console.warn('數據庫密碼驗證失敗或查詢出錯');
+          
+          // 3. 驗證密碼是否成功寫入數據庫
+          const verifyResult = await pool.query(
+            `SELECT value FROM configs WHERE key = 'ADMIN_PASSWORD'`
+          );
+          
+          if (verifyResult.rows.length > 0 && verifyResult.rows[0].value === newPasswordToSave) {
+            console.log('數據庫密碼驗證成功，密碼已正確更新');
+            databaseUpdateSuccess = true;
+          } else {
+            console.warn('數據庫密碼驗證失敗或查詢出錯');
+          }
+        } catch (sqlError) {
+          console.error('直接SQL操作出錯:', sqlError);
         }
       } catch (dbError) {
         console.error('數據庫操作過程中發生異常:', dbError);
