@@ -111,21 +111,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("開始驗證管理員密碼");
-      const passwordDetails = authService.getCurrentPassword();
-      const isPasswordHashed = passwordDetails.startsWith('*HASH*:');
       
-      console.log(`密碼已載入，長度: ${passwordDetails.length}, 
-                  哈希模式: ${isPasswordHashed ? '是' : '否'}`);
+      // 先使用環境變數驗證，確保即使在重新部署後也能登入
+      const envPassword = process.env.ADMIN_PASSWORD || '';
+      let verified = false;
       
-      console.log(`使用${isPasswordHashed ? '哈希' : '明文'}模式驗證密碼`);
+      if (envPassword && password === envPassword) {
+        console.log("使用環境變數密碼驗證成功");
+        verified = true;
+      } else {
+        // 從服務獲取當前密碼
+        const passwordDetails = authService.getCurrentPassword();
+        const isPasswordHashed = passwordDetails && passwordDetails.startsWith('*HASH*:');
+        
+        console.log(`密碼已載入，長度: ${passwordDetails?.length || 0}, 
+                    哈希模式: ${isPasswordHashed ? '是' : '否'}`);
+        
+        console.log(`使用${isPasswordHashed ? '哈希' : '明文'}模式驗證密碼`);
+        
+        // 執行實際驗證
+        verified = await authService.verifyPassword(password);
+      }
       
-      // 執行實際驗證
-      const success = await authService.verifyPassword(password);
-      console.log(`密碼驗證結果: ${success ? '成功' : '失敗'}`);
+      console.log(`密碼驗證結果: ${verified ? '成功' : '失敗'}`);
+      
+      if (!verified) {
+        return res.status(401).json({ success: false, message: "Incorrect password" });
+      }
 
-      if (success) {
-        // 強化管理員會話設置
-        if (req.session) {
+      // 密碼驗證成功，繼續處理
+      // 強化管理員會話設置
+      if (req.session) {
           // 設置會話數據
           req.session.isAdmin = true;
           req.session.loginTime = Date.now();
