@@ -317,12 +317,15 @@ export function useAdmin() {
     };
   }, [checkAdminStatus, toast]);
 
-  // 完全重寫的管理員登錄功能
+  // 完全重構的密碼驗證功能
   const login = async (password: string): Promise<boolean> => {
     try {
       console.log("開始管理員登錄...");
       
-      // 使用自定義請求替代 apiRequest，以確保最大控制權
+      // 清除任何現有的會話cookie
+      document.cookie = 'admin.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      
+      // 使用直接的fetch請求而非中間層，避免潛在的緩存問題
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -349,64 +352,37 @@ export function useAdmin() {
       
       if (data.success) {
         console.log("登錄成功，已獲得會話ID:", data.sessionId);
-        // 立即存儲管理員狀態
+        // 立即更新狀態
         setIsAdmin(true);
         
-        // 嘗試建立一個複雜的會話驗證過程，確保會話已正確設置
+        // 驗證會話是否成功設置
         const verifySession = async (): Promise<boolean> => {
-          // 等待一小段時間，以確保會話已被服務器處理
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // 等待服務器處理會話
+          await new Promise(resolve => setTimeout(resolve, 700));
           
           try {
-            // 進行第一次會話驗證
-            const statusRes1 = await fetch('/api/auth/status', {
+            // 驗證會話
+            const statusRes = await fetch('/api/auth/status', {
               method: 'GET',
               headers: {
                 'Accept': 'application/json',
-                'Cache-Control': 'no-cache, no-store, must-revalidate'
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache'
               },
               credentials: 'include',
               cache: 'no-store'
             });
             
-            if (!statusRes1.ok) {
-              console.error("第一次會話驗證失敗:", statusRes1.status);
+            if (!statusRes.ok) {
+              console.error("會話驗證請求失敗:", statusRes.status);
               return false;
             }
             
-            const statusData1 = await statusRes1.json();
-            console.log("第一次會話驗證結果:", statusData1);
+            const statusData = await statusRes.json();
+            console.log("第一次會話驗證結果:", statusData);
             
-            if (!statusData1.authenticated) {
-              console.error("第一次驗證未確認管理員狀態");
-              // 嘗試第二次驗證
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              
-              const statusRes2 = await fetch('/api/auth/status', {
-                method: 'GET',
-                headers: {
-                  'Accept': 'application/json',
-                  'Cache-Control': 'no-cache, no-store, must-revalidate'
-                },
-                credentials: 'include',
-                cache: 'no-store'
-              });
-              
-              if (!statusRes2.ok) {
-                console.error("第二次會話驗證失敗:", statusRes2.status);
-                return false;
-              }
-              
-              const statusData2 = await statusRes2.json();
-              console.log("第二次會話驗證結果:", statusData2);
-              
-              if (!statusData2.authenticated) {
-                console.error("兩次驗證均未確認管理員狀態");
-                return false;
-              }
-            }
-            
-            return true;
+            // 確認會話已驗證
+            return statusData.authenticated === true;
           } catch (error) {
             console.error("會話驗證過程中出錯:", error);
             return false;
@@ -415,23 +391,18 @@ export function useAdmin() {
         
         // 執行會話驗證
         const verified = await verifySession();
-        if (!verified) {
-          console.warn("會話驗證失敗，但仍將嘗試繼續");
-        } else {
+        
+        if (verified) {
           console.log("會話驗證成功，管理員身份已確認");
+        } else {
+          console.warn("會話驗證失敗，但仍將嘗試繼續");
         }
         
-        // 無論驗證結果如何，都觸發管理員狀態變更事件
-        const adminStatusEvent = new CustomEvent('adminLoginSuccess', {
-          detail: { isAdmin: true, sessionId: data.sessionId }
-        });
-        window.dispatchEvent(adminStatusEvent);
-        
-        // 同時觸發標準事件
-        const adminStatusChangedEvent = new CustomEvent('adminStatusChanged', { 
+        // 更新應用程式狀態
+        window.dispatchEvent(new CustomEvent('adminLoginSuccess'));
+        window.dispatchEvent(new CustomEvent('adminStatusChanged', { 
           detail: { isAdmin: true } 
-        });
-        window.dispatchEvent(adminStatusChangedEvent);
+        }));
         
         return true;
       } else {
