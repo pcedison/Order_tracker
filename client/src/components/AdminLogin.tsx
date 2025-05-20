@@ -40,17 +40,13 @@ export default function AdminLogin() {
         description: "正在驗證密碼...",
       });
       
-      // 先執行登出，確保清除任何現有會話
-      try {
-        await logout(); // 使用現有的logout函數清除會話
-      } catch (e) {
-        console.warn("預處理登出時出錯，繼續登入流程:", e);
-      }
-      
-      // 強制清除緩存和localStorage
-      sessionStorage.clear(); // 清除所有sessionStorage資料
+      // 不再預先登出，只清除本地存儲的登入狀態
+      // 這樣可以避免登入/登出流程互相干擾
       localStorage.removeItem('admin_login_success');
       localStorage.removeItem('admin_login_timestamp');
+      
+      // 只清除管理員相關的sessionStorage資料，而不是全部清除
+      sessionStorage.removeItem('admin_last_check');
       
       // 直接使用useAdmin中的login函數，而非自己實現登入邏輯
       const success = await login(password);

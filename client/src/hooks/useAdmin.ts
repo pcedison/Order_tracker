@@ -356,10 +356,12 @@ export function useAdmin() {
     try {
       console.log("嘗試登入...");
       
-      // 首先登出任何現有會話，確保其它會話不會影響新的登入嘗試
-      await logout();
+      // 不再預先登出，避免會話混亂
+      // 只清除本地登入標記，讓服務器決定是否允許新的登入
+      localStorage.removeItem('admin_login_success');
+      localStorage.removeItem('admin_login_timestamp');
       
-      // 清除任何現有的會話cookie
+      // 還是清除任何現有的會話cookie，確保從乾淨狀態開始
       document.cookie = 'admin.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
       
       // 使用直接的fetch請求而非中間層，避免潛在的緩存問題
@@ -508,11 +510,10 @@ export function useAdmin() {
       
       console.log("登出操作成功完成");
       
-      // 在重定向前確認會話已清除
-      setTimeout(() => {
-        console.log("正在重新載入頁面以確保狀態同步...");
-        window.location.reload();
-      }, 300);
+      // 移除強制重新載入頁面的代碼，避免登入後立即觸發登出流程
+      // 改為僅清除localStorage中的登入標記
+      localStorage.removeItem('admin_login_success');
+      localStorage.removeItem('admin_login_timestamp');
       
       return true;
     } catch (error) {
