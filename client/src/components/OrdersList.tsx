@@ -41,35 +41,46 @@ export default function OrdersList({ showConfirmDialog }: OrdersListProps) {
     await loadOrders();
   }, [loadOrders]);
 
+  // 將 isAdmin 狀態同步到本地狀態，確保界面正確顯示
+  useEffect(() => {
+    setLocalAdminState(isAdmin);
+  }, [isAdmin]);
+
   useEffect(() => {
     // 初始化时加载订单
-    loadOrders();
+    loadOrders(true); // 強制首次加載最新數據
+    
     // 检查初始管理员状态
-    checkAdminStatus().then(isAdmin => {
-      setLocalAdminState(isAdmin);
+    checkAdminStatus(true).then(adminStatus => {
+      setLocalAdminState(adminStatus);
     });
     
     // 添加管理员登录成功事件监听器
     const handleAdminLogin = () => {
       console.log('Admin login success event received');
-      loadOrders();
+      loadOrders(true); // 強制刷新
     };
     
     // 添加订单创建成功事件监听器，创建订单后自动刷新订单列表
-    const handleOrderCreated = (event: Event) => {
+    const handleOrderCreated = () => {
       console.log('Order created event received');
-      loadOrders();
+      loadOrders(true); // 強制刷新
+    };
+    
+    // 直接使用標準類型的事件處理器
+    const adminStatusHandler = (event: Event) => {
+      handleAdminStatusChanged(event);
     };
     
     window.addEventListener('adminLoginSuccess', handleAdminLogin);
     window.addEventListener('orderCreated', handleOrderCreated);
-    window.addEventListener('adminStatusChanged', handleAdminStatusChanged);
+    window.addEventListener('adminStatusChanged', adminStatusHandler);
     
     // 清理函数
     return () => {
       window.removeEventListener('adminLoginSuccess', handleAdminLogin);
       window.removeEventListener('orderCreated', handleOrderCreated);
-      window.removeEventListener('adminStatusChanged', handleAdminStatusChanged);
+      window.removeEventListener('adminStatusChanged', adminStatusHandler);
     };
   }, [loadOrders, handleAdminStatusChanged, checkAdminStatus]);
 
