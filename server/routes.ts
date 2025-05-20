@@ -110,7 +110,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message: "Password is required" });
       }
 
+      console.log("開始驗證管理員密碼");
+      const passwordDetails = authService.getCurrentPassword();
+      const isPasswordHashed = passwordDetails.startsWith('*HASH*:');
+      
+      console.log(`密碼已載入，長度: ${passwordDetails.length}, 
+                  哈希模式: ${isPasswordHashed ? '是' : '否'}`);
+      
+      console.log(`使用${isPasswordHashed ? '哈希' : '明文'}模式驗證密碼`);
+      
+      // 執行實際驗證
       const success = await authService.verifyPassword(password);
+      console.log(`密碼驗證結果: ${success ? '成功' : '失敗'}`);
 
       if (success) {
         // 強化管理員會話設置

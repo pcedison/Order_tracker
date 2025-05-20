@@ -95,7 +95,7 @@ export default function HomePage() {
       
       <OrdersList showConfirmDialog={showConfirmDialog} />
       
-      {isAdmin && <AdminSection isVisible={true} showConfirmDialog={showConfirmDialog} />}
+      {isAdmin && adminPanelVisible && <AdminSection isVisible={true} showConfirmDialog={showConfirmDialog} />}
       
       <AdminLogin />
       

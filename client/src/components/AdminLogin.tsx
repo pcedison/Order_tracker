@@ -20,7 +20,7 @@ export default function AdminLogin() {
     setIsLoginPanelOpen(false);
   };
 
-  // 重寫登入處理函數，使其更加強大和可靠
+  // 完全重構的登入處理函數
   const handleLogin = async () => {
     if (!password) {
       toast({
@@ -40,35 +40,58 @@ export default function AdminLogin() {
         description: "正在驗證密碼...",
       });
       
-      // 執行登入操作
-      const success = await login(password);
+      // 直接發送登入請求
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        },
+        body: JSON.stringify({ password }),
+        credentials: 'include'
+      });
       
-      // 處理登入結果
-      if (success) {
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("登入請求失敗:", response.status, errorText);
+        
+        toast({
+          title: "登入失敗",
+          description: "密碼錯誤或伺服器拒絕認證",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
         console.log("登入成功!");
         handleCloseLoginPanel();
         
-        // 顯示成功提示，延長時間以便用戶看到
+        // 更新全局狀態
+        window.dispatchEvent(new CustomEvent('adminLoginSuccess'));
+        window.dispatchEvent(new CustomEvent('adminStatusChanged', { 
+          detail: { isAdmin: true } 
+        }));
+        
+        // 顯示成功提示
         toast({
           title: "登入成功",
           description: "已切換至管理員模式",
-          duration: 5000
+          duration: 3000
         });
         
-        // 觸發多個事件以確保系統各部分都能收到通知
-        // 1. 廣播登錄成功消息
-        const adminLoginEvent = new CustomEvent('adminLoginSuccess');
-        window.dispatchEvent(adminLoginEvent);
-        
-        // 2. 強制重新驗證管理員狀態
+        // 強制重載頁面以確保狀態同步
         setTimeout(() => {
-          window.location.reload(); // 最可靠的方法，強制頁面重載確保狀態同步
-        }, 500);
+          window.location.reload();
+        }, 100);
       } else {
-        console.error("登入失敗，收到服務器響應但未成功認證");
+        console.error("登入失敗，伺服器拒絕認證");
         toast({
           title: "登入失敗",
-          description: "密碼錯誤或認證過程失敗",
+          description: data.message || "認證失敗",
           variant: "destructive",
         });
       }
@@ -76,9 +99,8 @@ export default function AdminLogin() {
       console.error("登入過程發生錯誤:", error);
       toast({
         title: "登入失敗",
-        description: error instanceof Error ? error.message : "認證過程中發生未知錯誤",
-        variant: "destructive",
-        duration: 5000
+        description: "網絡錯誤或伺服器無法連接",
+        variant: "destructive"
       });
     }
   };
