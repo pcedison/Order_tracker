@@ -142,20 +142,36 @@ export function useAdmin() {
     };
   }, [isAdmin, resetInactivityTimer]);
 
-  // Check if user is already authenticated as admin
+  // 高度優化的管理員狀態檢查 - 採用進階節流與緩存機制
   const checkAdminStatus = useCallback(async (showErrors = false) => {
-    // 防止频繁重复检查
+    // 強化節流控制 - 顯著提高間隔時間以減少伺服器負載
     const now = Date.now();
-    if (now - lastCheck < 1000) { // 至少间隔1秒
+    
+    // 如果非強制檢查（非用戶觸發），則採用更長的間隔
+    // 將默認間隔從1秒提高到5秒，大大減少API調用頻率
+    const minInterval = showErrors ? 1000 : 5000;
+    if (now - lastCheck < minInterval) {
+      return isAdmin;
+    }
+    
+    // 使用會話存儲來跟踪狀態檢查，即使在組件重新渲染後也能保持節流
+    const lastGlobalCheck = parseInt(sessionStorage.getItem('admin_last_check') || '0', 10);
+    if (!showErrors && now - lastGlobalCheck < 3000) {
       return isAdmin;
     }
     
     setLastCheck(now);
+    sessionStorage.setItem('admin_last_check', now.toString());
     
     try {
+      // 使用AbortController防止請求懸掛，設置超時機制
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超時
+      
       const response = await fetch('/api/auth/status', {
         method: 'GET',
-        credentials: 'include', // 包含 cookie 以支持基於會話的認證
+        signal: controller.signal,
+        credentials: 'include',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -165,15 +181,31 @@ export function useAdmin() {
         cache: 'no-store'
       });
       
+      clearTimeout(timeoutId);
+      
       if (response.ok) {
         const data = await response.json();
-        setIsAdmin(data.authenticated);
+        
+        // 只有在狀態實際發生變化時才更新並觸發重渲染
+        if (data.authenticated !== isAdmin) {
+          setIsAdmin(data.authenticated);
+          
+          // 觸發全局事件以便其他組件感知變化
+          if (data.authenticated !== isAdmin) {
+            window.dispatchEvent(new CustomEvent('adminStatusChanged', { 
+              detail: { isAdmin: data.authenticated } 
+            }));
+          }
+        }
         
         // 設置剩餘時間
         if (data.authenticated && data.remainingTimeSeconds !== undefined) {
-          setRemainingTime(data.remainingTimeSeconds);
+          // 只有在時間顯著變化時才更新狀態以減少渲染
+          if (Math.abs((remainingTime || 0) - data.remainingTimeSeconds) > 30) {
+            setRemainingTime(data.remainingTimeSeconds);
+          }
           
-          // 如果剩餘時間小於60秒(1分鐘)且尚未顯示警告，顯示超時警告
+          // 只在剩餘1分鐘且未顯示警告時顯示警告
           if (data.remainingTimeSeconds < 60 && !timeoutWarningShown.current) {
             timeoutWarningShown.current = true;
             
@@ -183,12 +215,12 @@ export function useAdmin() {
               variant: "destructive",
             });
           }
-        } else {
+        } else if (remainingTime !== null) {
           setRemainingTime(null);
         }
         
-        if (data.authenticated) {
-          // 重置错误计数
+        // 在檢查成功時，重置錯誤計數
+        if (data.authenticated && checkCount > 0) {
           setCheckCount(0);
         }
         
@@ -201,15 +233,29 @@ export function useAdmin() {
             variant: "destructive",
           });
         }
-        setIsAdmin(false);
-        setRemainingTime(null);
+        
+        if (isAdmin) {
+          setIsAdmin(false);
+          setRemainingTime(null);
+          
+          // 觸發全局事件通知登出情況
+          window.dispatchEvent(new CustomEvent('adminStatusChanged', { 
+            detail: { isAdmin: false } 
+          }));
+        }
+        
         return false;
       }
     } catch (error) {
-      console.error("Auth check error:", error);
+      // 區分不同類型的錯誤以進行合適處理
+      const isAbortError = error.name === 'AbortError';
       
-      // 如果之前是管理员状态，显示错误提示
-      if (isAdmin && showErrors) {
+      if (!isAbortError) {
+        console.error("Auth check error:", error);
+      }
+      
+      // 只有在非超時錯誤且以前是管理員時才顯示錯誤
+      if (!isAbortError && isAdmin && showErrors) {
         toast({
           title: "管理員會話檢查失敗",
           description: "發生網絡錯誤，可能需要重新登入",
@@ -217,18 +263,21 @@ export function useAdmin() {
         });
       }
       
-      // 增加错误计数
-      setCheckCount(prev => prev + 1);
+      // 只有在非超時錯誤時才增加錯誤計數
+      if (!isAbortError) {
+        setCheckCount(prev => prev + 1);
+      }
       
-      // 如果连续多次检查失败，可能需要重置状态
-      if (checkCount > 3) {
+      // 如果連續多次檢查失敗，重置狀態（超時錯誤不計入）
+      if (!isAbortError && checkCount > 3) {
         setIsAdmin(false);
         setRemainingTime(null);
       }
       
-      return false;
+      // 在錯誤情況下返回當前狀態，避免不必要的UI更新
+      return isAdmin;
     }
-  }, [isAdmin, checkCount, lastCheck, toast]);
+  }, [isAdmin, checkCount, lastCheck, toast, remainingTime]);
   
   // 在钩子初始化时自动检查管理员状态，并监听会话过期事件
   useEffect(() => {
