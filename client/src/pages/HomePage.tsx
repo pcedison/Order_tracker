@@ -95,7 +95,8 @@ export default function HomePage() {
       
       <OrdersList showConfirmDialog={showConfirmDialog} />
       
-      {isAdmin && adminPanelVisible && <AdminSection isVisible={true} showConfirmDialog={showConfirmDialog} />}
+      {/* 只使用isAdmin狀態控制管理員區塊顯示 */}
+      {isAdmin && <AdminSection isVisible={true} showConfirmDialog={showConfirmDialog} />}
       
       <AdminLogin />
       

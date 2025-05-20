@@ -73,9 +73,8 @@ export default function AdminLogin() {
         // 標記強制檢查管理員狀態
         sessionStorage.setItem('force_admin_check', 'true');
         
-        // 登入成功時立即設置本地狀態為已登入
-        // 這樣用戶不用等待API檢查即可看到界面變化
-        login(password, true);
+        // 直接使用login方法進行登入
+        login(password);
         
         // 顯示成功提示
         toast({

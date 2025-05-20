@@ -143,7 +143,7 @@ export function useAdmin() {
   }, [isAdmin, resetInactivityTimer]);
 
   // 完全重構的管理員狀態檢查函數 - 簡化邏輯，提高可靠性
-  const checkAdminStatus = useCallback(async (forceCheck = false) => {
+  const checkAdminStatus = useCallback(async (forceCheck: boolean = false) => {
     // 取得當前時間
     const now = Date.now();
     
@@ -250,7 +250,7 @@ export function useAdmin() {
       }
       
       // 只有在非超時錯誤且以前是管理員時才顯示錯誤
-      if (!isAbortError && isAdmin && showErrors) {
+      if (!isAbortError && isAdmin && forceCheck) {
         toast({
           title: "管理員會話檢查失敗",
           description: "發生網絡錯誤，可能需要重新登入",
