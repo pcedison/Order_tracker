@@ -66,7 +66,7 @@ export default function DashboardStats() {
   return (
     <div className="space-y-6">
       {/* 標題和篩選器 */}
-      <div className="glass-morphism rounded-2xl shadow-2xl overflow-hidden">
+      <div className="dashboard-header glass-morphism rounded-2xl shadow-2xl overflow-hidden">
         <div className="gradient-info p-6 text-white">
           <div className="flex justify-between items-start">
             <div>

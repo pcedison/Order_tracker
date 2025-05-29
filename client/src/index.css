@@ -265,7 +265,8 @@ body {
   .sidebar,
   .header,
   .footer,
-  .no-print {
+  .no-print,
+  .dashboard-header {
     display: none !important;
   }
 
