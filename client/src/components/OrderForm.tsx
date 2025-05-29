@@ -3,7 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useProducts } from "@/hooks/useProducts";
 import { useOrders } from "@/hooks/useOrders";
 import { Product } from "@/lib/types";
-import { Calendar, Search, Weight, X } from 'lucide-react';
+import { Calendar, Search, Weight, X, CheckCircle } from 'lucide-react';
 
 export default function OrderForm() {
   const [deliveryDate, setDeliveryDate] = useState<string>(() => {
@@ -15,6 +15,7 @@ export default function OrderForm() {
   const [quantity, setQuantity] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { toast } = useToast();
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -27,7 +28,7 @@ export default function OrderForm() {
       if (
         suggestionsRef.current &&
         !suggestionsRef.current.contains(event.target as Node) &&
-        (event.target as HTMLElement).id !== "productCode"
+        (event.target as HTMLElement).id !== "productSearch"
       ) {
         setShowSuggestions(false);
       }
@@ -41,7 +42,7 @@ export default function OrderForm() {
 
   const handleProductSearch = (value: string) => {
     setProductQuery(value);
-    setSelectedProduct(null); // Clear selected product when searching
+    setSelectedProduct(null);
     
     if (value.trim()) {
       setShowSuggestions(true);
@@ -56,140 +57,242 @@ export default function OrderForm() {
     setShowSuggestions(false);
   };
 
-  const handleCreateOrder = async () => {
+  const clearSearch = () => {
+    setProductQuery("");
+    setSelectedProduct(null);
+    setShowSuggestions(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!selectedProduct) {
       toast({
-        title: "選擇產品",
-        description: "請先選擇一個產品",
-        variant: "destructive",
+        title: "請選擇產品",
+        description: "請從搜尋結果中選擇一個產品",
+        variant: "destructive"
       });
       return;
     }
 
     if (!quantity || parseInt(quantity) <= 0) {
       toast({
-        title: "輸入數量",
-        description: "請輸入有效的數量",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!deliveryDate) {
-      toast({
-        title: "選擇日期",
-        description: "請選擇到貨日期",
-        variant: "destructive",
+        title: "請輸入有效數量",
+        description: "數量必須大於 0",
+        variant: "destructive"
       });
       return;
     }
 
     try {
+      setIsSubmitting(true);
       await createOrder({
         delivery_date: deliveryDate,
         product_code: selectedProduct.code,
         product_name: selectedProduct.name,
-        quantity: parseFloat(quantity),
+        quantity: parseInt(quantity),
         status: "temporary"
-      });
-
-      toast({
-        title: "訂單成立",
-        description: "訂單已成功建立",
       });
 
       // Reset form
       setProductQuery("");
-      setQuantity("");
       setSelectedProduct(null);
-      
-      // 发送订单创建成功的自定义事件，通知其他组件刷新订单列表
-      const orderCreatedEvent = new CustomEvent('orderCreated');
-      window.dispatchEvent(orderCreatedEvent);
-    } catch (error) {
+      setQuantity("");
+      setShowSuggestions(false);
+
       toast({
-        title: "訂單建立失敗",
-        description: error instanceof Error ? error.message : "未知錯誤",
-        variant: "destructive",
+        title: "訂單建立成功",
+        description: `已建立 ${selectedProduct.name} 的暫存訂單`
       });
+
+      await loadOrders();
+    } catch (error) {
+      console.error("Error creating order:", error);
+      toast({
+        title: "建立訂單失敗",
+        description: "請稍後再試或聯繫系統管理員",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Filter products based on search query
-  const filteredProducts = searchProducts(productQuery);
+  const filteredProducts = products.filter(product => {
+    if (!productQuery) return false;
+    const query = productQuery.toLowerCase();
+    return (
+      product.code.toLowerCase().includes(query) ||
+      product.name.toLowerCase().includes(query)
+    );
+  });
 
   return (
-    <div className="bg-neutral p-5 rounded-lg mb-8">
-      <h2 className="text-[26px] mb-4">輸入新訂單</h2>
-      
-      <div className="mb-4">
-        <label htmlFor="deliveryDate" className="inline-block w-32 text-[22px]">到貨日期：</label>
-        <Input
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* 到貨日期 */}
+      <div className="relative">
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <Calendar className="inline mr-2 text-purple-500" size={16} />
+          到貨日期
+        </label>
+        <input
           type="date"
-          id="deliveryDate"
           value={deliveryDate}
           onChange={(e) => setDeliveryDate(e.target.value)}
-          className="p-2 text-[22px] border border-[#ccc] rounded w-52 inline-block"
+          className="input-modern w-full px-4 py-3 rounded-xl text-gray-800"
+          required
         />
       </div>
-      
-      <div className="mb-4 relative">
-        <label htmlFor="productCode" className="inline-block w-32 text-[22px]">搜尋產品：</label>
-        <Input
-          id="productCode"
-          placeholder="輸入產品編號、名稱或特徵"
-          value={productQuery}
-          onChange={(e) => handleProductSearch(e.target.value)}
-          onFocus={() => productQuery.trim() && setShowSuggestions(true)}
-          className="p-2 text-[22px] border border-[#ccc] rounded w-52 inline-block"
-        />
-        <span className="block text-sm text-gray-600 mt-1 italic">您可以輸入產品編號、名稱、顏色等特徵進行搜尋</span>
-        
+
+      {/* 產品搜尋 */}
+      <div className="relative">
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <Search className="inline mr-2 text-purple-500" size={16} />
+          搜尋產品
+        </label>
+        <div className="relative">
+          <input
+            id="productSearch"
+            type="text"
+            value={productQuery}
+            onChange={(e) => handleProductSearch(e.target.value)}
+            placeholder="輸入產品編號、名稱..."
+            className="input-modern w-full pl-12 pr-12 py-3 rounded-xl text-gray-800"
+            autoComplete="off"
+          />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+          {productQuery && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+
+        {/* 搜尋建議 */}
         {showSuggestions && filteredProducts.length > 0 && (
           <div
             ref={suggestionsRef}
-            className="product-suggestions absolute bg-white border border-[#ddd] max-h-[400px] overflow-y-auto w-[350px] z-[100] text-[20px] shadow-md"
-            style={{ top: "60px", left: "132px" }}
+            className="absolute z-20 w-full mt-2 glass-morphism rounded-xl shadow-2xl max-h-64 overflow-y-auto"
           >
-            {filteredProducts.map((product) => (
-              <div
+            {filteredProducts.slice(0, 10).map((product) => (
+              <button
                 key={product.code}
-                className="suggestion-item p-[10px] cursor-pointer border-b border-[#eee] hover:bg-[#f0f0f0]"
+                type="button"
                 onClick={() => handleSelectProduct(product)}
+                className="search-suggestion w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0 flex items-center justify-between"
               >
-                <span className="font-bold text-blue-600">{product.code}</span> - 
-                <span className="text-gray-800">{product.name}</span> 
-                {product.color && <span className="text-gray-600">({product.color})</span>}
-                {product.price && <span className="text-gray-900"> ${product.price}</span>}
-              </div>
+                <div>
+                  <div className="font-semibold text-gray-800">{product.code}</div>
+                  <div className="text-sm text-gray-600">{product.name}</div>
+                </div>
+                {product.color && (
+                  <div className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full">
+                    {product.color}
+                  </div>
+                )}
+              </button>
             ))}
           </div>
         )}
+
+        {showSuggestions && productQuery && filteredProducts.length === 0 && (
+          <div className="absolute z-20 w-full mt-2 glass-morphism rounded-xl shadow-2xl p-4 text-center text-gray-500">
+            <Search size={32} className="mx-auto mb-2 text-gray-300" />
+            <p>找不到符合的產品</p>
+          </div>
+        )}
       </div>
-      
-      <div className="mb-4">
-        <label htmlFor="quantity" className="inline-block w-32 text-[22px]">公斤數：</label>
-        <Input
-          type="number"
-          id="quantity"
-          placeholder="輸入數量"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          className="p-2 text-[22px] border border-[#ccc] rounded w-52 inline-block"
-        />
+
+      {/* 數量輸入 */}
+      <div className="relative">
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <Weight className="inline mr-2 text-purple-500" size={16} />
+          數量
+        </label>
+        <div className="flex space-x-3">
+          <input
+            type="number"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            placeholder="輸入數量"
+            min="1"
+            className="input-modern flex-1 px-4 py-3 rounded-xl text-gray-800"
+            required
+          />
+          <span className="flex items-center px-6 bg-gray-100 rounded-xl font-semibold text-gray-700">
+            公斤
+          </span>
+        </div>
       </div>
-      
-      <Button
-        id="createOrderBtn"
-        onClick={handleCreateOrder}
-        className="px-4 py-2.5 text-[22px] bg-[#4CAF50] text-white border-none rounded cursor-pointer mr-2.5 hover:bg-[#45a049]"
-      >
-        訂單成立
-      </Button>
-      
-      <div id="apiStatus" className="mt-2.5 text-sm text-gray-600">
-        {loadingStatus}
+
+      {/* 選中的產品資訊 */}
+      {selectedProduct && (
+        <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200 animate-fade-in">
+          <div className="flex items-center space-x-3">
+            <div className="gradient-success p-2 rounded-lg">
+              <CheckCircle className="text-white" size={16} />
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-800">已選擇產品</h4>
+              <p className="text-sm text-gray-600">
+                {selectedProduct.code} - {selectedProduct.name}
+              </p>
+              {selectedProduct.color && (
+                <p className="text-xs text-purple-600">顏色: {selectedProduct.color}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 按鈕組 */}
+      <div className="flex space-x-4 pt-4">
+        <button
+          type="submit"
+          disabled={isSubmitting || !selectedProduct || !quantity}
+          className="flex-1 gradient-primary text-white font-semibold py-3 px-6 rounded-xl btn-3d disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+        >
+          {isSubmitting ? (
+            <div className="flex items-center justify-center space-x-2">
+              <div className="loading-spinner"></div>
+              <span>建立中...</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center space-x-2">
+              <CheckCircle size={16} />
+              <span>建立訂單</span>
+            </div>
+          )}
+        </button>
+        
+        <button
+          type="button"
+          onClick={() => {
+            setProductQuery("");
+            setSelectedProduct(null);
+            setQuantity("");
+            setShowSuggestions(false);
+          }}
+          className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl transition-colors"
+        >
+          <div className="flex items-center justify-center space-x-2">
+            <X size={16} />
+            <span>清除</span>
+          </div>
+        </button>
       </div>
-    </div>
+
+      {/* 載入狀態提示 */}
+      {isLoadingProducts && (
+        <div className="text-center py-4">
+          <div className="loading-spinner mx-auto mb-2"></div>
+          <p className="text-sm text-gray-500">{loadingStatus}</p>
+        </div>
+      )}
+    </form>
   );
 }
