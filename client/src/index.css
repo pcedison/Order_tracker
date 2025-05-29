@@ -271,8 +271,8 @@ body {
 
   /* 確保列印區域佔滿整個頁面 */
   body {
-    margin: 0;
-    padding: 20px;
+    margin: 0 !important;
+    padding: 10px !important;
     font-size: 12px;
     line-height: 1.4;
     color: #000;
@@ -288,7 +288,7 @@ body {
   .product-stats-table {
     width: 100% !important;
     border-collapse: collapse !important;
-    margin-top: 20px !important;
+    margin-top: 0 !important;
     page-break-inside: auto;
   }
 
@@ -315,7 +315,7 @@ body {
   .print-title {
     font-size: 18px !important;
     font-weight: bold !important;
-    margin: 20px 0 15px 0 !important;
+    margin: 0 0 15px 0 !important;
     text-align: center !important;
     color: #000 !important;
     page-break-after: avoid;
