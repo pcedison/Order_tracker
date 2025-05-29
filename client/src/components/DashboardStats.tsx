@@ -122,46 +122,46 @@ export default function DashboardStats() {
 
       {/* 統計卡片 */}
       {statsData && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="stat-card glass-morphism rounded-xl p-6 card-hover">
+        <div className="stats-cards grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="stats-card stat-card glass-morphism rounded-xl p-6 card-hover">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">總訂單數</p>
-                <p className="text-2xl font-bold text-gray-900">{statsData.totalOrders}</p>
+                <h3 className="text-sm font-medium text-gray-600">總訂單數</h3>
+                <p className="value text-2xl font-bold text-gray-900">{statsData.totalOrders}</p>
               </div>
-              <Package className="text-blue-500" size={32} />
+              <Package className="text-blue-500 print-hidden" size={32} />
             </div>
           </div>
           
-          <div className="stat-card glass-morphism rounded-xl p-6 card-hover">
+          <div className="stats-card stat-card glass-morphism rounded-xl p-6 card-hover">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">總公斤數</p>
-                <p className="text-2xl font-bold text-gray-900">{statsData.totalKilograms}</p>
+                <h3 className="text-sm font-medium text-gray-600">總公斤數</h3>
+                <p className="value text-2xl font-bold text-gray-900">{statsData.totalKilograms}</p>
               </div>
-              <i className="fas fa-weight text-green-500 text-2xl"></i>
+              <i className="fas fa-weight text-green-500 text-2xl print-hidden"></i>
             </div>
           </div>
           
-          <div className="stat-card glass-morphism rounded-xl p-6 card-hover">
+          <div className="stats-card stat-card glass-morphism rounded-xl p-6 card-hover">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">總包數</p>
-                <p className="text-2xl font-bold text-gray-900">{Math.ceil(statsData.totalKilograms / 25)}</p>
+                <h3 className="text-sm font-medium text-gray-600">總包數</h3>
+                <p className="value text-2xl font-bold text-gray-900">{Math.ceil(statsData.totalKilograms / 25)}</p>
               </div>
-              <i className="fas fa-boxes text-purple-500 text-2xl"></i>
+              <i className="fas fa-boxes text-purple-500 text-2xl print-hidden"></i>
             </div>
           </div>
           
-          <div className="stat-card glass-morphism rounded-xl p-6 card-hover">
+          <div className="stats-card stat-card glass-morphism rounded-xl p-6 card-hover">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">總金額</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <h3 className="text-sm font-medium text-gray-600">總金額</h3>
+                <p className="value text-2xl font-bold text-gray-900">
                   ${statsData.totalAmount?.toLocaleString() || '0'}
                 </p>
               </div>
-              <DollarSign className="text-yellow-500" size={32} />
+              <DollarSign className="text-yellow-500 print-hidden" size={32} />
             </div>
           </div>
         </div>
@@ -170,11 +170,12 @@ export default function DashboardStats() {
       {/* 產品統計表 */}
       {statsData?.stats && statsData.stats.length > 0 && (
         <div className="glass-morphism rounded-2xl shadow-2xl overflow-hidden">
-          <div className="gradient-primary p-6 text-white">
+          <div className="gradient-primary p-6 text-white print-hidden">
             <h3 className="text-xl font-bold">產品統計 - {statsData.periodText}</h3>
           </div>
+          <h3 className="print-title hidden print:block">產品統計 - {statsData.periodText}</h3>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="product-stats-table w-full">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">產品編號</th>
@@ -216,7 +217,7 @@ export default function DashboardStats() {
 
       {/* 已完成訂單（按日期分組） */}
       {Object.keys(groupedOrders).length > 0 && (
-        <div className="glass-morphism rounded-2xl shadow-2xl overflow-hidden">
+        <div className="glass-morphism rounded-2xl shadow-2xl overflow-hidden print-hidden">
           <div className="gradient-success p-6 text-white">
             <h3 className="text-xl font-bold">已完成訂單</h3>
           </div>
