@@ -179,18 +179,12 @@ export class SupabaseStorage implements IStorage {
   async getOrdersByDateRange(startDate: string, endDate: string, status?: "temporary" | "completed"): Promise<Order[]> {
     if (status === "completed") {
       // 获取已完成的历史订单（从 orders 和 order_items 表中）
-      // 使用日期範圍查詢，這裡我們使用大於等於開始日期+1天的方式
-      // 因為我們想要從26日開始，而startDate是上個月25日
-      const startDateObj = new Date(startDate);
-      startDateObj.setDate(startDateObj.getDate() + 1); // 26日
-      const adjustedStartDate = startDateObj.toISOString().split('T')[0]; // 格式化為YYYY-MM-DD
-      
-      console.log(`調整後的開始日期: ${adjustedStartDate}, 結束日期: ${endDate}`);
+      console.log(`查詢已完成訂單 - 開始日期: ${startDate}, 結束日期: ${endDate}`);
       
       const { data: orderData, error: orderError } = await supabase
         .from(this.ordersTable)
         .select('id, order_date, created_at')
-        .gte('order_date', adjustedStartDate)
+        .gte('order_date', startDate)
         .lte('order_date', endDate)
         .order('created_at', { ascending: false });
       
@@ -439,35 +433,28 @@ export class SupabaseStorage implements IStorage {
     let periodText: string;
     
     if (month) {
-      // 特定月份: 使用從上個月25號到當月24號的範圍
+      // 特定月份: 使用當月1號到當月最後一天
       const yearNum = parseInt(year, 10);
       const monthNum = parseInt(month, 10);
       
-      // 計算上個月的年份和月份
-      let prevMonth = monthNum - 1;
-      let prevYear = yearNum;
-      
-      // 處理跨年情況
-      if (prevMonth === 0) {
-        prevMonth = 12;
-        prevYear -= 1;
-      }
-      
       // 格式化月份
       const paddedMonth = monthNum.toString().padStart(2, '0');
-      const paddedPrevMonth = prevMonth.toString().padStart(2, '0');
       
-      // 上個月26號至當月25號
-      startDate = `${prevYear}-${paddedPrevMonth}-26`;
-      endDate = `${year}-${paddedMonth}-25`;
+      // 當月1號到當月最後一天
+      startDate = `${year}-${paddedMonth}-01`;
+      
+      // 計算當月最後一天
+      const lastDay = new Date(yearNum, monthNum, 0).getDate();
+      endDate = `${year}-${paddedMonth}-${lastDay.toString().padStart(2, '0')}`;
       
       periodText = `${year}年${monthNum}月`;
+      console.log(`月份統計 - ${periodText}: ${startDate} 到 ${endDate}`);
     } else {
-      // 整年: 前一年12月26號至當年12月25號
-      const prevYear = parseInt(year, 10) - 1;
-      startDate = `${prevYear}-12-26`;
-      endDate = `${year}-12-25`;
+      // 整年: 當年1月1號至當年12月31號
+      startDate = `${year}-01-01`;
+      endDate = `${year}-12-31`;
       periodText = `${year}年全年`;
+      console.log(`年度統計 - ${periodText}: ${startDate} 到 ${endDate}`);
     }
     
     // Get completed orders for the date range
