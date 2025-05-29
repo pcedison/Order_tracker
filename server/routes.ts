@@ -53,15 +53,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       disableTouch: false, // 確保touch能夠更新存儲中的cookie過期時間
       pruneSessionInterval: 60 * 60, // 每小時進行一次過期會話清理
       // 強制控制資料庫中的會話過期時間
-      ttl: 10 * 60 // 明確設置資料庫中的會話存活時間為10分鐘
+      ttl: 60 * 60 // 設置資料庫中的會話存活時間為1小時
     }),
     cookie: {
       secure: false, // 即使在生產環境也不要使用secure，避免部署問題
       httpOnly: true,
-      maxAge: 10 * 60 * 1000, // 10分鐘超時
+      maxAge: 60 * 60 * 1000, // 1小時超時
       sameSite: 'lax',
       path: '/',
-      expires: new Date(Date.now() + 10 * 60 * 1000) // 明確設置10分鐘過期時間
+      expires: new Date(Date.now() + 60 * 60 * 1000) // 明確設置1小時過期時間
     },
   });
   
@@ -74,9 +74,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lastActivity = req.session.lastActivity || req.session.loginTime || Date.now();
       const now = Date.now();
       const inactiveTime = now - lastActivity;
-      const TIMEOUT = 10 * 60 * 1000; // 10分鐘超時
+      const TIMEOUT = 60 * 60 * 1000; // 1小時超時
       
-      // 如果不活動時間超過30分鐘，則自動登出
+      // 如果不活動時間超過1小時，則自動登出
       if (inactiveTime > TIMEOUT) {
         console.log(`管理員會話自動超時登出，不活動時間: ${Math.floor(inactiveTime/1000)}秒`);
         
@@ -249,10 +249,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isAuthenticated) {
         req.session.lastActivity = Date.now(); 
         
-        // 同步更新 cookie 過期時間為 10 分鐘
+        // 同步更新 cookie 過期時間為 1 小時
         if (req.session.cookie) {
-          req.session.cookie.expires = new Date(Date.now() + 10 * 60 * 1000);
-          req.session.cookie.maxAge = 10 * 60 * 1000;
+          req.session.cookie.expires = new Date(Date.now() + 60 * 60 * 1000);
+          req.session.cookie.maxAge = 60 * 60 * 1000;
         }
         
         // 強制保存會話到數據庫
@@ -261,7 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 計算剩餘有效時間（用於超時提醒）
       let remainingTime = 0;
-      const TIMEOUT = 10 * 60 * 1000; // 10分鐘超時
+      const TIMEOUT = 60 * 60 * 1000; // 1小時超時
       
       if (isAuthenticated && req.session.lastActivity) {
         const now = Date.now();
@@ -336,10 +336,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/orders/stats", async (req, res) => {
     try {
-      // Check if user is admin
+      // Check if user is admin with detailed logging
+      console.log("Stats endpoint - Session exists:", !!req.session);
+      console.log("Stats endpoint - Session isAdmin:", req.session?.isAdmin);
+      console.log("Stats endpoint - Session ID:", req.sessionID);
+      
       if (!req.session?.isAdmin) {
+        console.log("Stats endpoint - Access denied: User is not admin");
         return res.status(403).json({ message: "Unauthorized" });
       }
+      
+      console.log("Stats endpoint - Access granted to admin");
 
       const { year, month } = req.query;
       
