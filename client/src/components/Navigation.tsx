@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Bell, Settings, User, Menu, X, Package } from 'lucide-react';
+import NotificationCenter from './NotificationCenter';
 
 interface NavigationProps {
   currentView: string;
@@ -79,20 +80,10 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
                   <span className="pulse-dot absolute top-0 right-0"></span>
                 </button>
                 
-                {/* 通知下拉選單 */}
-                {isNotificationOpen && (
-                  <div className="absolute right-0 mt-2 w-80 glass-morphism rounded-xl shadow-2xl z-50 dropdown-animation">
-                    <div className="p-4 border-b border-gray-200">
-                      <h3 className="font-semibold text-gray-800">通知中心</h3>
-                    </div>
-                    <div className="max-h-96 overflow-y-auto">
-                      <div className="p-8 text-center text-gray-500">
-                        <Bell size={48} className="mx-auto mb-3 text-gray-300" />
-                        <p>暫無新通知</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <NotificationCenter 
+                  isOpen={isNotificationOpen} 
+                  onClose={() => setIsNotificationOpen(false)} 
+                />
               </div>
 
               {/* 設定齒輪 */}
