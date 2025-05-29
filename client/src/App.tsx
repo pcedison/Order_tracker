@@ -12,6 +12,7 @@ import AdminSection from "@/components/AdminSection";
 import ConfigSettings from "@/components/ConfigSettings";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import AdminLogin from "@/components/AdminLogin";
+import DashboardStats from "@/components/DashboardStats";
 import { useAdmin } from "@/hooks/useAdmin";
 
 function Router() {
@@ -87,7 +88,7 @@ function Router() {
 
             {/* 數據分析視圖 */}
             {currentView === 'dashboard' && (
-              <HomePage />
+              <DashboardStats />
             )}
 
             {/* 管理員登入 */}
