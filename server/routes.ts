@@ -99,7 +99,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize services
   const spreadsheetService = new SpreadsheetService();
-  const authService = new AuthService();
 
   // Auth API routes
   app.post("/api/auth/login", async (req, res) => {
