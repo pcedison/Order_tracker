@@ -1,0 +1,127 @@
+/* ==============================================
+   專門負責預覽列印與 A4 排版的 CSS 樣式
+   解決空白第二頁問題的完整解決方案
+   ============================================== */
+
+/* 列印樣式 */
+@media print {
+  /* === 基本頁面設置 === */
+  @page {
+    margin: 0.5in;        /* A4 頁面邊距 */
+    size: A4 portrait;    /* A4 直向頁面 */
+  }
+
+  /* === 隱藏不需要列印的元素 === */
+  .print-hidden,
+  nav,
+  .navigation,
+  button:not(.print-visible),
+  .sidebar,
+  .header,
+  .footer,
+  .no-print,
+  .dashboard-header,
+  .loading-spinner {
+    display: none !important;
+  }
+
+  /* === 確保包含表格的容器可以顯示 === */
+  .glass-morphism {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* === 基本頁面佈局 === */
+  body {
+    margin: 0 !important;
+    padding: 5px !important;
+    font-size: 12px;
+    line-height: 1.2;
+    color: #000;
+    background: white !important;
+    page-break-after: never !important;
+  }
+
+  /* === 隱藏統計卡片區域 === */
+  .stats-cards {
+    display: none !important;
+  }
+
+  /* === 產品統計表格列印樣式 === */
+  .product-stats-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 0 !important;
+    page-break-inside: avoid !important;
+    page-break-after: never !important;
+  }
+
+  .product-stats-table th,
+  .product-stats-table td {
+    border: 1px solid #ddd !important;
+    padding: 4px 6px !important;
+    text-align: left !important;
+    font-size: 10px !important;
+    color: #000 !important;
+    background: white !important;
+    line-height: 1.1 !important;
+  }
+
+  .product-stats-table th {
+    background: #f5f5f5 !important;
+    font-weight: bold !important;
+  }
+
+  .product-stats-table tr:nth-child(even) {
+    background: #f9f9f9 !important;
+  }
+
+  /* === 標題樣式 === */
+  .print-title {
+    font-size: 16px !important;
+    font-weight: bold !important;
+    margin: 0 0 8px 0 !important;
+    text-align: center !important;
+    color: #000 !important;
+    page-break-after: avoid;
+    display: block !important;
+  }
+
+  /* === 移除所有裝飾效果 === */
+  * {
+    box-shadow: none !important;
+    background-image: none !important;
+    text-shadow: none !important;
+    /* 強制防止分頁的關鍵屬性 */
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    orphans: 1000 !important;
+    widows: 1000 !important;
+  }
+
+  /* === 移除可能造成額外空間的元素 === */
+  .stats-container,
+  .stats-container *,
+  .glass-morphism {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+}
+
+/* ==============================================
+   使用說明：
+   
+   1. 將此 CSS 添加到您的主樣式文件中
+   2. 確保產品統計表格使用 .product-stats-table 類別
+   3. 標題使用 .print-title 類別
+   4. 不需要列印的元素添加 .print-hidden 類別
+   
+   主要功能：
+   - 設定 A4 頁面格式
+   - 隱藏不必要的UI元素
+   - 優化表格顯示
+   - 防止空白第二頁問題
+   - 確保內容適合單頁列印
+   ============================================== */
