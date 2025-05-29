@@ -289,8 +289,9 @@ body {
   .product-stats-table {
     width: 100% !important;
     border-collapse: collapse !important;
-    margin-top: 0 !important;
-    page-break-inside: auto;
+    margin: 0 !important;
+    page-break-inside: avoid;
+    page-break-after: avoid;
   }
 
   .product-stats-table th,
@@ -337,10 +338,26 @@ body {
   }
 
   .page-break-after {
-    page-break-after: always;
+    page-break-after: avoid;
   }
 
   .page-break-inside-avoid {
     page-break-inside: avoid;
+  }
+
+  /* 防止產生空白頁面 */
+  @page {
+    margin: 0.5in;
+    size: A4;
+  }
+
+  /* 確保內容不會溢出產生額外頁面 */
+  * {
+    page-break-after: avoid !important;
+  }
+
+  /* 最後的元素不要分頁 */
+  :last-child {
+    page-break-after: avoid !important;
   }
 }
