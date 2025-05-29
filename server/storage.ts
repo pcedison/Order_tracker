@@ -73,8 +73,29 @@ export class SupabaseStorage implements IStorage {
       // 初始化安全密碼系統
       await this.authService.initializeFromDatabase(data?.value || null);
       
-      // 如果是新系統首次運行，儲存預設加密密碼到數據庫
+      // 如果是新系統首次運行，首先確保表存在，然後儲存預設加密密碼
       if (!data?.value && this.authService.isPasswordInitialized()) {
+        // 先嘗試創建 configs 表（如果不存在）
+        try {
+          const { error: createError } = await supabase.rpc('exec_sql', {
+            sql: `
+              CREATE TABLE IF NOT EXISTS configs (
+                id SERIAL PRIMARY KEY,
+                key TEXT UNIQUE NOT NULL,
+                value TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+              );
+            `
+          });
+          
+          if (createError) {
+            console.log('嘗試透過 RPC 創建表失敗，使用直接插入方式');
+          }
+        } catch (rpcError) {
+          console.log('RPC 功能不可用，繼續使用直接方式');
+        }
+        
         const passwordData = this.authService.getCurrentPasswordData();
         if (passwordData) {
           console.log('儲存預設加密密碼到數據庫');
@@ -88,6 +109,7 @@ export class SupabaseStorage implements IStorage {
             
           if (insertError) {
             console.error('儲存加密密碼失敗:', insertError);
+            console.log('將使用記憶體中的安全密碼系統');
           } else {
             console.log('已成功儲存加密密碼到數據庫');
           }
