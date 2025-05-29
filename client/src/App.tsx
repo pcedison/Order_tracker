@@ -18,7 +18,6 @@ import { useAdmin } from "@/hooks/useAdmin";
 function Router() {
   const [location] = useLocation();
   const [currentView, setCurrentView] = useState('orders');
-  const { isAdmin } = useAdmin();
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     message: string;
@@ -28,6 +27,7 @@ function Router() {
     message: '',
     onConfirm: () => {}
   });
+  const { isAdmin } = useAdmin();
 
   // 根據路由設置當前視圖
   useEffect(() => {

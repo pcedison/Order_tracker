@@ -7,7 +7,7 @@ export default function DashboardStats() {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const { generateStats, isLoadingStats, statsData } = useOrders();
 
-  // 載入統計數據
+  // 載入統計數據 - 移除 generateStats 依賴避免無限循環
   useEffect(() => {
     const loadStats = async () => {
       try {
@@ -18,7 +18,7 @@ export default function DashboardStats() {
     };
 
     loadStats();
-  }, [selectedYear, selectedMonth, generateStats]);
+  }, [selectedYear, selectedMonth]);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => (currentYear - 2 + i).toString());
