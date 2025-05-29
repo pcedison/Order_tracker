@@ -1,0 +1,174 @@
+/* 列印樣式 - 優化版本 */
+@media print {
+  /* 隱藏所有不需要列印的元素 */
+  .print-hidden,
+  nav,
+  .navigation,
+  button:not(.print-visible),
+  .sidebar,
+  .header,
+  .footer,
+  .no-print,
+  .dashboard-header,
+  .loading-spinner,
+  .stats-cards {
+    display: none !important;
+  }
+
+  /* 頁面設置 - 關鍵改進 */
+  @page {
+    margin: 10mm 15mm 10mm 15mm !important; /* 減少邊距，上邊距只有10mm */
+    size: A4 portrait !important;
+    padding: 0 !important;
+  }
+
+  /* 基本頁面樣式 */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: auto !important;
+    font-family: Arial, sans-serif !important;
+    color: #000 !important;
+    background: white !important;
+    line-height: 1.2 !important;
+    overflow: visible !important;
+  }
+
+  /* 主容器樣式 */
+  .glass-morphism {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+
+  /* 標題樣式 - 縮小間距 */
+  .print-title {
+    font-size: 18px !important;
+    font-weight: bold !important;
+    margin: 0 0 5mm 0 !important; /* 使用mm單位，減少標題下方間距 */
+    padding: 0 !important;
+    text-align: center !important;
+    color: #000 !important;
+    display: block !important;
+    page-break-after: avoid !important;
+    line-height: 1.2 !important;
+  }
+
+  /* 產品統計表格列印樣式 - 字體調整為14px */
+  .product-stats-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    table-layout: fixed !important; /* 固定表格佈局 */
+    page-break-inside: auto !important; /* 允許表格內部分頁，但盡量避免 */
+  }
+
+  .product-stats-table th,
+  .product-stats-table td {
+    border: 1px solid #333 !important; /* 加深邊框顏色 */
+    padding: 3mm 2mm !important; /* 使用mm單位，增加上下間距 */
+    text-align: left !important;
+    font-size: 14px !important; /* 設置為14px */
+    color: #000 !important;
+    background: white !important;
+    line-height: 1.3 !important; /* 稍微增加行高 */
+    vertical-align: middle !important;
+    word-wrap: break-word !important;
+    overflow: hidden !important;
+  }
+
+  .product-stats-table th {
+    background: #f0f0f0 !important;
+    font-weight: bold !important;
+    text-align: center !important;
+  }
+
+  .product-stats-table tr:nth-child(even) {
+    background: #f8f8f8 !important;
+  }
+
+  /* 防止空白頁面的關鍵設置 */
+  .stats-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    page-break-after: avoid !important;
+  }
+
+  .stats-container::after {
+    content: "" !important;
+    display: block !important;
+    height: 0 !important;
+    clear: both !important;
+    page-break-after: avoid !important;
+  }
+
+  /* 移除所有可能導致額外空間的元素 */
+  * {
+    box-shadow: none !important;
+    background-image: none !important;
+    text-shadow: none !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /* 移除所有底部邊距和內距 */
+  *:last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* 確保最後一個元素後沒有額外空間 */
+  body *:last-child,
+  .stats-container *:last-child,
+  .product-stats-table:last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    page-break-after: avoid !important;
+  }
+
+  /* 隱藏可能的空元素 */
+  div:empty,
+  p:empty,
+  span:empty {
+    display: none !important;
+  }
+
+  /* 表格行設置 */
+  .product-stats-table tr {
+    page-break-inside: avoid !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 表格頭部設置 */
+  .product-stats-table thead {
+    display: table-header-group !important;
+  }
+
+  .product-stats-table tbody {
+    display: table-row-group !important;
+  }
+
+  /* 確保內容區域沒有多餘高度 */
+  .content-wrapper,
+  .main-content,
+  .page-content {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
