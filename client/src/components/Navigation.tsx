@@ -111,21 +111,43 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
                       <h3 className="font-semibold text-gray-800">系統設定</h3>
                     </div>
                     <div className="p-2">
-                      <button
-                        onClick={() => onViewChange('config')}
-                        className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center space-x-3"
-                      >
-                        <Settings size={16} className="text-gray-500" />
-                        <span>系統配置</span>
-                      </button>
-                      {isAdmin && (
+                      {!isAdmin ? (
                         <button
-                          onClick={() => onViewChange('admin')}
+                          onClick={() => onViewChange('login')}
                           className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center space-x-3"
                         >
                           <User size={16} className="text-gray-500" />
-                          <span>管理員區域</span>
+                          <span>管理員登入</span>
                         </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => onViewChange('config')}
+                            className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center space-x-3"
+                          >
+                            <Settings size={16} className="text-gray-500" />
+                            <span>系統配置</span>
+                          </button>
+                          <button
+                            onClick={() => onViewChange('admin')}
+                            className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center space-x-3"
+                          >
+                            <User size={16} className="text-gray-500" />
+                            <span>管理員區域</span>
+                          </button>
+                          <div className="border-t border-gray-200 my-2"></div>
+                          <button
+                            onClick={() => {
+                              // 這裡會觸發登出功能
+                              window.dispatchEvent(new CustomEvent('adminLogout'));
+                              setIsSettingsOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-3 rounded-lg hover:bg-red-50 transition-colors flex items-center space-x-3 text-red-600"
+                          >
+                            <i className="fas fa-sign-out-alt text-sm"></i>
+                            <span>登出管理員</span>
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

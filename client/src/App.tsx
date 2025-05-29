@@ -11,10 +11,13 @@ import OrdersList from "@/components/OrdersList";
 import AdminSection from "@/components/AdminSection";
 import ConfigSettings from "@/components/ConfigSettings";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import AdminLogin from "@/components/AdminLogin";
+import { useAdmin } from "@/hooks/useAdmin";
 
 function Router() {
   const [location] = useLocation();
   const [currentView, setCurrentView] = useState('orders');
+  const { isAdmin } = useAdmin();
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     message: string;
@@ -87,16 +90,34 @@ function Router() {
               <HomePage />
             )}
 
-            {/* 管理員區域 */}
-            {currentView === 'admin' && (
+            {/* 管理員登入 */}
+            {currentView === 'login' && (
+              <div className="max-w-md mx-auto">
+                <div className="glass-morphism rounded-2xl shadow-2xl overflow-hidden">
+                  <div className="gradient-primary p-6 text-white">
+                    <h2 className="text-2xl font-bold flex items-center">
+                      <i className="fas fa-user-shield mr-3"></i>
+                      管理員登入
+                    </h2>
+                    <p className="mt-2 text-purple-100">請輸入管理員密碼以存取系統管理功能</p>
+                  </div>
+                  <div className="p-8">
+                    <AdminLogin />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 管理員區域 - 需要登入 */}
+            {currentView === 'admin' && isAdmin && (
               <AdminSection 
                 isVisible={true} 
                 showConfirmDialog={showConfirmDialog} 
               />
             )}
 
-            {/* 系統配置 */}
-            {currentView === 'config' && (
+            {/* 系統配置 - 需要管理員權限 */}
+            {currentView === 'config' && isAdmin && (
               <div className="max-w-4xl mx-auto">
                 <div className="glass-morphism rounded-2xl shadow-2xl overflow-hidden">
                   <div className="gradient-primary p-6 text-white">
@@ -108,6 +129,36 @@ function Router() {
                   </div>
                   <div className="p-8">
                     <ConfigSettings />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 無權限訪問提示 */}
+            {(currentView === 'admin' || currentView === 'config') && !isAdmin && (
+              <div className="max-w-md mx-auto">
+                <div className="glass-morphism rounded-2xl shadow-2xl overflow-hidden">
+                  <div className="gradient-warning p-6 text-white">
+                    <h2 className="text-2xl font-bold flex items-center">
+                      <i className="fas fa-lock mr-3"></i>
+                      需要管理員權限
+                    </h2>
+                    <p className="mt-2 text-orange-100">此功能需要管理員登入才能存取</p>
+                  </div>
+                  <div className="p-8 text-center">
+                    <div className="mb-6">
+                      <i className="fas fa-user-shield text-6xl text-gray-300"></i>
+                    </div>
+                    <p className="text-gray-600 mb-6">
+                      您需要管理員權限才能存取系統配置和管理功能
+                    </p>
+                    <button
+                      onClick={() => setCurrentView('login')}
+                      className="gradient-primary text-white font-semibold py-3 px-6 rounded-xl btn-3d"
+                    >
+                      <i className="fas fa-sign-in-alt mr-2"></i>
+                      前往登入
+                    </button>
                   </div>
                 </div>
               </div>
