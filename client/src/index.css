@@ -281,43 +281,42 @@ body {
 
   /* 統計卡片列印樣式 */
   .stats-cards {
-    display: grid !important;
-    grid-template-columns: repeat(4, 1fr) !important;
-    gap: 15px !important;
+    display: table !important;
+    width: 100% !important;
     margin-bottom: 20px !important;
     page-break-inside: avoid;
+    border-collapse: separate !important;
+    border-spacing: 10px !important;
   }
 
   .stats-card {
+    display: table-cell !important;
+    width: 25% !important;
     border: 1px solid #ddd !important;
     padding: 15px !important;
     border-radius: 8px !important;
     background: white !important;
     text-align: center !important;
     box-shadow: none !important;
-    display: block !important;
+    vertical-align: top !important;
   }
 
-  .stats-card > div {
+  .stats-card * {
     display: block !important;
-  }
-
-  .stats-card h3,
-  .stats-card p {
-    font-size: 14px !important;
-    margin-bottom: 8px !important;
-    color: #333 !important;
     text-align: center !important;
-    display: block !important;
+  }
+
+  .stats-card h3 {
+    font-size: 12px !important;
+    margin: 0 0 10px 0 !important;
+    color: #666 !important;
   }
 
   .stats-card .value {
-    font-size: 20px !important;
+    font-size: 18px !important;
     font-weight: bold !important;
     color: #000 !important;
-    text-align: center !important;
-    display: block !important;
-    margin-top: 5px !important;
+    margin: 0 !important;
   }
 
   /* 產品統計表格列印樣式 */
