@@ -338,7 +338,7 @@ export function useOrders() {
       let startDate, endDate;
       
       if (month) {
-        // 特定月份: 上个月25日到当月24日
+        // 特定月份: 上个月26日到当月25日
         const yearNum = parseInt(year, 10);
         const monthNum = parseInt(month, 10);
         
@@ -355,13 +355,13 @@ export function useOrders() {
         const paddedMonth = monthNum.toString().padStart(2, '0');
         const paddedPrevMonth = prevMonth.toString().padStart(2, '0');
         
-        startDate = `${prevYear}-${paddedPrevMonth}-25`;
-        endDate = `${year}-${paddedMonth}-24`;
+        startDate = `${prevYear}-${paddedPrevMonth}-26`;
+        endDate = `${year}-${paddedMonth}-25`;
       } else {
-        // 整年: 前一年12月25日到当年12月24日
+        // 整年: 前一年12月26日到当年12月25日
         const prevYear = parseInt(year, 10) - 1;
-        startDate = `${prevYear}-12-25`;
-        endDate = `${year}-12-24`;
+        startDate = `${prevYear}-12-26`;
+        endDate = `${year}-12-25`;
       }
       
       // 获取该时间段的历史订单
