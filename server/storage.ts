@@ -1,7 +1,7 @@
 import { type Order, type InsertOrder } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { supabase } from "./supabase";
-import { AuthService } from "./services/auth";
+import { SecureAuthService } from "./services/secureAuth";
 import { priceSpreadsheetService } from "./services/priceSpreadsheet";
 import { pool } from "./db";
 
