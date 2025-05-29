@@ -26,59 +26,35 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
   }, [isOpen]);
 
   const loadNotifications = () => {
-    // 模擬載入通知數據
-    const mockNotifications: Notification[] = [
-      {
-        id: '1',
-        type: 'order',
-        title: '新訂單建立',
-        message: '產品 P10433-銀(珠光粉) 已建立暫存訂單',
-        time: new Date(Date.now() - 10 * 60 * 1000), // 10分鐘前
-        read: false,
-        icon: <Package size={16} className="text-blue-500" />
-      },
-      {
-        id: '2',
-        type: 'stats',
-        title: '今日訂單統計',
-        message: '已完成 8 筆訂單，總重量 1,250 公斤',
-        time: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2小時前
-        read: true,
-        icon: <TrendingUp size={16} className="text-green-500" />
-      },
-      {
-        id: '3',
-        type: 'system',
-        title: '系統狀態正常',
-        message: '資料庫連接穩定，API服務運行正常',
-        time: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4小時前
-        read: true,
-        icon: <CheckCircle size={16} className="text-green-500" />
-      },
-      {
-        id: '4',
-        type: 'admin',
-        title: '配置更新',
-        message: '系統配置已更新，價格試算表連接已重新配置',
-        time: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6小時前
-        read: true,
-        icon: <Settings size={16} className="text-purple-500" />
+    // 從 localStorage 載入通知數據
+    const savedNotifications = localStorage.getItem('notifications');
+    if (savedNotifications) {
+      try {
+        const parsed = JSON.parse(savedNotifications).map((notif: any) => ({
+          ...notif,
+          time: new Date(notif.time)
+        }));
+        setNotifications(parsed);
+      } catch (error) {
+        console.error('Failed to parse notifications:', error);
+        setNotifications([]);
       }
-    ];
-
-    setNotifications(mockNotifications);
+    } else {
+      setNotifications([]);
+    }
   };
 
   const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === id ? { ...notif, read: true } : notif
-      )
+    const updatedNotifications = notifications.map(notif => 
+      notif.id === id ? { ...notif, read: true } : notif
     );
+    setNotifications(updatedNotifications);
+    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
   };
 
   const clearAll = () => {
     setNotifications([]);
+    localStorage.setItem('notifications', JSON.stringify([]));
   };
 
   const getTimeAgo = (time: Date) => {
@@ -183,27 +159,7 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
         )}
       </div>
 
-      {/* 底部操作 */}
-      <div className="p-3 border-t border-gray-200 text-center">
-        <button
-          onClick={() => {
-            // 添加測試通知
-            const newNotification: Notification = {
-              id: Date.now().toString(),
-              type: 'system',
-              title: '測試通知',
-              message: '這是一個測試通知訊息',
-              time: new Date(),
-              read: false,
-              icon: <Info size={16} className="text-blue-500" />
-            };
-            setNotifications(prev => [newNotification, ...prev]);
-          }}
-          className="text-sm text-purple-600 hover:text-purple-800 font-medium transition-colors"
-        >
-          新增測試通知
-        </button>
-      </div>
+
     </div>
   );
 }
