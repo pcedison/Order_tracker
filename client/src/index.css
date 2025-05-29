@@ -273,9 +273,9 @@ body {
   /* 確保列印區域佔滿整個頁面 */
   body {
     margin: 0 !important;
-    padding: 10px !important;
+    padding: 5px !important;
     font-size: 12px;
-    line-height: 1.4;
+    line-height: 1.2;
     color: #000;
     background: white !important;
   }
@@ -296,11 +296,12 @@ body {
   .product-stats-table th,
   .product-stats-table td {
     border: 1px solid #ddd !important;
-    padding: 8px !important;
+    padding: 4px 6px !important;
     text-align: left !important;
-    font-size: 11px !important;
+    font-size: 10px !important;
     color: #000 !important;
     background: white !important;
+    line-height: 1.1 !important;
   }
 
   .product-stats-table th {
@@ -314,9 +315,9 @@ body {
 
   /* 標題樣式 */
   .print-title {
-    font-size: 18px !important;
+    font-size: 16px !important;
     font-weight: bold !important;
-    margin: 0 0 15px 0 !important;
+    margin: 0 0 8px 0 !important;
     text-align: center !important;
     color: #000 !important;
     page-break-after: avoid;
