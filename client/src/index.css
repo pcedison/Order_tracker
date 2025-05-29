@@ -345,20 +345,29 @@ body {
     size: A4;
   }
 
-  /* 確保內容適合一頁 */
-  .stats-container {
+  /* 強制所有內容在一頁內 */
+  * {
     page-break-after: avoid !important;
-    overflow: visible !important;
+    page-break-before: avoid !important;
+    orphans: 1000 !important;
+    widows: 1000 !important;
   }
 
-  /* 強制表格在一頁內顯示 */
+  /* 確保根容器不分頁 */
+  body {
+    page-break-after: never !important;
+  }
+
+  /* 表格不分頁 */
   .product-stats-table {
     page-break-inside: avoid !important;
-    page-break-after: avoid !important;
+    page-break-after: never !important;
   }
 
-  /* 移除可能造成分頁的元素 */
-  .stats-container > div:last-child {
+  /* 移除底部空間 */
+  .stats-container,
+  .stats-container *,
+  .glass-morphism {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
   }
