@@ -279,44 +279,9 @@ body {
     background: white !important;
   }
 
-  /* 統計卡片列印樣式 */
+  /* 隱藏統計卡片區域，在列印時不顯示 */
   .stats-cards {
-    display: table !important;
-    width: 100% !important;
-    margin-bottom: 20px !important;
-    page-break-inside: avoid;
-    border-collapse: separate !important;
-    border-spacing: 10px !important;
-  }
-
-  .stats-card {
-    display: table-cell !important;
-    width: 25% !important;
-    border: 1px solid #ddd !important;
-    padding: 15px !important;
-    border-radius: 8px !important;
-    background: white !important;
-    text-align: center !important;
-    box-shadow: none !important;
-    vertical-align: top !important;
-  }
-
-  .stats-card * {
-    display: block !important;
-    text-align: center !important;
-  }
-
-  .stats-card h3 {
-    font-size: 12px !important;
-    margin: 0 0 10px 0 !important;
-    color: #666 !important;
-  }
-
-  .stats-card .value {
-    font-size: 18px !important;
-    font-weight: bold !important;
-    color: #000 !important;
-    margin: 0 !important;
+    display: none !important;
   }
 
   /* 產品統計表格列印樣式 */
@@ -350,10 +315,11 @@ body {
   .print-title {
     font-size: 18px !important;
     font-weight: bold !important;
-    margin-bottom: 20px !important;
+    margin: 20px 0 15px 0 !important;
     text-align: center !important;
     color: #000 !important;
     page-break-after: avoid;
+    display: block !important;
   }
 
   /* 移除所有陰影和漸變效果 */

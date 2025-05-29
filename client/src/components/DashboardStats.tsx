@@ -173,7 +173,7 @@ export default function DashboardStats() {
           <div className="gradient-primary p-6 text-white print-hidden">
             <h3 className="text-xl font-bold">產品統計 - {statsData.periodText}</h3>
           </div>
-          <h3 className="print-title hidden print:block">產品統計 - {statsData.periodText}</h3>
+          <h3 className="print-title hidden print:block text-center text-lg font-bold mb-4">產品統計 - {statsData.periodText}</h3>
           <div className="overflow-x-auto">
             <table className="product-stats-table w-full">
               <thead className="bg-gray-50">
@@ -209,6 +209,24 @@ export default function DashboardStats() {
                     </td>
                   </tr>
                 ))}
+                {/* 總計行 */}
+                <tr className="bg-gray-100 border-t-2 border-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900" colSpan={2}>
+                    總計
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                    {statsData.totalOrders} 次
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                    {statsData.totalKilograms} 公斤 ({Math.ceil(statsData.totalKilograms / 25)} 包)
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                    -
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                    ${statsData.totalAmount?.toLocaleString() || '0'}
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
