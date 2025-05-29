@@ -50,11 +50,13 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
     );
     setNotifications(updatedNotifications);
     localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+    window.dispatchEvent(new CustomEvent('notificationChanged'));
   };
 
   const clearAll = () => {
     setNotifications([]);
     localStorage.setItem('notifications', JSON.stringify([]));
+    window.dispatchEvent(new CustomEvent('notificationChanged'));
   };
 
   const getTimeAgo = (time: Date) => {

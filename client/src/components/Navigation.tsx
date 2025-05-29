@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Bell, Settings, User, Menu, X, Package } from 'lucide-react';
@@ -15,12 +15,45 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
   const navItems = [
     { id: 'orders', label: '新增訂單', icon: 'fas fa-plus-circle', route: '/' },
     { id: 'list', label: '訂單列表', icon: 'fas fa-list-ul', route: '/orders' },
     { id: 'dashboard', label: '數據分析', icon: 'fas fa-chart-line', route: '/dashboard' }
   ];
+
+  // 檢查未讀通知
+  useEffect(() => {
+    const checkUnreadNotifications = () => {
+      const savedNotifications = localStorage.getItem('notifications');
+      if (savedNotifications) {
+        try {
+          const notifications = JSON.parse(savedNotifications);
+          const unreadCount = notifications.filter((notif: any) => !notif.read).length;
+          setHasUnreadNotifications(unreadCount > 0);
+        } catch (error) {
+          setHasUnreadNotifications(false);
+        }
+      } else {
+        setHasUnreadNotifications(false);
+      }
+    };
+
+    // 初始檢查
+    checkUnreadNotifications();
+
+    // 監聽通知變化
+    const handleNotificationChange = () => {
+      checkUnreadNotifications();
+    };
+
+    window.addEventListener('notificationChanged', handleNotificationChange);
+    
+    return () => {
+      window.removeEventListener('notificationChanged', handleNotificationChange);
+    };
+  }, []);
 
   const handleNavClick = (item: any) => {
     onViewChange(item.id);
@@ -77,7 +110,9 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
                   className="p-2 text-gray-600 hover:text-gray-800 transition-colors relative"
                 >
                   <Bell size={18} />
-                  <span className="pulse-dot absolute top-0 right-0"></span>
+                  {hasUnreadNotifications && (
+                    <span className="pulse-dot absolute top-0 right-0"></span>
+                  )}
                 </button>
                 
                 <NotificationCenter 
@@ -125,6 +160,30 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
                           >
                             <User size={16} className="text-gray-500" />
                             <span>管理員區域</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              // 添加測試通知
+                              const testNotification = {
+                                id: Date.now().toString(),
+                                type: 'order',
+                                title: '測試通知',
+                                message: '這是一個測試通知，用來驗證通知功能正常運作',
+                                time: new Date().toISOString(),
+                                read: false
+                              };
+                              
+                              const savedNotifications = localStorage.getItem('notifications');
+                              const notifications = savedNotifications ? JSON.parse(savedNotifications) : [];
+                              const updatedNotifications = [testNotification, ...notifications];
+                              localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+                              window.dispatchEvent(new CustomEvent('notificationChanged'));
+                              setIsSettingsOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors flex items-center space-x-3 text-blue-600"
+                          >
+                            <Bell size={16} className="text-blue-500" />
+                            <span>新增測試通知</span>
                           </button>
                           <div className="border-t border-gray-200 my-2"></div>
                           <button
