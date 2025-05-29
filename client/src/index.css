@@ -266,7 +266,9 @@ body {
   .header,
   .footer,
   .no-print,
-  .dashboard-header {
+  .dashboard-header,
+  .loading-spinner,
+  .glass-morphism:not(.print-visible) {
     display: none !important;
   }
 
@@ -290,8 +292,18 @@ body {
     width: 100% !important;
     border-collapse: collapse !important;
     margin: 0 !important;
-    page-break-inside: avoid;
+    page-break-inside: auto;
     page-break-after: avoid;
+  }
+
+  /* 只顯示包含產品統計表格的容器 */
+  .glass-morphism:has(.product-stats-table) {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: white !important;
   }
 
   .product-stats-table th,
@@ -347,17 +359,47 @@ body {
 
   /* 防止產生空白頁面 */
   @page {
-    margin: 0.5in;
+    margin: 0.3in 0.5in;
     size: A4;
   }
 
-  /* 確保內容不會溢出產生額外頁面 */
+  /* 嚴格控制頁面內容高度 */
+  html, body {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* 防止任何元素產生額外分頁 */
   * {
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+  }
+
+  /* 表格行不分頁 */
+  .product-stats-table tr {
+    page-break-inside: avoid !important;
     page-break-after: avoid !important;
   }
 
-  /* 最後的元素不要分頁 */
-  :last-child {
-    page-break-after: avoid !important;
+  /* 容器不產生額外空間 */
+  .stats-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+  }
+
+  /* 徹底隱藏除了表格外的所有內容 */
+  .stats-container > *:not(.glass-morphism:has(.product-stats-table)) {
+    display: none !important;
+  }
+
+  /* 確保頁面在表格結束後不產生額外內容 */
+  .stats-container::after {
+    content: none !important;
+    display: none !important;
   }
 }
