@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>訂單管理系統 - 專業版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .gradient-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .gradient-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        
+        .gradient-warning {
+            background: linear-gradient(135deg, #f2994a 0%, #f2c94c 100%);
+        }
+        
+        .gradient-danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        }
+        
+        .gradient-info {
+            background: linear-gradient(135deg, #2af598 0%, #009efd 100%);
+        }
+        
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .btn-3d {
+            position: relative;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-3d:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .btn-3d:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .animate-slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+        
+        .input-modern {
+            position: relative;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        
+        .input-modern:hover {
+            background: white;
+            border-color: #cbd5e1;
+        }
+        
+        .input-modern:focus {
+            background: white;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
+        }
+        
+        .table-row-hover {
+            transition: all 0.2s ease;
+        }
+        
+        .table-row-hover:hover {
+            background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            transform: scale(1.01);
+        }
+        
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+        }
+        
+        .stat-card:hover::before {
+            top: -60%;
+            right: -60%;
+        }
+        
+        .floating-label {
+            transition: all 0.2s ease;
+        }
+        
+        .floating-input:focus + .floating-label,
+        .floating-input:not(:placeholder-shown) + .floating-label {
+            transform: translateY(-25px) scale(0.85);
+            color: #667eea;
+        }
+        
+        .search-suggestion {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .search-suggestion::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(102, 126, 234, 0.1) 50%, transparent 100%);
+            transition: left 0.5s ease;
+        }
+        
+        .search-suggestion:hover::after {
+            left: 100%;
+        }
+        
+        .pulse-dot {
+            position: relative;
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #38ef7d;
+        }
+        
+        .pulse-dot::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: inherit;
+            animation: pulse 2s ease-out infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(3);
+                opacity: 0;
+            }
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 通知下拉選單動畫 */
+        #notificationDropdown {
+            transform-origin: right top;
+            transition: all 0.2s ease;
+        }
+        
+        #notificationDropdown:not(.hidden) {
+            animation: dropdownOpen 0.2s ease;
+        }
+        
+        @keyframes dropdownOpen {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 主導航欄 -->
+    <nav class="glass-morphism fixed top-0 left-0 right-0 z-50 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="gradient-primary p-2.5 rounded-xl shadow-lg">
+                        <i class="fas fa-cube text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-gray-800">訂單管理系統 Pro</h1>
+                    <div class="hidden md:flex items-center ml-8 space-x-1">
+                        <button id="navInputBtn" class="nav-btn px-4 py-2 rounded-lg font-medium transition-all duration-200">
+                            <i class="fas fa-plus-circle mr-2"></i>新增訂單
+                        </button>
+                        <button id="navListBtn" class="nav-btn px-4 py-2 rounded-lg font-medium transition-all duration-200">
+                            <i class="fas fa-list-ul mr-2"></i>訂單列表
+                        </button>
+                        <button id="navDashboardBtn" class="nav-btn px-4 py-2 rounded-lg font-medium transition-all duration-200">
+                            <i class="fas fa-chart-line mr-2"></i>數據分析
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button id="notificationBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors">
+                            <i class="fas fa-bell text-lg"></i>
+                            <span id="notificationBadge" class="pulse-dot absolute top-0 right-0"></span>
+                        </button>
+                        <!-- 通知下拉選單 -->
+                        <div id="notificationDropdown" class="absolute right-0 mt-2 w-80 glass-morphism rounded-xl shadow-2xl hidden z-50">
+                            <div class="p-4 border-b border-gray-200">
+                                <h3 class="font-semibold text-gray-800">通知中心</h3>
+                            </div>
+                            <div id="notificationList" class="max-h-96 overflow-y-auto">
+                                <div class="p-8 text-center text-gray-500">
+                                    <i class="fas fa-bell-slash text-4xl mb-3"></i>
+                                    <p>載入中...</p>
+                                </div>
+                            </div>
+                            <div class="p-3 border-t border-gray-200 text-center">
+                                <button onclick="addDemoNotification()" class="text-sm text-purple-600 hover:text-purple-800 font-medium">新增測試通知</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="p-2 text-gray-600 hover:text-gray-800 transition-colors">
+                        <i class="fas fa-cog text-lg"></i>
+                    </button>
+                    <div class="flex items-center space-x-3 pl-4 border-l-2 border-gray-200">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-sm font-semibold text-gray-800">系統管理員</p>
+                            <p class="text-xs text-gray-500">admin@company.com</p>
+                        </div>
+                        <div class="gradient-primary w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md">
+                            A
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容區 -->
+    <main class="pt-20 pb-10 min-h-screen">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- 輸入視圖 -->
+            <div id="inputView" class="animate-fade-in">
+                <div class="max-w-3xl mx-auto">
+                    <div class="glass-morphism rounded-2xl shadow-2xl overflow-hidden">
+                        <div class="gradient-primary p-6 text-white">
+                            <h2 class="text-2xl font-bold flex items-center">
+                                <i class="fas fa-file-invoice mr-3"></i>
+                                建立新訂單
+                            </h2>
+                            <p class="mt-2 text-purple-100">請填寫以下資訊來建立新的產品訂單</p>
+                        </div>
+                        
+                        <div class="p-8">
+                            <div class="space-y-6">
+                                <!-- 到貨日期 -->
+                                <div class="relative">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                        <i class="fas fa-calendar-alt mr-2 text-purple-500"></i>
+                                        到貨日期
+                                    </label>
+                                    <input type="date" 
+                                           id="deliveryDate"
+                                           class="input-modern w-full px-4 py-3 rounded-xl text-gray-800"
+                                           value="2025-05-28">
+                                </div>
+
+                                <!-- 產品搜尋 -->
+                                <div class="relative">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                        <i class="fas fa-search mr-2 text-purple-500"></i>
+                                        搜尋產品
+                                    </label>
+                                    <div class="relative">
+                                        <input type="text" 
+                                               id="productSearch"
+                                               placeholder="輸入產品編號、名稱、顏色或系列..."
+                                               class="input-modern w-full pl-12 pr-12 py-3 rounded-xl text-gray-800">
+                                        <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                        <button id="clearSearch" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <!-- 搜尋建議 -->
+                                    <div id="searchSuggestions" class="absolute z-20 w-full mt-2 glass-morphism rounded-xl shadow-2xl hidden max-h-64 overflow-y-auto">
+                                        <!-- 動態生成 -->
+                                    </div>
+                                </div>
+
+                                <!-- 數量輸入 -->
+                                <div class="relative">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                        <i class="fas fa-weight mr-2 text-purple-500"></i>
+                                        數量
+                                    </label>
+                                    <div class="flex space-x-3">
+                                        <input type="number" 
+                                               id="quantity"
+                                               placeholder="輸入數量"
+                                               min="1"
+                                               class="input-modern flex-1 px-4 py-3 rounded-xl text-gray-800">
+                                        <span class="flex items-center px-6 bg-gray-100 rounded-xl font-semibold text-gray-700">
+                                            公斤
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- 選中的產品資訊 -->
+                                <div id="selectedProductInfo" class="hidden p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200">
+                                    <!-- 動態生成 -->
+                                </div>
+
+                                <!-- 按鈕組 -->
+                                <div class="flex space-x-4 pt-4">
+                                    <button id="submitOrder" class="flex-1 gradient-primary text-white font-semibold py-3 px-6 rounded-xl btn-3d">
+                                        <i class="fas fa-check-circle mr-2"></i>
+                                        建立訂單
+                                    </button>
+                                    <button id="resetForm" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl transition-all duration-200">
+                                        <i class="fas fa-redo mr-2"></i>
+                                        重設表單
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 幫助卡片 -->
+                    <div class="mt-6 gradient-info rounded-2xl p-6 text-white shadow-xl">
+                        <h3 class="text-lg font-bold flex items-center">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            操作提示
+                        </h3>
+                        <ul class="mt-3 space-y-2 text-sm">
+                            <li><i class="fas fa-check mr-2"></i>搜尋支援多種方式：產品編號、名稱、顏色和系列</li>
+                            <li><i class="fas fa-check mr-2"></i>使用鍵盤上下鍵可快速選擇搜尋結果</li>
+                            <li><i class="fas fa-check mr-2"></i>所有欄位皆為必填，請確實填寫</li>
+                            <li><i class="fas fa-check mr-2"></i>訂單建立後可在列表中查看和管理</li>
+                            <li><i class="fas fa-bell mr-2"></i>點擊右上角鈴鐺圖標查看系統通知</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 列表視圖 -->
+            <div id="listView" class="hidden animate-fade-in">
+                <!-- 統計卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="stat-card glass-morphism rounded-2xl p-6 card-hover">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600 font-medium">總重量</p>
+                                <p class="text-3xl font-bold text-gray-800 mt-1">
+                                    <span id="totalWeight">975</span>
+                                </p>
+                                <p class="text-sm text-gray-500 mt-1">公斤</p>
+                            </div>
+                            <div class="gradient-primary w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg">
+                                <i class="fas fa-weight text-white text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card glass-morphism rounded-2xl p-6 card-hover">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600 font-medium">總包數</p>
+                                <p class="text-3xl font-bold text-gray-800 mt-1">39</p>
+                                <p class="text-sm text-gray-500 mt-1">包</p>
+                            </div>
+                            <div class="gradient-success w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg">
+                                <i class="fas fa-box text-white text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card glass-morphism rounded-2xl p-6 card-hover">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600 font-medium">完成狀態</p>
+                                <p class="text-3xl font-bold text-gray-800 mt-1">
+                                    <span id="completedCount">2</span>/<span id="totalCount">5</span>
+                                </p>
+                                <p class="text-sm text-gray-500 mt-1">筆訂單</p>
+                            </div>
+                            <div class="gradient-warning w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg">
+                                <i class="fas fa-truck text-white text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card glass-morphism rounded-2xl p-6 card-hover">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600 font-medium">完成率</p>
+                                <p class="text-3xl font-bold text-gray-800 mt-1">
+                                    <span id="completionRate">40</span>%
+                                </p>
+                                <div class="mt-3 w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                    <div id="progressBar" class="gradient-warning h-full rounded-full transition-all duration-500" style="width: 40%"></div>
+                                </div>
+                            </div>
+                            <div class="gradient-danger w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg">
+                                <i class="fas fa-chart-pie text-white text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 訂單表格 -->
+                <div class="glass-morphism rounded-2xl shadow-2xl overflow-hidden">
+                    <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                            <h3 class="text-xl font-bold text-gray-800">
+                                <i class="fas fa-clipboard-list mr-2 text-purple-600"></i>
+                                訂單列表
+                            </h3>
+                            <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+                                <div class="relative">
+                                    <input type="text" 
+                                           id="tableSearch"
+                                           placeholder="搜尋訂單..."
+                                           class="pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <select id="filterStatus" class="px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                    <option value="all">全部訂單</option>
+                                    <option value="completed">已完成</option>
+                                    <option value="pending">待處理</option>
+                                </select>
+                                <button id="exportBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                                    <i class="fas fa-download mr-2"></i>匯出
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-200">
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">產品編號</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">產品名稱</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">數量</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">到貨日期</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">狀態</th>
+                                    <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTableBody" class="divide-y divide-gray-200">
+                                <!-- 動態生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分頁 -->
+                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <p class="text-sm text-gray-700">
+                                顯示 <span class="font-semibold">1</span> 到 <span class="font-semibold" id="showingCount">5</span> 筆，
+                                共 <span class="font-semibold" id="totalRecords">5</span> 筆資料
+                            </p>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <button class="px-3 py-1 gradient-primary text-white rounded-lg">1</button>
+                                <button class="px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 數據分析視圖 -->
+            <div id="dashboardView" class="hidden animate-fade-in">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- 圖表卡片 1 -->
+                    <div class="glass-morphism rounded-2xl shadow-xl p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-chart-bar mr-2 text-purple-600"></i>
+                            產品類別分布
+                        </h3>
+                        <div class="h-64 flex items-center justify-center bg-gray-50 rounded-xl">
+                            <p class="text-gray-500">圖表區域</p>
+                        </div>
+                    </div>
+
+                    <!-- 圖表卡片 2 -->
+                    <div class="glass-morphism rounded-2xl shadow-xl p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-chart-line mr-2 text-purple-600"></i>
+                            訂單趨勢分析
+                        </h3>
+                        <div class="h-64 flex items-center justify-center bg-gray-50 rounded-xl">
+                            <p class="text-gray-500">圖表區域</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 通知功能說明 -->
+                    <div class="glass-morphism rounded-2xl shadow-xl p-6 lg:col-span-2">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-bell mr-2 text-purple-600"></i>
+                            通知功能說明
+                        </h3>
+                        <div class="bg-purple-50 rounded-xl p-4">
+                            <p class="text-gray-700 mb-3">右上角的鈴鐺圖標是「通知中心」，用於顯示系統重要訊息：</p>
+                            <ul class="space-y-2 text-sm text-gray-600">
+                                <li><i class="fas fa-check-circle text-green-500 mr-2"></i><strong>訂單狀態更新</strong>：當訂單完成或狀態改變時收到通知</li>
+                                <li><i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i><strong>庫存提醒</strong>：當產品庫存低於安全水平時發出警告</li>
+                                <li><i class="fas fa-info-circle text-blue-500 mr-2"></i><strong>系統公告</strong>：系統維護、更新等重要資訊</li>
+                                <li><i class="fas fa-times-circle text-red-500 mr-2"></i><strong>異常警報</strong>：訂單異常或系統錯誤提醒</li>
+                            </ul>
+                            <p class="text-gray-700 mt-3">點擊鈴鐺圖標可查看所有通知，未讀通知會顯示紅點提示。</p>
+                            <button onclick="addDemoNotification()" class="mt-4 gradient-primary text-white px-4 py-2 rounded-lg btn-3d text-sm">
+                                <i class="fas fa-bell mr-2"></i>測試通知功能
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 浮動操作按鈕 -->
+    <button id="fabButton" class="fixed bottom-8 right-8 gradient-primary w-14 h-14 rounded-full shadow-2xl text-white btn-3d">
+        <i class="fas fa-plus text-xl"></i>
+    </button>
+
+    <!-- 通知元件 -->
+    <div id="notification" class="fixed top-24 right-6 transform translate-x-full transition-transform duration-300 z-50">
+        <div class="flex items-center space-x-3 px-6 py-4 rounded-xl shadow-2xl text-white">
+            <i class="fas fa-check-circle text-xl"></i>
+            <span id="notificationText" class="font-medium"></span>
+        </div>
+    </div>
+
+    <!-- 確認對話框 -->
+    <div id="confirmDialog" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="glass-morphism rounded-2xl p-6 max-w-sm w-full mx-4 animate-fade-in">
+            <h3 class="text-lg font-bold text-gray-800 mb-2">確認刪除</h3>
+            <p class="text-gray-600 mb-6">您確定要刪除這筆訂單嗎？此操作無法復原。</p>
+            <div class="flex space-x-3">
+                <button id="confirmDelete" class="flex-1 gradient-danger text-white py-2 px-4 rounded-lg btn-3d">
+                    <i class="fas fa-trash mr-2"></i>確認刪除
+                </button>
+                <button id="cancelDelete" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg transition-colors">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全域變數
+        let currentView = 'input';
+        let selectedProduct = null;
+        let orders = [
+            { id: 1, code: 'P10433', name: '銀(珠光粉)', quantity: 400, status: 'pending', date: '2025-05-28' },
+            { id: 2, code: 'P106707', name: '深咖啡', quantity: 125, status: 'completed', date: '2025-05-28' },
+            { id: 3, code: 'P10925B', name: '米白', quantity: 300, status: 'pending', date: '2025-05-28' },
+            { id: 4, code: 'PS104323', name: '黃', quantity: 50, status: 'completed', date: '2025-05-28' },
+            { id: 5, code: 'PS10709', name: '增白', quantity: 100, status: 'pending', date: '2025-05-28' }
+        ];
+        let deleteOrderId = null;
+        
+        // 通知系統
+        let notifications = [
+            { id: 1, type: 'success', title: '訂單完成', message: 'P106707 深咖啡已完成配送', time: '10分鐘前', read: false },
+            { id: 2, type: 'warning', title: '庫存提醒', message: '米白產品庫存量低於安全水平', time: '1小時前', read: false },
+            { id: 3, type: 'info', title: '系統更新', message: '訂單管理系統已更新至最新版本', time: '3小時前', read: true },
+            { id: 4, type: 'success', title: '新訂單', message: '收到新的訂單申請，請及時處理', time: '昨天', read: true },
+            { id: 5, type: 'error', title: '配送延遲', message: 'PS104323 黃色產品因供應商問題延遲', time: '2天前', read: true }
+        ];
+
+        // 產品資料庫
+        const products = [
+            { code: 'P10433', name: '銀(珠光粉)', color: '銀色', category: '珠光系列' },
+            { code: 'P106707', name: '深咖啡', color: '咖啡色', category: '標準色系' },
+            { code: 'P10925B', name: '米白', color: '白色', category: '標準色系' },
+            { code: 'PS104323', name: '黃', color: '黃色', category: '特殊系列' },
+            { code: 'PS10709', name: '增白', color: '白色', category: '特殊系列' },
+            { code: 'P20145', name: '寶藍', color: '藍色', category: '標準色系' },
+            { code: 'PS20867', name: '螢光綠', color: '綠色', category: '螢光系列' },
+            { code: 'P30234', name: '玫瑰金', color: '金色', category: '珠光系列' },
+            { code: 'P40567', name: '珊瑚紅', color: '紅色', category: '標準色系' },
+            { code: 'PS50123', name: '霧面黑', color: '黑色', category: '特殊系列' }
+        ];
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            updateNavButtons();
+            updateStatistics();
+            renderOrdersTable();
+            
+            // 設定今天日期
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('deliveryDate').value = today;
+        });
+
+        // 事件監聽器初始化
+        function initializeEventListeners() {
+            // 導航按鈕
+            document.getElementById('navInputBtn').addEventListener('click', () => switchView('input'));
+            document.getElementById('navListBtn').addEventListener('click', () => switchView('list'));
+            document.getElementById('navDashboardBtn').addEventListener('click', () => switchView('dashboard'));
+            document.getElementById('fabButton').addEventListener('click', () => switchView('input'));
+
+            // 產品搜尋
+            const searchInput = document.getElementById('productSearch');
+            searchInput.addEventListener('input', handleProductSearch);
+            searchInput.addEventListener('keydown', handleSearchKeydown);
+            document.getElementById('clearSearch').addEventListener('click', clearSearch);
+
+            // 表單操作
+            document.getElementById('submitOrder').addEventListener('click', submitOrder);
+            document.getElementById('resetForm').addEventListener('click', resetForm);
+
+            // 列表篩選
+            document.getElementById('filterStatus').addEventListener('change', handleOrderFilter);
+            document.getElementById('tableSearch').addEventListener('input', renderOrdersTable);
+
+            // 確認對話框
+            document.getElementById('confirmDelete').addEventListener('click', confirmDeleteOrder);
+            document.getElementById('cancelDelete').addEventListener('click', closeConfirmDialog);
+            
+            // 通知按鈕
+            document.getElementById('notificationBtn').addEventListener('click', toggleNotificationDropdown);
+            
+            // 點擊外部關閉通知下拉選單
+            document.addEventListener('click', function(e) {
+                const dropdown = document.getElementById('notificationDropdown');
+                const btn = document.getElementById('notificationBtn');
+                if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+            
+            // 初始化通知
+            renderNotifications();
+            updateNotificationBadge();
+        }
+
+        // 切換視圖
+        function switchView(view) {
+            currentView = view;
+            document.getElementById('inputView').classList.add('hidden');
+            document.getElementById('listView').classList.add('hidden');
+            document.getElementById('dashboardView').classList.add('hidden');
+            
+            const viewMap = {
+                'input': 'inputView',
+                'list': 'listView',
+                'dashboard': 'dashboardView'
+            };
+            
+            document.getElementById(viewMap[view]).classList.remove('hidden');
+            updateNavButtons();
+            
+            // 更新 FAB 按鈕顯示
+            document.getElementById('fabButton').style.display = view === 'input' ? 'none' : 'flex';
+        }
+
+        // 更新導航按鈕狀態
+        function updateNavButtons() {
+            const buttons = document.querySelectorAll('.nav-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('gradient-primary', 'text-white', 'shadow-md');
+                btn.classList.add('text-gray-600', 'hover:text-gray-900', 'hover:bg-gray-100');
+            });
+            
+            const activeBtn = currentView === 'input' ? 'navInputBtn' : 
+                             currentView === 'list' ? 'navListBtn' : 'navDashboardBtn';
+            
+            const active = document.getElementById(activeBtn);
+            active.classList.remove('text-gray-600', 'hover:text-gray-900', 'hover:bg-gray-100');
+            active.classList.add('gradient-primary', 'text-white', 'shadow-md');
+        }
+
+        // 產品搜尋處理
+        function handleProductSearch(e) {
+            const query = e.target.value.toLowerCase();
+            const clearBtn = document.getElementById('clearSearch');
+            const suggestions = document.getElementById('searchSuggestions');
+            
+            if (query.length > 0) {
+                clearBtn.classList.remove('hidden');
+                const filtered = products.filter(p => 
+                    p.code.toLowerCase().includes(query) ||
+                    p.name.toLowerCase().includes(query) ||
+                    p.color.toLowerCase().includes(query) ||
+                    p.category.toLowerCase().includes(query)
+                );
+                
+                if (filtered.length > 0) {
+                    renderSearchSuggestions(filtered);
+                    suggestions.classList.remove('hidden');
+                } else {
+                    suggestions.classList.add('hidden');
+                }
+            } else {
+                clearBtn.classList.add('hidden');
+                suggestions.classList.add('hidden');
+            }
+        }
+
+        // 渲染搜尋建議
+        function renderSearchSuggestions(products) {
+            const container = document.getElementById('searchSuggestions');
+            container.innerHTML = products.map((product, index) => `
+                <div class="search-suggestion px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${index === 0 ? 'bg-gray-50' : ''}"
+                     data-product='${JSON.stringify(product)}'>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-semibold text-gray-800">${product.code}</p>
+                            <p class="text-sm text-gray-600">${product.name} • ${product.color}</p>
+                        </div>
+                        <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">${product.category}</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            // 添加點擊事件
+            container.querySelectorAll('.search-suggestion').forEach(el => {
+                el.addEventListener('click', function() {
+                    selectProduct(JSON.parse(this.dataset.product));
+                });
+            });
+        }
+
+        // 處理鍵盤導航
+        function handleSearchKeydown(e) {
+            const suggestions = document.getElementById('searchSuggestions');
+            if (suggestions.classList.contains('hidden')) return;
+            
+            const items = suggestions.querySelectorAll('.search-suggestion');
+            const current = suggestions.querySelector('.bg-gray-50');
+            let index = Array.from(items).indexOf(current);
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                index = (index + 1) % items.length;
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                index = (index - 1 + items.length) % items.length;
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (current) {
+                    selectProduct(JSON.parse(current.dataset.product));
+                }
+                return;
+            } else {
+                return;
+            }
+            
+            items.forEach(item => item.classList.remove('bg-gray-50'));
+            items[index].classList.add('bg-gray-50');
+        }
+
+        // 選擇產品
+        function selectProduct(product) {
+            selectedProduct = product;
+            document.getElementById('productSearch').value = `${product.code} - ${product.name}`;
+            document.getElementById('searchSuggestions').classList.add('hidden');
+            
+            // 顯示選中的產品資訊
+            const info = document.getElementById('selectedProductInfo');
+            info.innerHTML = `
+                <p class="text-sm text-purple-700 font-semibold">已選擇產品</p>
+                <p class="text-lg font-bold text-gray-800 mt-1">${product.code} - ${product.name}</p>
+                <p class="text-sm text-gray-600">顏色：${product.color} | 系列：${product.category}</p>
+            `;
+            info.classList.remove('hidden');
+        }
+
+        // 清除搜尋
+        function clearSearch() {
+            document.getElementById('productSearch').value = '';
+            document.getElementById('clearSearch').classList.add('hidden');
+            document.getElementById('searchSuggestions').classList.add('hidden');
+            document.getElementById('selectedProductInfo').classList.add('hidden');
+            selectedProduct = null;
+        }
+
+        // 提交訂單
+        function submitOrder() {
+            const deliveryDate = document.getElementById('deliveryDate').value;
+            const quantity = document.getElementById('quantity').value;
+            
+            if (!selectedProduct || !quantity || !deliveryDate) {
+                showNotification('請填寫所有必要欄位', 'error');
+                return;
+            }
+            
+            // 模擬提交動畫
+            const btn = document.getElementById('submitOrder');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<div class="loading-spinner mr-2"></div> 處理中...';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                // 新增訂單
+                const newOrder = {
+                    id: orders.length + 1,
+                    code: selectedProduct.code,
+                    name: selectedProduct.name,
+                    quantity: parseInt(quantity),
+                    status: 'pending',
+                    date: deliveryDate
+                };
+                orders.unshift(newOrder);
+                
+                // 更新統計
+                updateStatistics();
+                renderOrdersTable();
+                
+                // 重設表單
+                resetForm();
+                
+                // 恢復按鈕
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                
+                // 發送成功通知
+                showNotification(`訂單 ${newOrder.code} ${newOrder.name} (${newOrder.quantity}kg) 已成功建立`, 'success');
+            }, 1000);
+        }
+
+        // 重設表單
+        function resetForm() {
+            document.getElementById('productSearch').value = '';
+            document.getElementById('quantity').value = '';
+            document.getElementById('clearSearch').classList.add('hidden');
+            document.getElementById('searchSuggestions').classList.add('hidden');
+            document.getElementById('selectedProductInfo').classList.add('hidden');
+            selectedProduct = null;
+        }
+
+        // 更新統計數據
+        function updateStatistics() {
+            const totalWeight = orders.reduce((sum, order) => sum + order.quantity, 0);
+            const completedCount = orders.filter(o => o.status === 'completed').length;
+            const completionRate = Math.round((completedCount / orders.length) * 100);
+            
+            document.getElementById('totalWeight').textContent = totalWeight;
+            document.getElementById('completedCount').textContent = completedCount;
+            document.getElementById('totalCount').textContent = orders.length;
+            document.getElementById('completionRate').textContent = completionRate;
+            document.getElementById('progressBar').style.width = completionRate + '%';
+        }
+
+        // 渲染訂單表格
+        function renderOrdersTable() {
+            const filter = document.getElementById('filterStatus').value;
+            const search = document.getElementById('tableSearch').value.toLowerCase();
+            
+            let filteredOrders = orders;
+            
+            // 狀態篩選
+            if (filter !== 'all') {
+                filteredOrders = filteredOrders.filter(o => o.status === filter);
+            }
+            
+            // 搜尋篩選
+            if (search) {
+                filteredOrders = filteredOrders.filter(o => 
+                    o.code.toLowerCase().includes(search) ||
+                    o.name.toLowerCase().includes(search)
+                );
+            }
+            
+            const tbody = document.getElementById('ordersTableBody');
+            tbody.innerHTML = filteredOrders.map(order => `
+                <tr class="table-row-hover">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm font-semibold text-gray-900">${order.code}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm text-gray-700">${order.name}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm font-medium text-gray-900">${order.quantity} kg</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm text-gray-600">${order.date}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <button onclick="toggleOrderStatus(${order.id})" class="status-btn ${
+                            order.status === 'completed' 
+                                ? 'gradient-success' 
+                                : 'gradient-warning'
+                        } text-white px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 hover:shadow-md">
+                            <i class="fas fa-${order.status === 'completed' ? 'check-circle' : 'clock'} mr-1"></i>
+                            ${order.status === 'completed' ? '已完成' : '待處理'}
+                        </button>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <button onclick="editOrder(${order.id})" class="text-purple-600 hover:text-purple-800 mr-3 transition-colors">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="showDeleteConfirm(${order.id})" class="text-red-600 hover:text-red-800 transition-colors">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            // 更新顯示數量
+            document.getElementById('showingCount').textContent = filteredOrders.length;
+            document.getElementById('totalRecords').textContent = filteredOrders.length;
+        }
+
+        // 切換訂單狀態
+        function toggleOrderStatus(id) {
+            const order = orders.find(o => o.id === id);
+            if (order) {
+                order.status = order.status === 'completed' ? 'pending' : 'completed';
+                updateStatistics();
+                renderOrdersTable();
+                
+                // 發送狀態更新通知
+                if (order.status === 'completed') {
+                    showNotification(`訂單 ${order.code} ${order.name} 已標記為完成`, 'success');
+                } else {
+                    showNotification(`訂單 ${order.code} ${order.name} 已改為待處理`, 'warning');
+                }
+            }
+        }
+
+        // 編輯訂單
+        function editOrder(id) {
+            const order = orders.find(o => o.id === id);
+            if (order) {
+                showNotification(`編輯功能開發中... (訂單：${order.code})`, 'info');
+            }
+        }
+        
+        // 訂單篩選處理
+        function handleOrderFilter() {
+            renderOrdersTable();
+            const filter = document.getElementById('filterStatus').value;
+            if (filter !== 'all') {
+                showNotification(`已篩選${filter === 'completed' ? '已完成' : '待處理'}的訂單`, 'info');
+            }
+        }
+
+        // 顯示刪除確認
+        function showDeleteConfirm(id) {
+            deleteOrderId = id;
+            document.getElementById('confirmDialog').classList.remove('hidden');
+        }
+
+        // 關閉確認對話框
+        function closeConfirmDialog() {
+            document.getElementById('confirmDialog').classList.add('hidden');
+            deleteOrderId = null;
+        }
+
+        // 訂單篩選處理
+        function handleOrderFilter() {
+            renderOrdersTable();
+            const filter = document.getElementById('filterStatus').value;
+            if (filter !== 'all') {
+                showNotification(`已篩選${filter === 'completed' ? '已完成' : '待處理'}的訂單`, 'info');
+            }
+        }
+        function confirmDeleteOrder() {
+            if (deleteOrderId) {
+                const order = orders.find(o => o.id === deleteOrderId);
+                orders = orders.filter(o => o.id !== deleteOrderId);
+                updateStatistics();
+                renderOrdersTable();
+                closeConfirmDialog();
+                
+                // 發送刪除通知
+                if (order) {
+                    showNotification(`訂單 ${order.code} ${order.name} 已被刪除`, 'error');
+                }
+            }
+        }
+
+        // 顯示通知
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const text = document.getElementById('notificationText');
+            const icon = notification.querySelector('i');
+            
+            text.textContent = message;
+            
+            // 設定樣式
+            notification.querySelector('div').className = 'flex items-center space-x-3 px-6 py-4 rounded-xl shadow-2xl text-white';
+            
+            if (type === 'success') {
+                notification.querySelector('div').classList.add('gradient-success');
+                icon.className = 'fas fa-check-circle text-xl';
+            } else if (type === 'error') {
+                notification.querySelector('div').classList.add('gradient-danger');
+                icon.className = 'fas fa-exclamation-circle text-xl';
+            } else if (type === 'info') {
+                notification.querySelector('div').classList.add('gradient-info');
+                icon.className = 'fas fa-info-circle text-xl';
+            }
+            
+            // 顯示通知
+            notification.classList.remove('translate-x-full');
+            
+            // 自動隱藏
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+            }, 3000);
+            
+            // 添加到通知列表
+            const newNotification = {
+                id: notifications.length + 1,
+                type: type,
+                title: type === 'success' ? '操作成功' : type === 'error' ? '操作失敗' : '系統通知',
+                message: message,
+                time: '剛剛',
+                read: false
+            };
+            notifications.unshift(newNotification);
+            renderNotifications();
+            updateNotificationBadge();
+        }
+        
+        // 切換通知下拉選單
+        function toggleNotificationDropdown(e) {
+            e.stopPropagation();
+            const dropdown = document.getElementById('notificationDropdown');
+            dropdown.classList.toggle('hidden');
+            
+            // 標記所有通知為已讀
+            if (!dropdown.classList.contains('hidden')) {
+                setTimeout(() => {
+                    notifications.forEach(n => n.read = true);
+                    renderNotifications();
+                    updateNotificationBadge();
+                }, 1000);
+            }
+        }
+        
+        // 渲染通知列表
+        function renderNotifications() {
+            const container = document.getElementById('notificationList');
+            
+            if (notifications.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-gray-500">
+                        <i class="fas fa-bell-slash text-4xl mb-3"></i>
+                        <p>暫無新通知</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = notifications.map(notif => `
+                <div class="p-4 hover:bg-gray-50 transition-colors border-b border-gray-100 ${!notif.read ? 'bg-purple-50' : ''}">
+                    <div class="flex items-start space-x-3">
+                        <div class="flex-shrink-0">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center ${
+                                notif.type === 'success' ? 'bg-green-100 text-green-600' :
+                                notif.type === 'warning' ? 'bg-yellow-100 text-yellow-600' :
+                                notif.type === 'error' ? 'bg-red-100 text-red-600' :
+                                'bg-blue-100 text-blue-600'
+                            }">
+                                <i class="fas fa-${
+                                    notif.type === 'success' ? 'check' :
+                                    notif.type === 'warning' ? 'exclamation-triangle' :
+                                    notif.type === 'error' ? 'times' :
+                                    'info'
+                                }"></i>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-semibold text-gray-800 text-sm">${notif.title}</p>
+                            <p class="text-gray-600 text-sm mt-1">${notif.message}</p>
+                            <p class="text-gray-400 text-xs mt-2">${notif.time}</p>
+                        </div>
+                        ${!notif.read ? '<span class="w-2 h-2 bg-purple-600 rounded-full"></span>' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 更新通知徽章
+        function updateNotificationBadge() {
+            const badge = document.getElementById('notificationBadge');
+            const unreadCount = notifications.filter(n => !n.read).length;
+            
+            if (unreadCount > 0) {
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        
+        // 新增測試通知
+        function addDemoNotification() {
+            const types = ['success', 'warning', 'info', 'error'];
+            const titles = ['訂單更新', '庫存提醒', '系統通知', '重要提醒'];
+            const messages = [
+                '新訂單已成功建立',
+                '部分產品庫存即將不足',
+                '系統將於今晚進行維護',
+                '請注意檢查待處理訂單'
+            ];
+            
+            const randomIndex = Math.floor(Math.random() * types.length);
+            showNotification(messages[randomIndex], types[randomIndex]);
+        }
+    </script>
+</body>
+</html>
+</html>
