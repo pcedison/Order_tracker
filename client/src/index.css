@@ -257,50 +257,98 @@ body {
 
 /* 列印樣式 */
 @media print {
+  /* 隱藏所有不需要列印的元素 */
+  .print-hidden,
+  nav,
+  .navigation,
+  button:not(.print-visible),
+  .sidebar,
+  .header,
+  .footer,
+  .no-print,
+  .dashboard-header,
+  .loading-spinner,
+  .glass-morphism:not(.print-visible) {
+    display: none !important;
+  }
+
+  /* 確保列印區域佔滿整個頁面 */
+  body {
+    margin: 0 !important;
+    padding: 5px !important;
+    font-size: 12px;
+    line-height: 1.2;
+    color: #000;
+    background: white !important;
+  }
+
+  /* 隱藏統計卡片區域，在列印時不顯示 */
+  .stats-cards {
+    display: none !important;
+  }
+
+  /* 產品統計表格列印樣式 */
+  .product-stats-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 0 !important;
+  }
+
+  .product-stats-table th,
+  .product-stats-table td {
+    border: 1px solid #ddd !important;
+    padding: 4px 6px !important;
+    text-align: left !important;
+    font-size: 10px !important;
+    color: #000 !important;
+    background: white !important;
+    line-height: 1.1 !important;
+  }
+
+  .product-stats-table th {
+    background: #f5f5f5 !important;
+    font-weight: bold !important;
+  }
+
+  .product-stats-table tr:nth-child(even) {
+    background: #f9f9f9 !important;
+  }
+
+  /* 標題樣式 */
+  .print-title {
+    font-size: 16px !important;
+    font-weight: bold !important;
+    margin: 0 0 8px 0 !important;
+    text-align: center !important;
+    color: #000 !important;
+    page-break-after: avoid;
+    display: block !important;
+  }
+
+  /* 移除所有陰影和漸變效果 */
+  * {
+    box-shadow: none !important;
+    background-image: none !important;
+    text-shadow: none !important;
+  }
+
+  /* 防止產生空白頁面的關鍵設置 */
   @page {
     margin: 0.5in;
     size: A4;
   }
 
-  body * {
-    visibility: hidden;
+  /* 嚴格限制頁面高度 */
+  body, html {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
   }
 
-  .product-stats-table, 
-  .product-stats-table *,
-  .print-title {
-    visibility: visible;
-  }
-
-  .product-stats-table {
-    position: absolute;
-    left: 0;
-    top: 30px;
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .print-title {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    text-align: center;
-    font-size: 16px;
-    font-weight: bold;
-    margin: 0;
-  }
-
-  .product-stats-table th,
-  .product-stats-table td {
-    border: 1px solid #000;
-    padding: 4px 6px;
-    font-size: 10px;
-    text-align: left;
-  }
-
-  .product-stats-table th {
-    background-color: #f0f0f0;
-    font-weight: bold;
+  /* 確保內容不超出一頁 */
+  .stats-container {
+    height: calc(100vh - 1in) !important;
+    overflow: hidden !important;
+    page-break-after: avoid !important;
   }
 }
