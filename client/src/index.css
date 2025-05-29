@@ -295,18 +295,29 @@ body {
     background: white !important;
     text-align: center !important;
     box-shadow: none !important;
+    display: block !important;
   }
 
-  .stats-card h3 {
+  .stats-card > div {
+    display: block !important;
+  }
+
+  .stats-card h3,
+  .stats-card p {
     font-size: 14px !important;
     margin-bottom: 8px !important;
     color: #333 !important;
+    text-align: center !important;
+    display: block !important;
   }
 
   .stats-card .value {
     font-size: 20px !important;
     font-weight: bold !important;
     color: #000 !important;
+    text-align: center !important;
+    display: block !important;
+    margin-top: 5px !important;
   }
 
   /* 產品統計表格列印樣式 */
