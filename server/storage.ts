@@ -433,26 +433,35 @@ export class SupabaseStorage implements IStorage {
     let periodText: string;
     
     if (month) {
-      // 特定月份: 使用當月1號到當月最後一天
+      // 特定月份: 使用上個月26號到本月25號
       const yearNum = parseInt(year, 10);
       const monthNum = parseInt(month, 10);
       
+      // 計算上個月的年份和月份
+      let prevMonth = monthNum - 1;
+      let prevYear = yearNum;
+      
+      // 處理跨年情況
+      if (prevMonth === 0) {
+        prevMonth = 12;
+        prevYear -= 1;
+      }
+      
       // 格式化月份
       const paddedMonth = monthNum.toString().padStart(2, '0');
+      const paddedPrevMonth = prevMonth.toString().padStart(2, '0');
       
-      // 當月1號到當月最後一天
-      startDate = `${year}-${paddedMonth}-01`;
-      
-      // 計算當月最後一天
-      const lastDay = new Date(yearNum, monthNum, 0).getDate();
-      endDate = `${year}-${paddedMonth}-${lastDay.toString().padStart(2, '0')}`;
+      // 上個月26號至本月25號
+      startDate = `${prevYear}-${paddedPrevMonth}-26`;
+      endDate = `${year}-${paddedMonth}-25`;
       
       periodText = `${year}年${monthNum}月`;
       console.log(`月份統計 - ${periodText}: ${startDate} 到 ${endDate}`);
     } else {
-      // 整年: 當年1月1號至當年12月31號
-      startDate = `${year}-01-01`;
-      endDate = `${year}-12-31`;
+      // 整年: 根據月份邏輯，使用前一年12月26號至當年12月25號
+      const prevYear = parseInt(year, 10) - 1;
+      startDate = `${prevYear}-12-26`;
+      endDate = `${year}-12-25`;
       periodText = `${year}年全年`;
       console.log(`年度統計 - ${periodText}: ${startDate} 到 ${endDate}`);
     }

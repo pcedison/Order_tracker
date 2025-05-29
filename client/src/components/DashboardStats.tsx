@@ -207,7 +207,12 @@ export default function DashboardStats() {
               {Object.entries(groupedOrders)
                 .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
                 .map(([date, orders]) => {
-                  const totalKg = orders.reduce((sum, order) => sum + order.quantity, 0);
+                  const totalKg = orders.reduce((sum, order) => {
+                    const quantity = typeof order.quantity === 'string' 
+                      ? parseFloat(order.quantity) 
+                      : Number(order.quantity);
+                    return sum + (isNaN(quantity) ? 0 : quantity);
+                  }, 0);
                   const totalPackages = Math.ceil(totalKg / 25);
                   
                   return (
