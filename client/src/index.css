@@ -267,9 +267,16 @@ body {
   .footer,
   .no-print,
   .dashboard-header,
-  .loading-spinner,
-  .glass-morphism:not(.print-visible) {
+  .loading-spinner {
     display: none !important;
+  }
+
+  /* 確保包含表格的容器可以顯示 */
+  .glass-morphism {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
   }
 
   /* 確保列印區域佔滿整個頁面 */
@@ -338,17 +345,21 @@ body {
     size: A4;
   }
 
-  /* 嚴格限制頁面高度 */
-  body, html {
-    height: 100vh !important;
-    max-height: 100vh !important;
-    overflow: hidden !important;
+  /* 確保內容適合一頁 */
+  .stats-container {
+    page-break-after: avoid !important;
+    overflow: visible !important;
   }
 
-  /* 確保內容不超出一頁 */
-  .stats-container {
-    height: calc(100vh - 1in) !important;
-    overflow: hidden !important;
+  /* 強制表格在一頁內顯示 */
+  .product-stats-table {
+    page-break-inside: avoid !important;
     page-break-after: avoid !important;
+  }
+
+  /* 移除可能造成分頁的元素 */
+  .stats-container > div:last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
   }
 }
