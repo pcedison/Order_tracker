@@ -57,51 +57,46 @@ export class SupabaseStorage implements IStorage {
   // 從數據庫加載管理員密碼並設置到 AuthService - 簡化版本
   private async initializeAdminPassword() {
     try {
-      console.log('開始從數據庫加載管理員密碼');
+      console.log('開始從數據庫加載安全密碼數據');
       
-      // 從數據庫加載主密碼
-      try {
-        const { data, error } = await supabase
-          .from(this.configsTable)
-          .select('value')
-          .eq('key', 'ADMIN_PASSWORD')
-          .maybeSingle();
-          
-        if (!error && data && data.value) {
-          console.log('成功從數據庫讀取管理員密碼');
-          await this.authService.initializePasswordFromDatabase(data.value);
-          return;
-        } else if (error) {
-          console.warn('讀取數據庫密碼失敗:', error.message);
-        }
-      } catch (dbError) {
-        console.warn('數據庫查詢出錯:', dbError);
+      // 查詢新的安全密碼格式
+      const { data, error } = await supabase
+        .from(this.configsTable)
+        .select('value')
+        .eq('key', 'ADMIN_PASSWORD_SECURE')
+        .maybeSingle();
+        
+      if (error) {
+        console.error('讀取數據庫安全密碼失敗:', error.message);
       }
       
-      // 如果數據庫中無密碼，使用環境變量
-      const envPassword = process.env.ADMIN_PASSWORD;
-      if (envPassword) {
-        console.log('使用環境變量中的密碼');
-        await this.authService.initializePasswordFromDatabase(envPassword);
-        
-        // 嘗試將環境變量密碼同步到數據庫
-        try {
-          await supabase
+      // 初始化安全密碼系統
+      await this.authService.initializeFromDatabase(data?.value || null);
+      
+      // 如果是新系統首次運行，儲存預設加密密碼到數據庫
+      if (!data?.value && this.authService.isPasswordInitialized()) {
+        const passwordData = this.authService.getCurrentPasswordData();
+        if (passwordData) {
+          console.log('儲存預設加密密碼到數據庫');
+          const { error: insertError } = await supabase
             .from(this.configsTable)
             .upsert({ 
-              key: 'ADMIN_PASSWORD',
-              value: envPassword,
+              key: 'ADMIN_PASSWORD_SECURE',
+              value: passwordData,
               updated_at: new Date().toISOString()
             });
-          console.log('已將環境變量密碼同步到數據庫');
-        } catch (syncError) {
-          console.warn('同步密碼到數據庫失敗:', syncError);
+            
+          if (insertError) {
+            console.error('儲存加密密碼失敗:', insertError);
+          } else {
+            console.log('已成功儲存加密密碼到數據庫');
+          }
         }
-      } else {
-        console.warn('警告: 未找到任何可用的管理員密碼');
       }
     } catch (error) {
-      console.error('初始化密碼過程中發生錯誤:', error);
+      console.error('初始化安全密碼系統時發生錯誤:', error);
+      // 安全失敗處理：初始化預設密碼
+      await this.authService.initializeFromDatabase(null);
     }
   }
   
@@ -724,20 +719,10 @@ export class SupabaseStorage implements IStorage {
       
       console.log('當前密碼驗證通過');
       
-      // 檢查系統當前使用的密碼模式
-      const currentSystemPassword = this.authService.getCurrentPassword();
-      const isHashedMode = currentSystemPassword.length === 64 && /^[0-9a-f]+$/.test(currentSystemPassword);
-      
-      // 第2步: 根據系統當前模式處理新密碼
-      let newPasswordToSave = '';
-      
-      if (isHashedMode) {
-        newPasswordToSave = this.authService.hashPassword(newPassword);
-        console.log('使用哈希模式儲存新密碼');
-      } else {
-        newPasswordToSave = newPassword;
-        console.log('使用明文模式儲存新密碼');
-      }
+      // 第2步: 使用安全加密系統處理新密碼
+      const newPasswordData = this.authService.updatePassword(newPassword);
+      const newPasswordToSave = JSON.stringify(newPasswordData);
+      console.log('使用安全加密系統處理新密碼');
       
       // 第3步: 更新數據庫中的密碼 (強制覆蓋所有舊密碼)
       let databaseUpdateSuccess = false;
@@ -757,26 +742,20 @@ export class SupabaseStorage implements IStorage {
           console.log('確保configs表已存在');
           
           // 2. 更新主密碼
-          const updateQuery = `
-            INSERT INTO configs (key, value, updated_at) 
-            VALUES ('ADMIN_PASSWORD', $1, NOW())
-            ON CONFLICT (key) 
-            DO UPDATE SET value = $1, updated_at = NOW()
-          `;
-          await pool.query(updateQuery, [newPasswordToSave]);
-          console.log('主密碼記錄已通過SQL更新成功');
-          databaseUpdateSuccess = true;
+          // 更新安全加密密碼到 Supabase
+          const { error: updateError } = await supabase
+            .from(this.configsTable)
+            .upsert({ 
+              key: 'ADMIN_PASSWORD_SECURE',
+              value: newPasswordToSave,
+              updated_at: new Date().toISOString()
+            });
           
-          // 3. 驗證密碼是否成功寫入數據庫
-          const verifyResult = await pool.query(
-            `SELECT value FROM configs WHERE key = 'ADMIN_PASSWORD'`
-          );
-          
-          if (verifyResult.rows.length > 0 && verifyResult.rows[0].value === newPasswordToSave) {
-            console.log('數據庫密碼驗證成功，密碼已正確更新');
-            databaseUpdateSuccess = true;
+          if (updateError) {
+            console.error('更新安全密碼失敗:', updateError);
           } else {
-            console.warn('數據庫密碼驗證失敗或查詢出錯');
+            console.log('安全加密密碼已成功更新到數據庫');
+            databaseUpdateSuccess = true;
           }
         } catch (sqlError) {
           console.error('直接SQL操作出錯:', sqlError);
@@ -786,18 +765,7 @@ export class SupabaseStorage implements IStorage {
       }
       
       // 第4步: 更新內存中的密碼 (立即生效)
-      this.authService.updatePassword(newPasswordToSave);
-      console.log('內存中的密碼已更新');
-      
-      // 更新環境變量 (單一來源)
-      process.env.ADMIN_PASSWORD = newPasswordToSave;
-      
-      // 清除所有舊的備份密碼環境變量
-      delete process.env.ADMIN_PASSWORD_BACKUP;
-      delete process.env.ADMIN_PASSWORD_UPDATED_AT;
-      delete process.env.ADMIN_PASSWORD_UPDATE_TAG;
-      
-      console.log('環境變量已更新，舊密碼備份已清除');
+      console.log('內存中的安全密碼已更新');
       
       return databaseUpdateSuccess;
     } catch (error) {
