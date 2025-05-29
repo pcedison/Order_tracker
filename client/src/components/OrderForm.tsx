@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useProducts } from "@/hooks/useProducts";
 import { useOrders } from "@/hooks/useOrders";
 import { Product } from "@/lib/types";
+import { Calendar, Search, Weight, X } from 'lucide-react';
 
 export default function OrderForm() {
   const [deliveryDate, setDeliveryDate] = useState<string>(() => {
