@@ -254,3 +254,115 @@ body {
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* 列印樣式 */
+@media print {
+  /* 隱藏所有不需要列印的元素 */
+  .print-hidden,
+  nav,
+  .navigation,
+  button:not(.print-visible),
+  .sidebar,
+  .header,
+  .footer,
+  .no-print {
+    display: none !important;
+  }
+
+  /* 確保列印區域佔滿整個頁面 */
+  body {
+    margin: 0;
+    padding: 20px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #000;
+    background: white !important;
+  }
+
+  /* 統計卡片列印樣式 */
+  .stats-cards {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 15px !important;
+    margin-bottom: 20px !important;
+    page-break-inside: avoid;
+  }
+
+  .stats-card {
+    border: 1px solid #ddd !important;
+    padding: 15px !important;
+    border-radius: 8px !important;
+    background: white !important;
+    text-align: center !important;
+    box-shadow: none !important;
+  }
+
+  .stats-card h3 {
+    font-size: 14px !important;
+    margin-bottom: 8px !important;
+    color: #333 !important;
+  }
+
+  .stats-card .value {
+    font-size: 20px !important;
+    font-weight: bold !important;
+    color: #000 !important;
+  }
+
+  /* 產品統計表格列印樣式 */
+  .product-stats-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-top: 20px !important;
+    page-break-inside: auto;
+  }
+
+  .product-stats-table th,
+  .product-stats-table td {
+    border: 1px solid #ddd !important;
+    padding: 8px !important;
+    text-align: left !important;
+    font-size: 11px !important;
+    color: #000 !important;
+    background: white !important;
+  }
+
+  .product-stats-table th {
+    background: #f5f5f5 !important;
+    font-weight: bold !important;
+  }
+
+  .product-stats-table tr:nth-child(even) {
+    background: #f9f9f9 !important;
+  }
+
+  /* 標題樣式 */
+  .print-title {
+    font-size: 18px !important;
+    font-weight: bold !important;
+    margin-bottom: 20px !important;
+    text-align: center !important;
+    color: #000 !important;
+    page-break-after: avoid;
+  }
+
+  /* 移除所有陰影和漸變效果 */
+  * {
+    box-shadow: none !important;
+    background-image: none !important;
+    text-shadow: none !important;
+  }
+
+  /* 分頁控制 */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .page-break-inside-avoid {
+    page-break-inside: avoid;
+  }
+}

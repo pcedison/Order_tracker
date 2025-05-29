@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useOrders } from "@/hooks/useOrders";
-import { Calendar, Package, TrendingUp, DollarSign } from 'lucide-react';
+import { Calendar, Package, TrendingUp, DollarSign, Printer } from 'lucide-react';
 
 export default function DashboardStats() {
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
@@ -19,6 +19,11 @@ export default function DashboardStats() {
 
     loadStats();
   }, [selectedYear, selectedMonth]);
+
+  // 列印功能
+  const handlePrint = () => {
+    window.print();
+  };
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => (currentYear - 2 + i).toString());
@@ -63,11 +68,24 @@ export default function DashboardStats() {
       {/* 標題和篩選器 */}
       <div className="glass-morphism rounded-2xl shadow-2xl overflow-hidden">
         <div className="gradient-info p-6 text-white">
-          <h2 className="text-2xl font-bold flex items-center">
-            <TrendingUp className="mr-3" size={24} />
-            數據分析儀表板
-          </h2>
-          <p className="mt-2 text-blue-100">查看訂單統計和完成記錄</p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-2xl font-bold flex items-center">
+                <TrendingUp className="mr-3" size={24} />
+                數據分析儀表板
+              </h2>
+              <p className="mt-2 text-blue-100">查看訂單統計和完成記錄</p>
+            </div>
+            
+            {/* 列印按鈕 */}
+            <button
+              onClick={handlePrint}
+              className="print-hidden bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <Printer size={16} />
+              <span>列印報表</span>
+            </button>
+          </div>
         </div>
         
         <div className="p-6">
