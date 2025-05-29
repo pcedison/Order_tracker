@@ -47,7 +47,7 @@ export class SupabaseStorage implements IStorage {
   private ordersTable = 'orders'; // 已完成订单表
   private orderItemsTable = 'order_items'; // 订单项表
   private configsTable = 'configs'; // 配置表
-  private authService = new AuthService(); // 用于密码验证和哈希
+  private authService = new SecureAuthService(); // 用于安全密码验证和加密
   
   constructor() {
     // 在初始化時從數據庫加載管理員密碼
