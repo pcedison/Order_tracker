@@ -42,7 +42,9 @@ export type Order = typeof orders.$inferSelect;
 export const configs = pgTable("configs", {
   id: serial("id").primaryKey(),
   key: text("key").notNull().unique(),
-  value: text("value").notNull(),
+  value: text("value"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
 });
 
 // Session table for express-session with PostgreSQL

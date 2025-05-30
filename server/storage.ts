@@ -89,7 +89,7 @@ export class SupabaseStorage implements IStorage {
               target: configs.key,
               set: {
                 value: passwordData,
-                updatedAt: new Date(),
+                updated_at: new Date(),
               },
             });
             
@@ -611,71 +611,60 @@ export class SupabaseStorage implements IStorage {
   // 配置管理方法实现
   async getConfig(key: string): Promise<string | null> {
     try {
-      const { data, error } = await supabase
-        .from(this.configsTable)
-        .select('value')
-        .eq('key', key)
-        .maybeSingle();
+      const [configRecord] = await db
+        .select({ value: configs.value })
+        .from(configs)
+        .where(eq(configs.key, key))
+        .limit(1);
       
-      if (error) {
-        console.error(`Error getting config for key ${key}:`, error);
-        throw error;
-      }
-      
-      return data ? data.value : null;
+      return configRecord?.value || null;
     } catch (error) {
-      console.error(`Error in getConfig for key ${key}:`, error);
+      console.error(`Error getting config for key ${key}:`, error);
       return null;
     }
   }
 
   async setConfig(key: string, value: string): Promise<void> {
     try {
-      // 為價格表配置項特殊處理
-      if (key === 'PRICE_SPREADSHEET_API_KEY' || key === 'PRICE_SPREADSHEET_ID') {
-        // 直接將這些配置設置到環境變數，不嘗試寫入資料庫
-        process.env[key] = value;
-        return; // 提前結束，不進行資料庫操作
-      }
-      
-      // 檢查配置是否已存在
-      const { data: existingConfig } = await supabase
-        .from(this.configsTable)
-        .select('id')
-        .eq('key', key)
-        .maybeSingle();
-      
-      if (existingConfig) {
-        // 更新現有配置
-        const { error } = await supabase
-          .from(this.configsTable)
-          .update({ value })
-          .eq('key', key);
-        
-        if (error) {
-          console.error(`Error updating config for key ${key}:`, error);
-          throw error;
-        }
-      } else {
-        // 創建新配置
-        const { error } = await supabase
-          .from(this.configsTable)
-          .insert({ key, value });
-        
-        if (error) {
-          console.error(`Error creating config for key ${key}:`, error);
-          throw error;
-        }
-      }
+      await db
+        .insert(configs)
+        .values({
+          key,
+          value,
+        })
+        .onConflictDoUpdate({
+          target: configs.key,
+          set: {
+            value,
+            updated_at: new Date(),
+          },
+        });
     } catch (error) {
-      console.error(`Error in setConfig for key ${key}:`, error);
+      console.error(`Error setting config for key ${key}:`, error);
       throw error;
     }
   }
 
   async getAllConfigs(): Promise<{[key: string]: string}> {
-    // 直接返回默认配置，避免任何数据库相关问题
-    return this.getDefaultConfigs();
+    try {
+      const configRecords = await db
+        .select({ key: configs.key, value: configs.value })
+        .from(configs);
+      
+      const configsMap: {[key: string]: string} = {};
+      configRecords.forEach(config => {
+        if (config.key && config.value) {
+          configsMap[config.key] = config.value;
+        }
+      });
+      
+      // 添加默认配置
+      const defaultConfigs = this.getDefaultConfigs();
+      return { ...defaultConfigs, ...configsMap };
+    } catch (error) {
+      console.error('Error getting all configs:', error);
+      return this.getDefaultConfigs();
+    }
   }
   
   // 添加一个新方法，返回默认配置
