@@ -1,9 +1,28 @@
 import { useState, useCallback, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
+// 全局狀態管理 - 確保所有 hook 實例共享同一個狀態
+let globalIsAdmin = false;
+let globalListeners: ((value: boolean) => void)[] = [];
+
+const setGlobalIsAdmin = (value: boolean) => {
+  globalIsAdmin = value;
+  globalListeners.forEach(listener => listener(value));
+};
+
 export function useAdmin() {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(globalIsAdmin);
   const { toast } = useToast();
+
+  // 註冊監聽器以同步全局狀態
+  useEffect(() => {
+    const listener = (value: boolean) => setIsAdmin(value);
+    globalListeners.push(listener);
+    
+    return () => {
+      globalListeners = globalListeners.filter(l => l !== listener);
+    };
+  }, []);
 
   // 簡化的狀態檢查函數，減少頻繁請求
   const checkAdminStatus = useCallback(async (force = false) => {
@@ -23,14 +42,14 @@ export function useAdmin() {
 
       if (response.ok) {
         const data = await response.json();
-        setIsAdmin(data.authenticated);
+        setGlobalIsAdmin(data.authenticated);
         sessionStorage.setItem('admin_last_check', now.toString());
       } else {
-        setIsAdmin(false);
+        setGlobalIsAdmin(false);
       }
     } catch (error) {
       console.error('Admin status check failed:', error);
-      setIsAdmin(false);
+      setGlobalIsAdmin(false);
     }
   }, []);
 
@@ -47,7 +66,7 @@ export function useAdmin() {
       });
 
       if (response.ok) {
-        setIsAdmin(true);
+        setGlobalIsAdmin(true);
         sessionStorage.setItem('admin_last_check', Date.now().toString());
         // 觸發全局事件通知其他組件狀態變更
         window.dispatchEvent(new CustomEvent('adminStatusChanged', { detail: { isAdmin: true } }));
@@ -69,7 +88,7 @@ export function useAdmin() {
         credentials: 'include'
       });
 
-      setIsAdmin(false);
+      setGlobalIsAdmin(false);
       sessionStorage.removeItem('admin_last_check');
       // 觸發全局事件通知其他組件狀態變更
       window.dispatchEvent(new CustomEvent('adminStatusChanged', { detail: { isAdmin: false } }));
@@ -77,7 +96,7 @@ export function useAdmin() {
       return response.ok;
     } catch (error) {
       console.error('Logout failed:', error);
-      setIsAdmin(false);
+      setGlobalIsAdmin(false);
       return false;
     }
   }, []);
