@@ -1,36 +1,19 @@
 import { useState, useCallback, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
-// 全局狀態管理 - 確保所有 hook 實例共享同一個狀態
-let globalIsAdmin = false;
-let globalListeners: ((value: boolean) => void)[] = [];
-
-const setGlobalIsAdmin = (value: boolean) => {
-  globalIsAdmin = value;
-  globalListeners.forEach(listener => listener(value));
-};
-
 export function useAdmin() {
-  const [isAdmin, setIsAdmin] = useState(globalIsAdmin);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // 註冊監聽器以同步全局狀態
-  useEffect(() => {
-    const listener = (value: boolean) => setIsAdmin(value);
-    globalListeners.push(listener);
-    
-    return () => {
-      globalListeners = globalListeners.filter(l => l !== listener);
-    };
-  }, []);
-
-  // 簡化的狀態檢查函數，減少頻繁請求
+  // 簡化的狀態檢查函數
   const checkAdminStatus = useCallback(async (force = false) => {
     // 避免過於頻繁的檢查
     const lastCheck = sessionStorage.getItem('admin_last_check');
     const now = Date.now();
     
     if (!force && lastCheck && now - parseInt(lastCheck) < 5000) {
+      setIsLoading(false);
       return;
     }
 
@@ -42,14 +25,16 @@ export function useAdmin() {
 
       if (response.ok) {
         const data = await response.json();
-        setGlobalIsAdmin(data.authenticated);
+        setIsAdmin(data.authenticated);
         sessionStorage.setItem('admin_last_check', now.toString());
       } else {
-        setGlobalIsAdmin(false);
+        setIsAdmin(false);
       }
+      setIsLoading(false);
     } catch (error) {
       console.error('Admin status check failed:', error);
-      setGlobalIsAdmin(false);
+      setIsAdmin(false);
+      setIsLoading(false);
     }
   }, []);
 
@@ -66,7 +51,7 @@ export function useAdmin() {
       });
 
       if (response.ok) {
-        setGlobalIsAdmin(true);
+        setIsAdmin(true);
         sessionStorage.setItem('admin_last_check', Date.now().toString());
         // 觸發全局事件通知其他組件狀態變更
         window.dispatchEvent(new CustomEvent('adminStatusChanged', { detail: { isAdmin: true } }));
@@ -88,7 +73,7 @@ export function useAdmin() {
         credentials: 'include'
       });
 
-      setGlobalIsAdmin(false);
+      setIsAdmin(false);
       sessionStorage.removeItem('admin_last_check');
       // 觸發全局事件通知其他組件狀態變更
       window.dispatchEvent(new CustomEvent('adminStatusChanged', { detail: { isAdmin: false } }));
@@ -96,48 +81,19 @@ export function useAdmin() {
       return response.ok;
     } catch (error) {
       console.error('Logout failed:', error);
-      setGlobalIsAdmin(false);
+      setIsAdmin(false);
       return false;
     }
   }, []);
 
-  // 監聽自定義事件和組件掛載時檢查
+  // 組件掛載時檢查狀態
   useEffect(() => {
-    const handleAdminLogin = () => {
-      checkAdminStatus(true);
-    };
-
-    const handleAdminLogout = () => {
-      logout();
-    };
-
-    // 監聽存儲變化事件，確保跨組件狀態同步
-    const handleStorageChange = () => {
-      checkAdminStatus(true);
-    };
-
-    window.addEventListener('adminLogin', handleAdminLogin);
-    window.addEventListener('adminLogout', handleAdminLogout);
-    window.addEventListener('storage', handleStorageChange);
-
-    // 初始檢查
     checkAdminStatus();
-
-    // 設定定期檢查，確保狀態同步
-    const interval = setInterval(() => {
-      checkAdminStatus();
-    }, 10000); // 每10秒檢查一次
-
-    return () => {
-      window.removeEventListener('adminLogin', handleAdminLogin);
-      window.removeEventListener('adminLogout', handleAdminLogout);
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
-  }, [checkAdminStatus, logout]);
+  }, [checkAdminStatus]);
 
   return {
     isAdmin,
+    isLoading,
     login,
     logout,
     checkAdminStatus

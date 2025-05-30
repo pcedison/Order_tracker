@@ -27,9 +27,6 @@ export default function HistoryOrders() {
 
   // 直接基於 isAdmin 計算用戶類型，避免狀態同步問題
   const userType = isAdmin ? 'admin' : 'visitor';
-  
-  // 除錯用：追蹤 isAdmin 狀態變化
-  console.log('HistoryOrders Debug - isAdmin:', isAdmin, 'userType:', userType);
 
   // 監聽管理員狀態變化，強制重新渲染
   useEffect(() => {
