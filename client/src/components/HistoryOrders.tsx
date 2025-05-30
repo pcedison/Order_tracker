@@ -22,6 +22,8 @@ export default function HistoryOrders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
   const [userType, setUserType] = useState<'admin' | 'member' | 'visitor'>('visitor');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 30;
 
   // 判斷用戶類型和訪問權限
   useEffect(() => {
@@ -95,6 +97,17 @@ export default function HistoryOrders() {
     order.product_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // 分頁計算
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+
+  // 重置分頁當搜尋條件改變時
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   // 獲取權限說明文字
   const getPermissionText = () => {
     switch (userType) {
@@ -164,22 +177,14 @@ export default function HistoryOrders() {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
-            <Calendar className="h-4 w-4" />
-            <span>
-              {dateRange.start && dateRange.end 
-                ? `${format(new Date(dateRange.start), 'yyyy/MM/dd', { locale: zhTW })} - ${format(new Date(dateRange.end), 'yyyy/MM/dd', { locale: zhTW })}`
-                : '載入中...'
-              }
-            </span>
-          </div>
+
         </div>
 
 
       </div>
 
       {/* 訂單列表 */}
-      <div className="glass-card p-6">
+      <div className="glass-card p-6 mt-4">
         {filteredOrders.length === 0 ? (
           <div className="text-center py-12">
             <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -210,7 +215,7 @@ export default function HistoryOrders() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredOrders.map((order, index) => (
+                {paginatedOrders.map((order, index) => (
                   <tr key={`${order.id}-${index}`} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {format(new Date(order.delivery_date), 'yyyy/MM/dd', { locale: zhTW })}
@@ -235,6 +240,53 @@ export default function HistoryOrders() {
               </tbody>
             </table>
           </div>
+
+          {/* 分頁控制 */}
+          {totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-between">
+              <div className="text-sm text-gray-700">
+                顯示第 {startIndex + 1}-{Math.min(endIndex, filteredOrders.length)} 筆，共 {filteredOrders.length} 筆資料
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  上一頁
+                </button>
+                
+                {/* 頁碼按鈕 */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                  if (pageNumber <= totalPages) {
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => setCurrentPage(pageNumber)}
+                        className={`px-3 py-2 text-sm font-medium rounded-md ${
+                          currentPage === pageNumber
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  }
+                  return null;
+                })}
+                
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  下一頁
+                </button>
+              </div>
+            </div>
+          )}
         )}
       </div>
     </div>
