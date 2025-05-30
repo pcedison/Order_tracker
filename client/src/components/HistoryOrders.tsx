@@ -27,7 +27,6 @@ export default function HistoryOrders() {
 
   // 判斷用戶類型和訪問權限
   useEffect(() => {
-    console.log('HistoryOrders - isAdmin value:', isAdmin);
     if (isAdmin) {
       setUserType('admin');
     } else {
