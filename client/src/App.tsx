@@ -87,6 +87,11 @@ function Router() {
               <OrdersList showConfirmDialog={showConfirmDialog} />
             )}
 
+            {/* 歷史訂單視圖 */}
+            {currentView === 'history' && (
+              <HistoryOrders />
+            )}
+
             {/* 數據分析視圖 */}
             {currentView === 'dashboard' && (
               <DashboardStats />

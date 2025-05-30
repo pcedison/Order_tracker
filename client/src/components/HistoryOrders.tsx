@@ -11,7 +11,7 @@ interface Order {
   product_code: string;
   product_name: string;
   quantity: number;
-  completed_at: string;
+  completed_at?: string;
   status: string;
 }
 
@@ -73,7 +73,17 @@ export default function HistoryOrders() {
       // 將 GroupedOrders 轉換為扁平的 Order 陣列
       const flatOrders: Order[] = [];
       Object.values(historyOrders).forEach(dayOrders => {
-        flatOrders.push(...dayOrders);
+        dayOrders.forEach(order => {
+          flatOrders.push({
+            id: order.id,
+            delivery_date: order.delivery_date,
+            product_code: order.product_code,
+            product_name: order.product_name,
+            quantity: order.quantity,
+            completed_at: order.completed_at || '',
+            status: order.status
+          });
+        });
       });
       setOrders(flatOrders);
     }
@@ -110,7 +120,7 @@ export default function HistoryOrders() {
     }
   };
 
-  if (loading) {
+  if (isLoadingHistory) {
     return (
       <div className="space-y-6">
         <div className="glass-card p-6">
