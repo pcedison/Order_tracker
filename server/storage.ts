@@ -52,48 +52,87 @@ export class SupabaseStorage implements IStorage {
   public authService = new SecureAuthService(); // 用于安全密码验证和加密
   
   constructor() {
-    // 在初始化時從數據庫加載管理員密碼
-    this.initializeAdminPassword();
+    // 在初始化時確保 configs 表存在，然後加載管理員密碼
+    this.ensureConfigsTableExists().then(() => {
+      this.initializeAdminPassword();
+    });
   }
   
-  // 從數據庫加載管理員密碼並設置到 AuthService - 簡化版本
-  private async initializeAdminPassword() {
+  // 確保 Supabase 中的 configs 表存在
+  private async ensureConfigsTableExists(): Promise<void> {
     try {
-      console.log('開始從 PostgreSQL 數據庫加載安全密碼數據');
+      console.log('檢查 Supabase configs 表是否存在...');
       
-      // 使用 PostgreSQL 資料庫查詢安全密碼
-      const [configRecord] = await db
-        .select({ value: configs.value })
-        .from(configs)
-        .where(eq(configs.key, 'ADMIN_PASSWORD_SECURE'))
+      // 嘗試查詢 configs 表來檢查是否存在
+      const { error: selectError } = await supabase
+        .from(this.configsTable)
+        .select('id')
         .limit(1);
       
-      console.log('資料庫配置查詢完成');
+      if (selectError && selectError.message.includes('does not exist')) {
+        console.log('configs 表不存在，嘗試通過插入操作來觸發自動創建...');
+        
+        // 如果表不存在，嘗試通過應用程式邏輯創建一個基本結構
+        // 注意：這需要在 Supabase 控制台中預先設置正確的權限
+        console.log('請在 Supabase 控制台中手動創建 configs 表');
+        console.log('SQL: CREATE TABLE configs (id SERIAL PRIMARY KEY, key TEXT UNIQUE, value TEXT, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW());');
+        
+        return;
+      }
+      
+      if (selectError) {
+        console.error('檢查 configs 表時發生其他錯誤:', selectError.message);
+        return;
+      }
+      
+      console.log('✓ Supabase configs 表已存在並可正常訪問');
+      
+    } catch (error) {
+      console.error('檢查 configs 表時發生錯誤:', error);
+    }
+  }
+  
+  // 從 Supabase 數據庫加載管理員密碼並設置到 AuthService
+  private async initializeAdminPassword() {
+    try {
+      console.log('開始從 Supabase 數據庫加載安全密碼數據');
+      
+      // 使用 Supabase 查詢安全密碼
+      const { data: configRecord, error } = await supabase
+        .from(this.configsTable)
+        .select('value')
+        .eq('key', 'ADMIN_PASSWORD_SECURE')
+        .maybeSingle();
+      
+      if (error && !error.message.includes('does not exist')) {
+        console.error('讀取 Supabase 安全密碼失敗:', error.message);
+      }
+      
+      console.log('Supabase 配置查詢完成');
       
       // 初始化安全密碼系統
       await this.authService.initializeFromDatabase(configRecord?.value || null);
       
-      // 如果是新系統首次運行，儲存預設加密密碼到資料庫
+      // 如果是新系統首次運行，儲存預設加密密碼到 Supabase
       if (!configRecord?.value && this.authService.isPasswordInitialized()) {
         const passwordData = this.authService.getCurrentPasswordData();
         if (passwordData) {
-          console.log('儲存預設加密密碼到 PostgreSQL 資料庫');
+          console.log('儲存預設加密密碼到 Supabase 資料庫');
           
-          await db
-            .insert(configs)
-            .values({
+          const { error: insertError } = await supabase
+            .from(this.configsTable)
+            .upsert({ 
               key: 'ADMIN_PASSWORD_SECURE',
               value: passwordData,
-            })
-            .onConflictDoUpdate({
-              target: configs.key,
-              set: {
-                value: passwordData,
-                updated_at: new Date(),
-              },
+              updated_at: new Date().toISOString()
             });
             
-          console.log('已成功儲存加密密碼到 PostgreSQL 資料庫');
+          if (insertError) {
+            console.error('儲存加密密碼到 Supabase 失敗:', insertError.message);
+            console.log('將使用記憶體中的安全密碼系統');
+          } else {
+            console.log('已成功儲存加密密碼到 Supabase 資料庫');
+          }
         }
       }
     } catch (error) {
@@ -611,13 +650,17 @@ export class SupabaseStorage implements IStorage {
   // 配置管理方法实现
   async getConfig(key: string): Promise<string | null> {
     try {
-      const [configRecord] = await db
-        .select({ value: configs.value })
-        .from(configs)
-        .where(eq(configs.key, key))
-        .limit(1);
+      const { data, error } = await supabase
+        .from(this.configsTable)
+        .select('value')
+        .eq('key', key)
+        .maybeSingle();
       
-      return configRecord?.value || null;
+      if (error && !error.message.includes('does not exist')) {
+        console.error(`Error getting config for key ${key}:`, error.message);
+      }
+      
+      return data?.value || null;
     } catch (error) {
       console.error(`Error getting config for key ${key}:`, error);
       return null;
@@ -626,19 +669,18 @@ export class SupabaseStorage implements IStorage {
 
   async setConfig(key: string, value: string): Promise<void> {
     try {
-      await db
-        .insert(configs)
-        .values({
-          key,
+      const { error } = await supabase
+        .from(this.configsTable)
+        .upsert({ 
+          key, 
           value,
-        })
-        .onConflictDoUpdate({
-          target: configs.key,
-          set: {
-            value,
-            updated_at: new Date(),
-          },
+          updated_at: new Date().toISOString()
         });
+      
+      if (error) {
+        console.error(`Error setting config for key ${key}:`, error.message);
+        throw error;
+      }
     } catch (error) {
       console.error(`Error setting config for key ${key}:`, error);
       throw error;
