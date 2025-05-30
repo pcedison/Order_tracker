@@ -689,12 +689,17 @@ export class SupabaseStorage implements IStorage {
 
   async getAllConfigs(): Promise<{[key: string]: string}> {
     try {
-      const configRecords = await db
-        .select({ key: configs.key, value: configs.value })
-        .from(configs);
+      const { data: configRecords, error } = await supabase
+        .from(this.configsTable)
+        .select('key, value');
+      
+      if (error && !error.message.includes('does not exist')) {
+        console.error('Error getting all configs:', error.message);
+        return this.getDefaultConfigs();
+      }
       
       const configsMap: {[key: string]: string} = {};
-      configRecords.forEach(config => {
+      configRecords?.forEach(config => {
         if (config.key && config.value) {
           configsMap[config.key] = config.value;
         }
