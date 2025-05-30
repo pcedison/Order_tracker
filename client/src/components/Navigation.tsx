@@ -152,8 +152,9 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
                       {!isAdmin ? (
                         <button
                           onClick={() => {
-                            // 記住當前頁面
-                            sessionStorage.setItem('previousPage', `/${currentView === 'orders' ? '' : currentView}`);
+                            // 記住當前正在瀏覽的頁面（而不是即將跳轉到的登入頁面）
+                            const currentPage = currentView === 'orders' ? '/' : `/${currentView}`;
+                            sessionStorage.setItem('previousPage', currentPage);
                             onViewChange('login');
                           }}
                           className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center space-x-3"

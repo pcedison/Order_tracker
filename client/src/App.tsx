@@ -161,7 +161,7 @@ function Router() {
                     </p>
                     <button
                       onClick={() => {
-                        // 記住用戶想要訪問的頁面
+                        // 記住用戶原本想要訪問的頁面（這個頁面就是需要權限的頁面）
                         sessionStorage.setItem('previousPage', `/${currentView}`);
                         setCurrentView('login');
                       }}
