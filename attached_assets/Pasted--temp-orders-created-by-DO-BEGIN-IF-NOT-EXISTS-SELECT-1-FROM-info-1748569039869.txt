@@ -1,0 +1,112 @@
+-- 檢查 temp_orders 表是否存在 created_by 欄位
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'temp_orders' AND column_name = 'created_by'
+    ) THEN
+        -- 添加 created_by 欄位
+        ALTER TABLE temp_orders ADD COLUMN created_by TEXT;
+    END IF;
+END $$;
+
+-- 檢查 order_items 表是否存在 created_by 欄位
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'order_items' AND column_name = 'created_by'
+    ) THEN
+        -- 添加 created_by 欄位
+        ALTER TABLE order_items ADD COLUMN created_by TEXT;
+    END IF;
+END $$;
+
+-- 為 session_id 欄位添加預設值，這樣老數據不會出錯
+ALTER TABLE temp_orders 
+ALTER COLUMN session_id SET DEFAULT '';
+
+-- 移除 temp_orders 表的 session_id 約束（如果有）
+DO $$
+BEGIN
+    -- 檢查是否存在約束
+    IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE table_name = 'temp_orders' AND constraint_type = 'NOT NULL' 
+        AND constraint_name LIKE '%session_id%'
+    ) THEN
+        -- 移除 NOT NULL 約束
+        ALTER TABLE temp_orders ALTER COLUMN session_id DROP NOT NULL;
+    END IF;
+END $$;
+
+-- 為訂單表創建策略
+CREATE POLICY "允許匿名用戶讀取訂單" 
+ON public.orders FOR SELECT 
+TO anon
+USING (true);
+
+CREATE POLICY "允許服務角色管理訂單" 
+ON public.orders FOR ALL 
+TO service_role
+USING (true);
+
+-- 為產品表創建策略
+CREATE POLICY "允許匿名用戶讀取產品" 
+ON public.products FOR SELECT 
+TO anon
+USING (true);
+
+CREATE POLICY "允許服務角色管理產品" 
+ON public.products FOR ALL 
+TO service_role
+USING (true);
+
+-- 為訂單項目表創建策略
+CREATE POLICY "允許匿名用戶讀取訂單項目" 
+ON public.order_items FOR SELECT 
+TO anon
+USING (true);
+
+CREATE POLICY "允許服務角色管理訂單項目" 
+ON public.order_items FOR ALL 
+TO service_role
+USING (true);
+
+-- 為臨時訂單表創建策略
+CREATE POLICY "允許匿名用戶讀取臨時訂單" 
+ON public.temp_orders FOR SELECT 
+TO anon
+USING (true);
+
+CREATE POLICY "允許服務角色管理臨時訂單" 
+ON public.temp_orders FOR ALL 
+TO service_role
+USING (true);
+
+-- 創建 configs 表
+CREATE TABLE IF NOT EXISTS public.configs (
+  id SERIAL PRIMARY KEY,
+  key TEXT UNIQUE NOT NULL,
+  value TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 啟用 Row Level Security (RLS)
+ALTER TABLE public.configs ENABLE ROW LEVEL SECURITY;
+
+-- 創建 configs 表專用的讀取政策
+DROP POLICY IF EXISTS "configs_public_read" ON public.configs;
+CREATE POLICY "configs_public_read" ON public.configs 
+  FOR SELECT USING (true);
+
+-- 創建 configs 表專用的寫入政策  
+DROP POLICY IF EXISTS "configs_public_write" ON public.configs;
+CREATE POLICY "configs_public_write" ON public.configs 
+  FOR ALL USING (true);
+
+-- 插入測試數據來驗證表格工作正常
+INSERT INTO public.configs (key, value) 
+VALUES ('test_key', 'test_value') 
+ON CONFLICT (key) DO NOTHING;
