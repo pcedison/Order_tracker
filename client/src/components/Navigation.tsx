@@ -16,6 +16,7 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   const navItems = [
     { id: 'orders', label: '新增訂單', icon: 'fas fa-plus-circle', route: '/' },
@@ -49,10 +50,20 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
       checkUnreadNotifications();
     };
 
+    // 監聽管理員狀態變化，確保狀態同步
+    const handleAdminStatusChange = (event: any) => {
+      // 強制重新渲染組件以反映最新狀態
+      setIsSettingsOpen(false);
+      setIsNotificationOpen(false);
+      setForceUpdate(prev => prev + 1);
+    };
+
     window.addEventListener('notificationChanged', handleNotificationChange);
+    window.addEventListener('adminStatusChanged', handleAdminStatusChange);
     
     return () => {
       window.removeEventListener('notificationChanged', handleNotificationChange);
+      window.removeEventListener('adminStatusChanged', handleAdminStatusChange);
     };
   }, []);
 
