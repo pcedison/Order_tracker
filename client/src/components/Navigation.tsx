@@ -211,7 +211,7 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
                     {isAdmin ? '系統管理員' : '訪客用戶'}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {isAdmin ? 'admin@dayuan.com' : '查看模式'}
+                    {isAdmin ? 'admin@example.com' : '查看模式'}
                   </p>
                 </div>
                 <div className="gradient-primary w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md">
