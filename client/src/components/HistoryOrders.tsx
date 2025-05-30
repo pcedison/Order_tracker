@@ -167,8 +167,10 @@ export default function HistoryOrders() {
           <div className="flex items-center space-x-2 text-sm text-gray-600">
             <Calendar className="h-4 w-4" />
             <span>
-              {format(new Date(dateRange.start), 'yyyy/MM/dd', { locale: zhTW })} - 
-              {format(new Date(dateRange.end), 'yyyy/MM/dd', { locale: zhTW })}
+              {dateRange.start && dateRange.end 
+                ? `${format(new Date(dateRange.start), 'yyyy/MM/dd', { locale: zhTW })} - ${format(new Date(dateRange.end), 'yyyy/MM/dd', { locale: zhTW })}`
+                : '載入中...'
+              }
             </span>
           </div>
         </div>

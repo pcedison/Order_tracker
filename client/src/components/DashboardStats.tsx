@@ -43,25 +43,7 @@ export default function DashboardStats() {
     { value: "12", label: "12月" },
   ];
 
-  // 按日期分組已完成訂單
-  const groupOrdersByDate = () => {
-    if (!statsData?.orders) return {};
-    
-    const grouped: { [date: string]: any[] } = {};
-    statsData.orders.forEach(order => {
-      if (order.status === 'completed') {
-        const date = order.delivery_date;
-        if (!grouped[date]) {
-          grouped[date] = [];
-        }
-        grouped[date].push(order);
-      }
-    });
-    
-    return grouped;
-  };
 
-  const groupedOrders = groupOrdersByDate();
 
   return (
     <div className="space-y-6">
@@ -233,58 +215,7 @@ export default function DashboardStats() {
         </div>
       )}
 
-      {/* 已完成訂單（按日期分組） */}
-      {Object.keys(groupedOrders).length > 0 && (
-        <div className="glass-morphism rounded-2xl shadow-2xl overflow-hidden print-hidden">
-          <div className="gradient-success p-6 text-white">
-            <h3 className="text-xl font-bold">已完成訂單</h3>
-          </div>
-          <div className="p-6">
-            <div className="space-y-6">
-              {Object.entries(groupedOrders)
-                .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
-                .map(([date, orders]) => {
-                  const totalKg = orders.reduce((sum, order) => {
-                    const quantity = typeof order.quantity === 'string' 
-                      ? parseFloat(order.quantity) 
-                      : Number(order.quantity);
-                    return sum + (isNaN(quantity) ? 0 : quantity);
-                  }, 0);
-                  const totalPackages = Math.ceil(totalKg / 25);
-                  
-                  return (
-                    <div key={date} className="border-l-4 border-blue-500 pl-4">
-                      <div className="flex items-center space-x-3 mb-3">
-                        <h4 className="text-lg font-semibold text-blue-600">{date}</h4>
-                        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                          總重: {totalKg} 公斤 ({totalPackages} 包)
-                        </span>
-                      </div>
-                      <div className="grid gap-3">
-                        {orders.map((order, orderIndex) => (
-                          <div key={orderIndex} className="bg-gray-50 rounded-lg p-4 flex justify-between items-center">
-                            <div>
-                              <span className="font-medium text-gray-900">{order.product_code}</span>
-                              <span className="text-gray-600 ml-2">{order.product_name}</span>
-                            </div>
-                            <div className="text-right">
-                              <span className="font-semibold text-gray-900">{order.quantity} 公斤</span>
-                              {order.completed_at && (
-                                <div className="text-xs text-gray-500">
-                                  完成於 {new Date(order.completed_at).toLocaleString()}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* 載入中狀態 */}
       {isLoadingStats && (
