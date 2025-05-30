@@ -1,6 +1,8 @@
-import { type Order, type InsertOrder } from "@shared/schema";
+import { type Order, type InsertOrder, configs } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { supabase } from "./supabase";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import { SecureAuthService } from "./services/secureAuth";
 import { priceSpreadsheetService } from "./services/priceSpreadsheet";
 import { pool } from "./db";
@@ -47,7 +49,7 @@ export class SupabaseStorage implements IStorage {
   private ordersTable = 'orders'; // 已完成订单表
   private orderItemsTable = 'order_items'; // 订单项表
   private configsTable = 'configs'; // 配置表
-  private authService = new SecureAuthService(); // 用于安全密码验证和加密
+  public authService = new SecureAuthService(); // 用于安全密码验证和加密
   
   constructor() {
     // 在初始化時從數據庫加載管理員密碼
@@ -57,62 +59,41 @@ export class SupabaseStorage implements IStorage {
   // 從數據庫加載管理員密碼並設置到 AuthService - 簡化版本
   private async initializeAdminPassword() {
     try {
-      console.log('開始從數據庫加載安全密碼數據');
+      console.log('開始從 PostgreSQL 數據庫加載安全密碼數據');
       
-      // 查詢新的安全密碼格式
-      const { data, error } = await supabase
-        .from(this.configsTable)
-        .select('value')
-        .eq('key', 'ADMIN_PASSWORD_SECURE')
-        .maybeSingle();
-        
-      if (error) {
-        console.error('讀取數據庫安全密碼失敗:', error.message);
-      }
+      // 使用 PostgreSQL 資料庫查詢安全密碼
+      const [configRecord] = await db
+        .select({ value: configs.value })
+        .from(configs)
+        .where(eq(configs.key, 'ADMIN_PASSWORD_SECURE'))
+        .limit(1);
+      
+      console.log('資料庫配置查詢完成');
       
       // 初始化安全密碼系統
-      await this.authService.initializeFromDatabase(data?.value || null);
+      await this.authService.initializeFromDatabase(configRecord?.value || null);
       
-      // 如果是新系統首次運行，首先確保表存在，然後儲存預設加密密碼
-      if (!data?.value && this.authService.isPasswordInitialized()) {
-        // 先嘗試創建 configs 表（如果不存在）
-        try {
-          const { error: createError } = await supabase.rpc('exec_sql', {
-            sql: `
-              CREATE TABLE IF NOT EXISTS configs (
-                id SERIAL PRIMARY KEY,
-                key TEXT UNIQUE NOT NULL,
-                value TEXT,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-              );
-            `
-          });
-          
-          if (createError) {
-            console.log('嘗試透過 RPC 創建表失敗，使用直接插入方式');
-          }
-        } catch (rpcError) {
-          console.log('RPC 功能不可用，繼續使用直接方式');
-        }
-        
+      // 如果是新系統首次運行，儲存預設加密密碼到資料庫
+      if (!configRecord?.value && this.authService.isPasswordInitialized()) {
         const passwordData = this.authService.getCurrentPasswordData();
         if (passwordData) {
-          console.log('儲存預設加密密碼到數據庫');
-          const { error: insertError } = await supabase
-            .from(this.configsTable)
-            .upsert({ 
+          console.log('儲存預設加密密碼到 PostgreSQL 資料庫');
+          
+          await db
+            .insert(configs)
+            .values({
               key: 'ADMIN_PASSWORD_SECURE',
               value: passwordData,
-              updated_at: new Date().toISOString()
+            })
+            .onConflictDoUpdate({
+              target: configs.key,
+              set: {
+                value: passwordData,
+                updatedAt: new Date(),
+              },
             });
             
-          if (insertError) {
-            console.error('儲存加密密碼失敗:', insertError);
-            console.log('將使用記憶體中的安全密碼系統');
-          } else {
-            console.log('已成功儲存加密密碼到數據庫');
-          }
+          console.log('已成功儲存加密密碼到 PostgreSQL 資料庫');
         }
       }
     } catch (error) {

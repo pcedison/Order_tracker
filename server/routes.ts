@@ -109,28 +109,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message: "Password is required" });
       }
 
-      console.log("開始驗證管理員密碼");
+      console.log("開始驗證管理員密碼 - 使用安全加密系統");
       
-      // 先使用環境變數驗證，確保即使在重新部署後也能登入
-      const envPassword = process.env.ADMIN_PASSWORD || '';
-      let verified = false;
-      
-      if (envPassword && password === envPassword) {
-        console.log("使用環境變數密碼驗證成功");
-        verified = true;
-      } else {
-        // 從服務獲取當前密碼
-        const passwordDetails = authService.getCurrentPassword();
-        const isPasswordHashed = passwordDetails && passwordDetails.startsWith('*HASH*:');
-        
-        console.log(`密碼已載入，長度: ${passwordDetails?.length || 0}, 
-                    哈希模式: ${isPasswordHashed ? '是' : '否'}`);
-        
-        console.log(`使用${isPasswordHashed ? '哈希' : '明文'}模式驗證密碼`);
-        
-        // 執行實際驗證
-        verified = await authService.verifyPassword(password);
-      }
+      // 完全移除環境變數驗證，只使用資料庫中的安全加密密碼
+      const verified = await storage.authService.verifyPassword(password);
       
       console.log(`密碼驗證結果: ${verified ? '成功' : '失敗'}`);
       
