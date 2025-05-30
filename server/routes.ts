@@ -283,11 +283,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 1. 特殊路由应该放在前面，避免被参数路由拦截
   app.get("/api/orders/history", async (req, res) => {
     try {
-      // Check if user is admin
-      if (!req.session?.isAdmin) {
-        return res.status(403).json({ message: "Unauthorized" });
-      }
-
       const { startDate, endDate } = req.query;
       
       if (!startDate || !endDate) {
@@ -302,6 +297,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid date format" });
       }
 
+      // 根據用戶權限限制查看範圍
+      const isAdmin = req.session?.isAdmin || false;
+      const today = new Date();
+      let maxStartDate: Date;
+
+      if (isAdmin) {
+        // 管理員可查看全部歷史
+        maxStartDate = new Date('2020-01-01');
+      } else {
+        // 非管理員（訪客/會員）只能查看最近3個月
+        maxStartDate = new Date();
+        maxStartDate.setMonth(maxStartDate.getMonth() - 3);
+      }
+
+      // 驗證請求的開始日期不能早於允許的日期
+      const requestedStartDate = new Date(startDate as string);
+      if (requestedStartDate < maxStartDate) {
+        const limitedStartDate = maxStartDate.toISOString().split('T')[0];
+        console.log(`查詢已完成訂單 - 開始日期: ${limitedStartDate}, 結束日期: ${endDate}`);
+        
+        const orders = await storage.getOrdersByDateRange(
+          limitedStartDate,
+          endDate as string,
+          "completed"
+        );
+        
+        return res.json(orders);
+      }
+
+      console.log(`查詢已完成訂單 - 開始日期: ${startDate}, 結束日期: ${endDate}`);
+      
       const orders = await storage.getOrdersByDateRange(
         startDate as string,
         endDate as string,
