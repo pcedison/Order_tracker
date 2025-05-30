@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useOrders } from '@/hooks/useOrders';
-import { useAdmin } from '@/hooks/useAdmin';
+import { useAdmin } from '@/context/AdminContext';
 import { Calendar, Search, FileText, Package, Clock, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, subMonths, subYears } from 'date-fns';
 import { zhTW } from 'date-fns/locale';

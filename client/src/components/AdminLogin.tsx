@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
+import { useAdmin } from '@/context/AdminContext';
 import { Lock, LogIn } from 'lucide-react';
 
 export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { login } = useAdmin();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,32 +23,21 @@ export default function AdminLogin() {
     setIsLoading(true);
     
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ password }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Login failed');
+      const success = await login(password);
+      
+      if (success) {
+        toast({
+          title: "登入成功",
+          description: "歡迎，管理員！"
+        });
+        setPassword('');
+      } else {
+        toast({
+          title: "登入失敗",
+          description: "密碼錯誤，請重新輸入",
+          variant: "destructive"
+        });
       }
-
-      // 登入成功，觸發狀態更新
-      window.dispatchEvent(new CustomEvent('adminLogin'));
-      
-      toast({
-        title: "登入成功",
-        description: "歡迎，管理員！"
-      });
-      
-      setPassword('');
-      
-      // 稍後重新載入以確保狀態同步
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
       
     } catch (error) {
       toast({

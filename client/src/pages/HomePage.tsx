@@ -5,7 +5,7 @@ import AdminSection from "@/components/AdminSection";
 import AdminLogin from "@/components/AdminLogin";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
-import { useAdmin } from "@/hooks/useAdmin";
+import { useAdmin } from "@/context/AdminContext";
 
 export default function HomePage() {
   const [confirmConfig, setConfirmConfig] = useState<{

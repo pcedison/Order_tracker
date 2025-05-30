@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useOrders } from "@/hooks/useOrders";
-import { useAdmin } from "@/hooks/useAdmin";
+import { useAdmin } from "@/context/AdminContext";
 import { Order } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ConfigSettings from "./ConfigSettings";
