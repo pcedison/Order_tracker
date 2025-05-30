@@ -175,25 +175,7 @@ export default function HistoryOrders() {
           </div>
         </div>
 
-        {/* 訂單統計 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="text-sm text-blue-600 font-medium">總訂單數</div>
-            <div className="text-2xl font-bold text-blue-800">{filteredOrders.length}</div>
-          </div>
-          <div className="bg-green-50 p-4 rounded-lg">
-            <div className="text-sm text-green-600 font-medium">總數量</div>
-            <div className="text-2xl font-bold text-green-800">
-              {filteredOrders.reduce((sum, order) => sum + order.quantity, 0)}
-            </div>
-          </div>
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <div className="text-sm text-purple-600 font-medium">產品種類</div>
-            <div className="text-2xl font-bold text-purple-800">
-              {new Set(filteredOrders.map(order => order.product_code)).size}
-            </div>
-          </div>
-        </div>
+
       </div>
 
       {/* 訂單列表 */}
@@ -228,8 +210,8 @@ export default function HistoryOrders() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50">
+                {filteredOrders.map((order, index) => (
+                  <tr key={`${order.id}-${index}`} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {format(new Date(order.delivery_date), 'yyyy/MM/dd', { locale: zhTW })}
                     </td>
