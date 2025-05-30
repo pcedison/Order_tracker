@@ -461,6 +461,7 @@ export function useOrders() {
     deleteOrder,
     completeOrder,
     loadHistory,
+    getOrdersHistory: loadHistory, // 添加別名以支持組件
     generateStats,
     editHistoryOrder,
     deleteHistoryOrder,

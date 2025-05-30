@@ -20,6 +20,7 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
   const navItems = [
     { id: 'orders', label: '新增訂單', icon: 'fas fa-plus-circle', route: '/' },
     { id: 'list', label: '訂單列表', icon: 'fas fa-list-ul', route: '/orders' },
+    { id: 'history', label: '歷史訂單', icon: 'fas fa-history', route: '/history' },
     { id: 'dashboard', label: '數據分析', icon: 'fas fa-chart-line', route: '/dashboard' }
   ];
 
@@ -211,7 +212,7 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
                     {isAdmin ? '系統管理員' : '訪客用戶'}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {isAdmin ? 'admin@example.com' : '查看模式'}
+                    {isAdmin ? 'pcedison@gmail.com' : '查看模式'}
                   </p>
                 </div>
                 <div className="gradient-primary w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md">

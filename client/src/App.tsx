@@ -8,6 +8,7 @@ import HomePage from "@/pages/HomePage";
 import Navigation from "@/components/Navigation";
 import OrderForm from "@/components/OrderForm";
 import OrdersList from "@/components/OrdersList";
+import HistoryOrders from "@/components/HistoryOrders";
 import AdminSection from "@/components/AdminSection";
 import ConfigSettings from "@/components/ConfigSettings";
 import ConfirmDialog from "@/components/ConfirmDialog";
