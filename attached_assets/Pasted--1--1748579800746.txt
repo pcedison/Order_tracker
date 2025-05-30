@@ -1,0 +1,115 @@
+# 身分狀態同步問題除錯指南
+
+## 問題描述
+- 已登入為管理員，但頁首兩處身分狀態仍顯示為訪客
+- 需要確保所有位置的身分狀態都能正確同步
+
+## 除錯步驟
+
+### 1. 檢查 useAdmin Hook 的實現
+```typescript
+// 在 HistoryOrders.tsx 中加入調試代碼
+const { isAdmin } = useAdmin();
+console.log('Current isAdmin status:', isAdmin);
+```
+
+### 2. 檢查 localStorage 中的管理員狀態
+```javascript
+// 在瀏覽器控制台執行
+console.log('isAdmin in localStorage:', localStorage.getItem('isAdmin'));
+console.log('adminToken in localStorage:', localStorage.getItem('adminToken'));
+```
+
+### 3. 確認登入流程是否正確設置管理員狀態
+```typescript
+// 在登入成功後的處理函數中
+const handleLoginSuccess = (token: string, isAdmin: boolean) => {
+  localStorage.setItem('adminToken', token);
+  localStorage.setItem('isAdmin', String(isAdmin));
+  
+  // 觸發狀態更新事件
+  window.dispatchEvent(new Event('adminStatusChanged'));
+  
+  // 或直接使用 setIsAdmin（如果在 useAdmin hook 中暴露）
+  // setIsAdmin(true);
+};
+```
+
+### 4. 檢查組件重新渲染
+```typescript
+// 在 HistoryOrders.tsx 中加入
+useEffect(() => {
+  console.log('Component re-rendered with userType:', userType);
+}, [userType]);
+```
+
+## 可能的問題原因
+
+### 1. useAdmin Hook 未正確初始化
+- Hook 可能在組件掛載時還未獲取到正確的管理員狀態
+- 解決方案：加入 loading 狀態，確保狀態載入完成後再渲染
+
+### 2. localStorage 同步問題
+- 登入後 localStorage 未正確更新
+- 解決方案：確保登入流程正確設置 localStorage
+
+### 3. 組件狀態更新時機問題
+- useState 的初始值只在組件首次渲染時設定
+- 解決方案：確保 useEffect 正確監聽 isAdmin 變化
+
+### 4. Context 或全局狀態管理問題
+- 如果使用 Context API 或狀態管理庫，可能存在狀態傳遞問題
+- 解決方案：檢查 Provider 是否正確包裹組件
+
+## 建議的修復方案
+
+### 方案 1：加入 Loading 狀態
+```typescript
+const { isAdmin, loading } = useAdmin();
+
+if (loading) {
+  return <div>載入中...</div>;
+}
+```
+
+### 方案 2：直接使用 isAdmin 而不是本地狀態
+```typescript
+const getPermissionText = () => {
+  if (isAdmin) {
+    return '管理員 - 可查看全部歷史';
+  }
+  return '訪客 - 可查看最近3個月';
+};
+```
+
+### 方案 3：使用 Context API 管理全局狀態
+```typescript
+// 創建 AuthContext
+const AuthContext = createContext<{
+  isAdmin: boolean;
+  setIsAdmin: (value: boolean) => void;
+}>({
+  isAdmin: false,
+  setIsAdmin: () => {},
+});
+
+// 在最頂層組件提供 Context
+<AuthContext.Provider value={{ isAdmin, setIsAdmin }}>
+  <App />
+</AuthContext.Provider>
+```
+
+## 測試步驟
+
+1. 清除瀏覽器 localStorage
+2. 重新登入為管理員
+3. 檢查控制台輸出的調試信息
+4. 確認所有身分狀態顯示是否同步
+
+## 最終檢查清單
+
+- [ ] useAdmin hook 正確返回 isAdmin 狀態
+- [ ] localStorage 中有正確的管理員標記
+- [ ] 組件在 isAdmin 變化時重新渲染
+- [ ] 所有顯示身分的地方都使用相同的數據源
+- [ ] 沒有硬編碼的預設值覆蓋了實際狀態

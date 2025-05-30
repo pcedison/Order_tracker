@@ -225,6 +225,10 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
                   <p className="text-xs text-gray-500">
                     {isAdmin ? 'pcedison@gmail.com' : '查看模式'}
                   </p>
+                  {/* 除錯資訊 */}
+                  <p className="text-xs text-red-500">
+                    Debug: isAdmin = {String(isAdmin)}
+                  </p>
                 </div>
                 <div className="gradient-primary w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md">
                   {isAdmin ? 'A' : 'G'}

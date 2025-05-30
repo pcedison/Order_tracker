@@ -21,19 +21,28 @@ export default function HistoryOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
-  const [userType, setUserType] = useState<'admin' | 'member' | 'visitor'>('visitor');
   const [currentPage, setCurrentPage] = useState(1);
+  const [forceUpdate, setForceUpdate] = useState(0);
   const itemsPerPage = 30;
 
-  // 判斷用戶類型和訪問權限
+  // 直接基於 isAdmin 計算用戶類型，避免狀態同步問題
+  const userType = isAdmin ? 'admin' : 'visitor';
+  
+  // 除錯用：追蹤 isAdmin 狀態變化
+  console.log('HistoryOrders Debug - isAdmin:', isAdmin, 'userType:', userType);
+
+  // 監聽管理員狀態變化，強制重新渲染
   useEffect(() => {
-    if (isAdmin) {
-      setUserType('admin');
-    } else {
-      // 簡化邏輯：非管理員都視為訪客，限制查看最近3個月
-      setUserType('visitor');
-    }
-  }, [isAdmin]);
+    const handleAdminStatusChange = () => {
+      setForceUpdate(prev => prev + 1);
+    };
+
+    window.addEventListener('adminStatusChanged', handleAdminStatusChange);
+    
+    return () => {
+      window.removeEventListener('adminStatusChanged', handleAdminStatusChange);
+    };
+  }, []);
 
   // 根據用戶類型設定日期範圍
   useEffect(() => {
@@ -41,20 +50,12 @@ export default function HistoryOrders() {
     let startDate: Date;
     let endDate: Date = today;
 
-    switch (userType) {
-      case 'admin':
-        // 管理員可查看全部歷史（從2020年開始）
-        startDate = new Date('2020-05-30');
-        break;
-      case 'member':
-        // 會員可查看最近一年
-        startDate = subYears(today, 1);
-        break;
-      case 'visitor':
-      default:
-        // 訪客只能查看最近3個月
-        startDate = subMonths(today, 3);
-        break;
+    if (userType === 'admin') {
+      // 管理員可查看全部歷史（從2020年開始）
+      startDate = new Date('2020-05-30');
+    } else {
+      // 訪客只能查看最近3個月
+      startDate = subMonths(today, 3);
     }
 
     const dateRange = {
@@ -106,17 +107,9 @@ export default function HistoryOrders() {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // 獲取權限說明文字
+  // 獲取權限說明文字 - 簡化邏輯，直接基於 isAdmin
   const getPermissionText = () => {
-    switch (userType) {
-      case 'admin':
-        return '管理員 - 可查看全部歷史';
-      case 'member':
-        return '會員 - 可查看最近一年';
-      case 'visitor':
-      default:
-        return '訪客 - 可查看最近3個月';
-    }
+    return isAdmin ? '管理員 - 可查看全部歷史' : '訪客 - 可查看最近3個月';
   };
 
   if (isLoadingHistory) {
