@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'wouter';
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from '@/context/AdminContext';
 import { Lock, LogIn } from 'lucide-react';
@@ -8,6 +9,7 @@ export default function AdminLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { login } = useAdmin();
+  const [, setLocation] = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +33,11 @@ export default function AdminLogin() {
           description: "歡迎，管理員！"
         });
         setPassword('');
+        
+        // 登入成功後返回上一頁或默認頁面
+        const previousPage = sessionStorage.getItem('previousPage') || '/';
+        sessionStorage.removeItem('previousPage');
+        setLocation(previousPage);
       } else {
         toast({
           title: "登入失敗",

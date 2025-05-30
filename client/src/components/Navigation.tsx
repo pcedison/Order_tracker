@@ -151,7 +151,11 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
                     <div className="p-2">
                       {!isAdmin ? (
                         <button
-                          onClick={() => onViewChange('login')}
+                          onClick={() => {
+                            // 記住當前頁面
+                            sessionStorage.setItem('previousPage', `/${currentView === 'orders' ? '' : currentView}`);
+                            onViewChange('login');
+                          }}
                           className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center space-x-3"
                         >
                           <User size={16} className="text-gray-500" />

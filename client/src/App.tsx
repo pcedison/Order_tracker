@@ -160,7 +160,11 @@ function Router() {
                       您需要管理員權限才能存取系統配置和管理功能
                     </p>
                     <button
-                      onClick={() => setCurrentView('login')}
+                      onClick={() => {
+                        // 記住用戶想要訪問的頁面
+                        sessionStorage.setItem('previousPage', `/${currentView}`);
+                        setCurrentView('login');
+                      }}
                       className="gradient-primary text-white font-semibold py-3 px-6 rounded-xl btn-3d"
                     >
                       <i className="fas fa-sign-in-alt mr-2"></i>
