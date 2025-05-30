@@ -14,7 +14,7 @@ import ConfigSettings from "@/components/ConfigSettings";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import AdminLogin from "@/components/AdminLogin";
 import DashboardStats from "@/components/DashboardStats";
-import { useAdmin } from "@/hooks/useAdmin";
+import { AdminProvider, useAdmin } from "@/context/AdminContext";
 
 function Router() {
   const [location] = useLocation();
@@ -188,8 +188,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <AdminProvider>
+        <Router />
+        <Toaster />
+      </AdminProvider>
     </QueryClientProvider>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { useAdmin } from '@/hooks/useAdmin';
+import { useAdmin } from '@/context/AdminContext';
 import { Bell, Settings, User, Menu, X, Package } from 'lucide-react';
 import NotificationCenter from './NotificationCenter';
 
