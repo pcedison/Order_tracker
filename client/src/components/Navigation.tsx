@@ -11,7 +11,7 @@ interface NavigationProps {
 
 export default function Navigation({ currentView, onViewChange }: NavigationProps) {
   const [, setLocation] = useLocation();
-  const { isAdmin } = useAdmin();
+  const { isAdmin, logout } = useAdmin();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -199,9 +199,8 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
                           </button>
                           <div className="border-t border-gray-200 my-2"></div>
                           <button
-                            onClick={() => {
-                              // 這裡會觸發登出功能
-                              window.dispatchEvent(new CustomEvent('adminLogout'));
+                            onClick={async () => {
+                              await logout();
                               setIsSettingsOpen(false);
                             }}
                             className="w-full text-left px-4 py-3 rounded-lg hover:bg-red-50 transition-colors flex items-center space-x-3 text-red-600"

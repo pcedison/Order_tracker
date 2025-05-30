@@ -16,7 +16,7 @@ interface Order {
 }
 
 export default function HistoryOrders() {
-  const { isAdmin } = useAdmin();
+  const { isAdmin, isLoading } = useAdmin();
   const { loadHistory, historyOrders, isLoadingHistory } = useOrders();
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -106,10 +106,11 @@ export default function HistoryOrders() {
 
   // 獲取權限說明文字 - 簡化邏輯，直接基於 isAdmin
   const getPermissionText = () => {
+    if (isLoading) return '載入中...';
     return isAdmin ? '管理員 - 可查看全部歷史' : '訪客 - 可查看最近3個月';
   };
 
-  if (isLoadingHistory) {
+  if (isLoading || isLoadingHistory) {
     return (
       <div className="space-y-6">
         <div className="glass-card p-8 text-center">
