@@ -135,10 +135,7 @@ export default function HistoryOrders() {
               <p className="text-gray-600">{getPermissionText()}</p>
             </div>
           </div>
-          <div className="flex items-center space-x-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">
-            <Eye className="h-4 w-4" />
-            <span>{getPermissionText()}</span>
-          </div>
+
         </div>
 
         {/* 搜尋功能 */}
