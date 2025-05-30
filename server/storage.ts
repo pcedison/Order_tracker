@@ -780,18 +780,31 @@ export class SupabaseStorage implements IStorage {
           `);
           console.log('確保configs表已存在');
           
-          // 2. 更新主密碼
-          // 更新安全加密密碼到 Supabase
-          const { error: updateError } = await supabase
+          // 2. 更新主密碼 - 先嘗試更新，如果失敗則插入
+          let { error: updateError } = await supabase
             .from(this.configsTable)
-            .upsert({ 
-              key: 'ADMIN_PASSWORD_SECURE',
+            .update({ 
               value: newPasswordToSave,
               updated_at: new Date().toISOString()
-            });
+            })
+            .eq('key', 'ADMIN_PASSWORD_SECURE');
           
+          // 如果更新失敗（記錄不存在），則插入新記錄
           if (updateError) {
-            console.error('更新安全密碼失敗:', updateError);
+            console.log('記錄不存在，嘗試插入新記錄');
+            const { error: insertError } = await supabase
+              .from(this.configsTable)
+              .insert({ 
+                key: 'ADMIN_PASSWORD_SECURE',
+                value: newPasswordToSave
+              });
+            
+            if (insertError) {
+              console.error('插入新密碼記錄失敗:', insertError);
+            } else {
+              console.log('新密碼記錄已成功插入到數據庫');
+              databaseUpdateSuccess = true;
+            }
           } else {
             console.log('安全加密密碼已成功更新到數據庫');
             databaseUpdateSuccess = true;
