@@ -23,6 +23,7 @@ export function useAdmin() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Admin status response:', data);
         setIsAdmin(data.authenticated);
         sessionStorage.setItem('admin_last_check', now.toString());
       } else {
