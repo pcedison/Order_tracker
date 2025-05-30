@@ -109,7 +109,25 @@ function Router() {
                     <p className="mt-2 text-purple-100">請輸入管理員密碼以存取系統管理功能</p>
                   </div>
                   <div className="p-8">
-                    <AdminLogin />
+                    <AdminLogin onLoginSuccess={() => {
+                      // 登入成功後返回上一頁或默認頁面
+                      const previousPage = sessionStorage.getItem('previousPage');
+                      sessionStorage.removeItem('previousPage');
+                      
+                      if (previousPage === '/') {
+                        setCurrentView('orders');
+                      } else if (previousPage === '/dashboard') {
+                        setCurrentView('dashboard');
+                      } else if (previousPage === '/admin') {
+                        setCurrentView('admin');
+                      } else if (previousPage === '/config') {
+                        setCurrentView('config');
+                      } else if (previousPage === '/history') {
+                        setCurrentView('history');
+                      } else {
+                        setCurrentView('orders'); // 默認返回訂單頁面
+                      }
+                    }} />
                   </div>
                 </div>
               </div>
